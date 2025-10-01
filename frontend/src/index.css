@@ -1,0 +1,324 @@
+/* Airbnb Color Scheme */
+:root {
+  --airbnb-red: #FF385C;
+  --airbnb-dark-red: #E31C5F;
+  --airbnb-black: #222222;
+  --airbnb-gray: #717171;
+  --airbnb-light-gray: #DDDDDD;
+  --airbnb-bg-gray: #F7F7F7;
+  --airbnb-white: #FFFFFF;
+  --airbnb-green: #00A699;
+  --airbnb-blue: #0088CC;
+}
+
+/* Global Styles */
+body {
+  font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--airbnb-black);
+  background-color: var(--airbnb-white);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom Button Styles */
+.btn-airbnb {
+  background-color: var(--airbnb-red);
+  border-color: var(--airbnb-red);
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
+  transition: all 0.2s ease;
+}
+
+.btn-airbnb:hover {
+  background-color: var(--airbnb-dark-red);
+  border-color: var(--airbnb-dark-red);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 56, 92, 0.3);
+}
+
+.btn-airbnb-outline {
+  background-color: transparent;
+  border: 1px solid var(--airbnb-black);
+  color: var(--airbnb-black);
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
+  transition: all 0.2s ease;
+}
+
+.btn-airbnb-outline:hover {
+  background-color: var(--airbnb-black);
+  border-color: var(--airbnb-black);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 34, 34, 0.3);
+}
+
+/* Custom Form Styles */
+.form-control:focus {
+  border-color: var(--airbnb-red);
+  box-shadow: 0 0 0 0.2rem rgba(255, 56, 92, 0.25);
+}
+
+.form-select:focus {
+  border-color: var(--airbnb-red);
+  box-shadow: 0 0 0 0.2rem rgba(255, 56, 92, 0.25);
+}
+
+/* Card Styles */
+.card-airbnb {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.card-airbnb:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Text Colors */
+.text-airbnb-red {
+  color: var(--airbnb-red) !important;
+}
+
+.text-airbnb-gray {
+  color: var(--airbnb-gray) !important;
+}
+
+.text-airbnb-black {
+  color: var(--airbnb-black) !important;
+}
+
+/* Background Colors */
+.bg-airbnb-light {
+  background-color: var(--airbnb-bg-gray) !important;
+}
+
+/* Custom Spacing */
+.py-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  .display-4 {
+    font-size: 2.5rem;
+  }
+  
+  .lead {
+    font-size: 1.1rem;
+  }
+}
+
+/* Custom Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Search Bar Enhancements */
+.search-bar {
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar .form-control {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.search-bar .form-control:focus {
+  box-shadow: none;
+}
+
+.search-bar .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--airbnb-black);
+  margin-bottom: 4px;
+}
+
+/* Category Icons */
+.category-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  transition: all 0.2s ease;
+}
+
+.category-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Property Cards */
+.property-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.property-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.property-card .card-img-top {
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.property-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Navbar Enhancements */
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.navbar-brand svg {
+  transition: transform 0.2s ease;
+}
+
+.navbar-brand:hover svg {
+  transform: scale(1.1);
+}
+
+/* Dropdown Enhancements */
+.dropdown-menu {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+}
+
+.dropdown-item {
+  padding: 12px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--airbnb-bg-gray);
+  color: var(--airbnb-black);
+}
+
+/* Loading States */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid var(--airbnb-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Utility Classes */
+.shadow-airbnb {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.shadow-airbnb-lg {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.border-radius-airbnb {
+  border-radius: 12px !important;
+}
+
+.border-radius-airbnb-lg {
+  border-radius: 16px !important;
+}
+
+/* Responsive Images */
+.img-responsive {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--airbnb-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--airbnb-black);
+}
+
+/* Link Styles */
+a {
+  color: var(--airbnb-red);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--airbnb-dark-red);
+}
+
+/* Button Reset */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--airbnb-red);
+  outline-offset: 2px;
+}
