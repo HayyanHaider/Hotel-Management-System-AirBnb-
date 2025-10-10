@@ -4,6 +4,9 @@ class Admin extends User {
   constructor(userData) {
     super(userData);
     this.assignedRegion = userData.assignedRegion || '';
+    this.adminLevel = userData.adminLevel || 'basic';
+    this.actionsPerformed = userData.actionsPerformed || [];
+    this.lastLoginAt = userData.lastLoginAt || null;
   }
 
   // Method to get default permissions based on admin level

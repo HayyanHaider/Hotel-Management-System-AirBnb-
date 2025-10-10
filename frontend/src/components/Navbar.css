@@ -1,9 +1,116 @@
+/* Override Bootstrap navbar styles only when needed */
+.navbar.bg-white {
+  background: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .navbar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
+}
+
+/* Ensure proper navbar alignment */
+.navbar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  flex-shrink: 0;
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Ensure consistent dropdown positioning */
+.dropdown-menu.dropdown-menu-end {
+  right: 0;
+  left: auto;
+}
+
+/* Dropdown menu item hover effects */
+.dropdown-item {
+  transition: all 0.2s ease;
+  padding: 8px 16px;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+  transform: translateX(4px);
+}
+
+.dropdown-item:active {
+  background-color: #e9ecef;
+  color: #0056b3;
+}
+
+/* Dropdown header styling */
+.dropdown-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 12px 16px;
+}
+
+/* Dropdown divider styling */
+.dropdown-divider {
+  margin: 4px 0;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Button dropdown items (like logout) */
+.dropdown-item.btn {
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+}
+
+.dropdown-item.btn:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+  transform: translateX(4px);
+}
+
+/* Circular User Button Styles */
+.user-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: 2px solid #dee2e6;
+}
+
+.user-button:hover {
+  background-color: #f8f9fa;
+  border-color: #007bff;
+  color: #007bff;
+  transform: scale(1.05);
+}
+
+.user-dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navbar-container {
@@ -183,7 +290,6 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   min-width: 150px;
   z-index: 1000;
-  margin-top: 10px;
   overflow: hidden;
 }
 

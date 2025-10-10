@@ -1,3 +1,6 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 class User {
   constructor(userData) {
     this.id = userData.id;

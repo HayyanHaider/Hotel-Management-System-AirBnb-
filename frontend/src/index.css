@@ -63,13 +63,13 @@ body {
 
 /* Custom Form Styles */
 .form-control:focus {
-  border-color: var(--airbnb-red);
-  box-shadow: 0 0 0 0.2rem rgba(255, 56, 92, 0.25);
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
 
 .form-select:focus {
-  border-color: var(--airbnb-red);
-  box-shadow: 0 0 0 0.2rem rgba(255, 56, 92, 0.25);
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
 
 /* Card Styles */
