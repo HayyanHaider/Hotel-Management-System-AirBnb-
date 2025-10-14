@@ -4,6 +4,9 @@ const { Schema } = mongoose;
 
 const BookingSchema = new Schema({
   id: { type: Schema.Types.ObjectId, auto: true },
+  hotelId: { type: Schema.Types.ObjectId, ref: 'Hotel', required: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  paymentId: { type: Schema.Types.ObjectId, ref: 'Payment', default: null },
   checkIn: { type: Date, required: true },
   checkOut: { type: Date, required: true },
   nights: { type: Number, required: true, min: 1 },

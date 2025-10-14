@@ -52,6 +52,15 @@ const Navbar = () => {
     navigate('/');
   };
 
+  const handleLogoClick = (e) => {
+    if (user && user.role === 'admin') {
+      e.preventDefault();
+      navigate('/admin-dashboard', { replace: true });
+      // Dispatch event to reset admin dashboard to overview
+      window.dispatchEvent(new Event('resetAdminDashboard'));
+    }
+  };
+
   const handleBecomeHost = () => {
     navigate('/signup?type=host');
   };
@@ -68,8 +77,9 @@ const Navbar = () => {
       <div className="container-fluid">
         {/* Logo */}
         <Link
-          to={user ? `/${user.role}-dashboard` : "/"}
+          to={user && user.role === 'admin' ? "/admin-dashboard" : "/"}
           className="navbar-brand d-flex align-items-center text-decoration-none"
+          onClick={handleLogoClick}
         >
           <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>

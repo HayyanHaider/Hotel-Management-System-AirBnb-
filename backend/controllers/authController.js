@@ -220,8 +220,61 @@ const getProfile = async (req, res) => {
   }
 };
 
+// Verify Token Controller
+const verifyTokenController = async (req, res) => {
+  try {
+    const dbUser = await UserModel.findById(req.user.userId).select('-passwordHash');
+    
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is suspended
+    if (dbUser.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is suspended'
+      });
+    }
+
+    // Create user instance using OOP
+    const userData = {
+      id: dbUser._id,
+      name: dbUser.name,
+      email: dbUser.email,
+      phone: dbUser.phone,
+      role: dbUser.role,
+      isVerified: dbUser.isVerified,
+      isSuspended: dbUser.isSuspended,
+      suspendedReason: dbUser.suspendedReason,
+      walletBalance: dbUser.walletBalance,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt
+    };
+
+    const userInstance = createUserInstance(userData);
+
+    res.json({
+      success: true,
+      valid: true,
+      user: userInstance.getPublicInfo()
+    });
+
+  } catch (error) {
+    console.error('Verify token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while verifying token'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
-  getProfile
+  getProfile,
+  verifyTokenController
 };

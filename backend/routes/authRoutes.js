@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login, getProfile } = require('../controllers/authController');
+const { signup, login, getProfile, verifyTokenController } = require('../controllers/authController');
 const { verifyToken, authorize } = require('../middleware/authMiddleware');
 
 // Public routes
@@ -9,6 +9,7 @@ router.post('/login', login);
 
 // Protected routes
 router.get('/profile', verifyToken, getProfile);
+router.get('/verify-token', verifyToken, verifyTokenController);
 
 // Role-specific routes for testing
 router.get('/customer-dashboard', verifyToken, authorize('customer'), (req, res) => {
