@@ -31,8 +31,8 @@ const AdminDashboard = () => {
   }, [activeSection]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const token = sessionStorage.getItem('token');
+    const userData = sessionStorage.getItem('user');
     
     if (!token || !userData) {
       navigate('/login');
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
   const fetchHotels = async (status = 'all') => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const statusParam = status !== 'all' ? `&status=${status}` : '';
       const searchParam = searchQuery ? `&search=${searchQuery}` : '';
       const response = await fetch(`${API_URL}/admin/hotels?limit=50${statusParam}${searchParam}`, {
@@ -99,7 +99,7 @@ const AdminDashboard = () => {
   const fetchUsers = async (status = 'all') => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const statusParam = status !== 'all' ? `&status=${status}` : '';
       const searchParam = searchQuery ? `&search=${searchQuery}` : '';
       const response = await fetch(`${API_URL}/admin/users?limit=50${statusParam}${searchParam}`, {
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
   const fetchRefundRequests = async (status = 'all') => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const statusParam = status !== 'all' ? `&status=${status}` : '';
       const response = await fetch(`${API_URL}/admin/support/refunds?limit=50${statusParam}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
   const fetchLowRatedHotels = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`${API_URL}/admin/monitoring/low-rated-hotels?limit=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -156,7 +156,7 @@ const AdminDashboard = () => {
 
   const handleHotelAction = async (hotelId, action, reason = '') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`${API_URL}/admin/hotels/${hotelId}/${action}`, {
         method: 'PUT',
         headers: {
@@ -182,7 +182,7 @@ const AdminDashboard = () => {
 
   const handleUserAction = async (userId, action, reason = '') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`${API_URL}/admin/users/${userId}/${action}`, {
         method: 'PUT',
         headers: {
@@ -208,7 +208,7 @@ const AdminDashboard = () => {
 
   const handleRefundAction = async (refundId, action, notes = '') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await fetch(`${API_URL}/admin/support/refunds/${refundId}/process`, {
         method: 'PUT',
         headers: {
@@ -387,7 +387,7 @@ const AdminDashboard = () => {
                     <p>Commission Earned</p>
                     <span className="stat-detail">10% per booking</span>
                   </div>
-                </div>
+          </div>
 
               <div className="stat-card">
                 <div className="stat-icon">⚠️</div>
@@ -942,7 +942,7 @@ const AdminDashboard = () => {
                     <button type="button" onClick={closeModal} className="btn-secondary">Cancel</button>
                   </div>
                 </form>
-              </div>
+            </div>
             )}
           </div>
         </div>

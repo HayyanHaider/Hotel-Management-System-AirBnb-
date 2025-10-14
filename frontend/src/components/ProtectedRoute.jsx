@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const token = localStorage.getItem('token');
-  const userData = localStorage.getItem('user');
+  const token = sessionStorage.getItem('token');
+  const userData = sessionStorage.getItem('user');
   
   // Check if user is logged in
   if (!token || !userData) {

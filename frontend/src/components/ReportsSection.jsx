@@ -34,7 +34,7 @@ const ReportsSection = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const url = `${API_URL}/admin/reports?type=${reportType}&startDate=${startDate}&endDate=${endDate}`;
       console.log('Fetching report from:', url);
       
