@@ -18,7 +18,9 @@ const createHotel = async (req, res) => {
       state: location?.state || '',
       country: location?.country || '',
       amenities: amenities || [],
-      images: images || [],
+      images: Array.isArray(images) 
+        ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
+        : [],
       contactInfo: contactInfo || {},
       pricing: pricing || {},
       capacity: capacity || {},
@@ -246,7 +248,14 @@ const getHotelDetails = async (req, res) => {
       state: dbHotel.location?.state || '',
       country: dbHotel.location?.country || '',
       amenities: dbHotel.amenities || [],
-      images: dbHotel.images || [],
+      images: Array.isArray(dbHotel.images) 
+        ? dbHotel.images.map(img => {
+            // Ensure images are strings
+            if (typeof img === 'string') return img;
+            if (img && typeof img === 'object' && img.url) return img.url;
+            return String(img || '');
+          }).filter(img => img && img !== '')
+        : [],
       contactInfo: dbHotel.contactInfo || {},
       pricing: dbHotel.pricing || {},
       capacity: dbHotel.capacity || {},
@@ -297,7 +306,12 @@ const updateHotel = async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (amenities !== undefined) updateData.amenities = amenities;
-    if (images !== undefined) updateData.images = images;
+    if (images !== undefined) {
+      // Ensure images are stored as strings, not objects
+      updateData.images = Array.isArray(images) 
+        ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
+        : [];
+    }
     if (contactInfo !== undefined) updateData.contactInfo = contactInfo;
     
     if (location) {

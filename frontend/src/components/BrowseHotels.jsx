@@ -6,6 +6,8 @@ import './Home.css';
 const BrowseHotels = () => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({
     location: searchParams.get('location') || '',
@@ -59,9 +61,73 @@ const BrowseHotels = () => {
     }
   }, [filters]);
 
+  const fetchFavorites = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        setIsLoggedIn(false);
+        return;
+      }
+
+      setIsLoggedIn(true);
+      const response = await axios.get('http://localhost:5000/api/users/favorites', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        const favoriteIds = (response.data.favorites || []).map(f => String(f._id || f.id));
+        setFavorites(favoriteIds);
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+      setIsLoggedIn(false);
+    }
+  };
+
   useEffect(() => {
+    // Check login status on mount and when hotels are fetched
+    const token = sessionStorage.getItem('token');
+    setIsLoggedIn(!!token);
+    
     fetchHotels();
+    if (token) {
+      fetchFavorites();
+    }
   }, [fetchHotels]);
+
+  const toggleFavorite = async (hotelId, e) => {
+    e.stopPropagation();
+    
+    try {
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        // This shouldn't happen since button is hidden when not logged in, but just in case
+        return;
+      }
+
+      const hotelIdStr = String(hotelId);
+      const isFavorite = favorites.includes(hotelIdStr);
+
+      if (isFavorite) {
+        await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFavorites(prev => prev.filter(id => id !== hotelIdStr));
+      } else {
+        await axios.post('http://localhost:5000/api/users/favorites', { hotelId }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFavorites(prev => [...prev, hotelIdStr]);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      alert(error.response?.data?.message || 'Error updating favorite. Please try again.');
+    }
+  };
+
+  const checkIsFavorite = (hotelId) => {
+    return favorites.includes(String(hotelId));
+  };
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -300,40 +366,94 @@ const BrowseHotels = () => {
                 onClick={() => navigate(`/hotel/${hotel.id || hotel._id}`)}
                 className="hotel-card"
               >
-                <div className="position-relative">
-                  {hotel.images && hotel.images.length > 0 ? (
-                    <img
-                      src={hotel.images[0]}
-                      alt={hotel.name}
-                      className="w-100 rounded-4"
-                      style={{
-                        height: '300px',
-                        objectFit: 'cover',
-                        transition: 'transform 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    />
-                  ) : (
-                    <div
-                      className="w-100 rounded-4 bg-light d-flex align-items-center justify-content-center"
-                      style={{ height: '300px' }}
-                    >
-                      <span className="text-muted">No image</span>
-                    </div>
-                  )}
-                  <button
-                    className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0 p-2"
-                    style={{ zIndex: 10 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle favorite toggle
+                <div className="position-relative" style={{ height: '300px' }}>
+                  {(() => {
+                    // Handle images - they might be objects with url property or direct URLs
+                    let imageUrl = '';
+                    if (hotel.images && hotel.images.length > 0) {
+                      const firstImage = hotel.images[0];
+                      if (typeof firstImage === 'string') {
+                        imageUrl = firstImage;
+                      } else if (firstImage && typeof firstImage === 'object' && firstImage.url) {
+                        imageUrl = firstImage.url;
+                      } else if (firstImage) {
+                        imageUrl = String(firstImage);
+                      }
+                      
+                      // Ensure the URL is properly formatted
+                      if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                        // If it's a local path, prepend the backend URL
+                        if (imageUrl.startsWith('/uploads/')) {
+                          imageUrl = `http://localhost:5000${imageUrl}`;
+                        } else if (!imageUrl.startsWith('/')) {
+                          imageUrl = `http://localhost:5000/uploads/${imageUrl}`;
+                        }
+                      }
+                    }
+                    
+                    return imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={hotel.name}
+                        className="w-100 rounded-4 position-relative"
+                        style={{
+                          height: '300px',
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease',
+                          zIndex: 1
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const placeholder = e.target.parentElement.querySelector('.image-placeholder');
+                          if (placeholder) {
+                            placeholder.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null;
+                  })()}
+                  <div
+                    className="w-100 h-100 rounded-4 bg-light d-flex align-items-center justify-content-center position-absolute top-0 start-0 image-placeholder"
+                    style={{ 
+                      display: (hotel.images && hotel.images.length > 0) ? 'none' : 'flex',
+                      zIndex: 0
                     }}
                   >
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                    </svg>
-                  </button>
+                    <span className="text-muted">Preview unavailable</span>
+                  </div>
+                  {isLoggedIn && (
+                    <button
+                      className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
+                      style={{ 
+                        width: '36px', 
+                        height: '36px', 
+                        zIndex: 10,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        transition: 'transform 0.2s ease'
+                      }}
+                      onClick={(e) => toggleFavorite(hotel.id || hotel._id, e)}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      title={checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <svg 
+                        width="20" 
+                        height="20" 
+                        fill={checkIsFavorite(hotel.id || hotel._id) ? '#FF385C' : 'currentColor'} 
+                        viewBox="0 0 16 16"
+                        style={{ transition: 'fill 0.2s ease' }}
+                      >
+                        {checkIsFavorite(hotel.id || hotel._id) ? (
+                          <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
+                        ) : (
+                          <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                        )}
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="mt-3">
                   <div className="d-flex justify-content-between align-items-start mb-1">

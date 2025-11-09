@@ -36,11 +36,18 @@ const HotelDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [showAllImages, setShowAllImages] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
+    // Check if user is logged in
+    const token = sessionStorage.getItem('token');
+    setIsLoggedIn(!!token);
+    
     fetchHotelDetails();
     checkFavorite();
     fetchReviews();
+    setCurrentImageIndex(0); // Reset image index when hotel changes
   }, [hotelId]);
 
   const fetchHotelDetails = async () => {
@@ -52,6 +59,8 @@ const HotelDetails = () => {
       });
 
       if (response.data.success) {
+        console.log('Hotel data received:', response.data.hotel);
+        console.log('Hotel images:', response.data.hotel.images);
         setHotel(response.data.hotel);
       }
     } catch (error) {
@@ -90,11 +99,17 @@ const HotelDetails = () => {
     }
   };
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = async (e) => {
+    // Prevent event bubbling if called from button click
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
     try {
       const token = sessionStorage.getItem('token');
       if (!token) {
-        navigate('/login');
+        // This shouldn't happen since button is hidden when not logged in, but just in case
         return;
       }
 
@@ -111,6 +126,7 @@ const HotelDetails = () => {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      alert(error.response?.data?.message || 'Error updating favorite. Please try again.');
     }
   };
 
@@ -167,7 +183,47 @@ const HotelDetails = () => {
     );
   }
 
-  const images = hotel.images || [];
+  // Handle images - they might be objects with url property or direct URLs
+  // Also ensure local storage URLs are properly formatted
+  const images = (hotel?.images || []).map(img => {
+    let imageUrl = '';
+    if (typeof img === 'string') {
+      imageUrl = img.trim();
+    } else if (img && typeof img === 'object') {
+      // Handle object with url property
+      if (img.url) {
+        imageUrl = typeof img.url === 'string' ? img.url.trim() : String(img.url).trim();
+      } else {
+        // Try to stringify the object or use toString
+        imageUrl = String(img).trim();
+      }
+    } else if (img) {
+      imageUrl = String(img).trim();
+    }
+    
+    // Skip empty URLs
+    if (!imageUrl || imageUrl === 'undefined' || imageUrl === 'null') {
+      return null;
+    }
+    
+    // Ensure the URL is properly formatted
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      // If it's a local path, prepend the backend URL
+      if (imageUrl.startsWith('/uploads/')) {
+        imageUrl = `http://localhost:5000${imageUrl}`;
+      } else if (!imageUrl.startsWith('/')) {
+        imageUrl = `http://localhost:5000/uploads/${imageUrl}`;
+      } else {
+        // If it starts with / but not /uploads/, it might be a relative path
+        imageUrl = `http://localhost:5000${imageUrl}`;
+      }
+    }
+    
+    return imageUrl;
+  }).filter(img => img && img !== '' && img !== 'null' && img !== 'undefined');
+  
+  console.log('Processed images:', images);
+  
   const displayImages = showAllImages ? images : images.slice(0, 5);
 
   return (
@@ -207,65 +263,211 @@ const HotelDetails = () => {
                 )}
               </div>
             </div>
-            <button
-              className="btn btn-outline-dark rounded-pill d-flex align-items-center gap-2"
-              onClick={toggleFavorite}
-            >
-              <svg width="20" height="20" fill={isFavorite ? '#FF385C' : 'currentColor'} viewBox="0 0 16 16">
-                <path d={isFavorite ? "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z" : "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"}/>
-              </svg>
-              {isFavorite ? 'Saved' : 'Save'}
-            </button>
+            {isLoggedIn && (
+              <button
+                className="btn btn-outline-dark rounded-pill d-flex align-items-center gap-2"
+                onClick={toggleFavorite}
+              >
+                <svg width="20" height="20" fill={isFavorite ? '#FF385C' : 'currentColor'} viewBox="0 0 16 16">
+                  <path d={isFavorite ? "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z" : "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"}/>
+                </svg>
+                {isFavorite ? 'Saved' : 'Save'}
+              </button>
+            )}
           </div>
         </div>
 
         {/* Image Gallery */}
-        {images.length > 0 && (
+        {images.length > 0 ? (
           <div className="mb-4">
             <div 
-              className="rounded-4 overflow-hidden"
+              className="rounded-4 overflow-hidden position-relative"
               style={{
-                display: 'grid',
-                gridTemplateColumns: images.length >= 2 ? '1fr 1fr' : '1fr',
-                gridTemplateRows: images.length >= 3 ? 'repeat(2, 300px)' : '400px',
-                gap: '8px'
+                height: images.length === 1 ? '400px' : images.length === 2 ? '400px' : '500px',
+                backgroundColor: '#f7f7f7'
               }}
             >
-              {displayImages.map((image, index) => (
-                <div
-                  key={index}
-                  className="position-relative"
-                  style={{
-                    gridRow: index === 0 && images.length >= 3 ? 'span 2' : 'span 1',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => setSelectedImageIndex(index)}
-                >
-                  <img
-                    src={image}
-                    alt={`${hotel.name} ${index + 1}`}
-                    className="w-100 h-100"
-                    style={{ objectFit: 'cover' }}
-                  />
-                  {index === 4 && images.length > 5 && !showAllImages && (
+              {/* Main Image Display */}
+              <div className="position-relative w-100 h-100">
+                {images.length > 0 && images[currentImageIndex] ? (
+                  <>
+                    <img
+                      key={`img-${currentImageIndex}-${images[currentImageIndex]}`}
+                      src={images[currentImageIndex]}
+                      alt={`${hotel.name} ${currentImageIndex + 1}`}
+                      className="w-100 h-100"
+                      style={{ 
+                        objectFit: 'cover',
+                        display: 'block',
+                        position: 'relative',
+                        zIndex: 2
+                      }}
+                      onLoad={(e) => {
+                        console.log('✅ Image loaded successfully:', images[currentImageIndex]);
+                        // Hide placeholder when image loads
+                        const placeholder = e.target.parentElement.querySelector('.image-error-placeholder');
+                        if (placeholder) {
+                          placeholder.style.display = 'none';
+                        }
+                        e.target.style.display = 'block';
+                      }}
+                      onError={(e) => {
+                        console.error('❌ Image failed to load:', images[currentImageIndex]);
+                        console.error('Error event:', e);
+                        // Show placeholder when image fails
+                        e.target.style.display = 'none';
+                        const placeholder = e.target.parentElement.querySelector('.image-error-placeholder');
+                        if (placeholder) {
+                          placeholder.style.display = 'flex';
+                        }
+                      }}
+                      crossOrigin="anonymous"
+                    />
                     <div
-                      className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                      className="w-100 h-100 bg-light d-flex align-items-center justify-content-center position-absolute top-0 start-0 image-error-placeholder"
+                      style={{ 
+                        display: 'none',
+                        zIndex: 1
+                      }}
+                    >
+                      <span className="text-muted">Preview unavailable</span>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    className="w-100 h-100 bg-light d-flex align-items-center justify-content-center"
+                    style={{ 
+                      zIndex: 1
+                    }}
+                  >
+                    <span className="text-muted">Preview unavailable</span>
+                  </div>
+                )}
+                
+                {/* Navigation Arrows - Only show if more than 1 image */}
+                {images.length > 1 && (
+                  <>
+                    {/* Previous Button */}
+                    <button
+                      className="position-absolute top-50 start-0 translate-middle-y m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
                       style={{
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        cursor: 'pointer'
+                        width: '40px',
+                        height: '40px',
+                        zIndex: 10,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        transition: 'all 0.2s ease'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowAllImages(true);
+                        setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
                       }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                      }}
+                      aria-label="Previous image"
                     >
-                      <span className="text-white fw-bold" style={{ fontSize: '18px' }}>
-                        Show all {images.length} photos
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                      </svg>
+                    </button>
+                    
+                    {/* Next Button */}
+                    <button
+                      className="position-absolute top-50 end-0 translate-middle-y m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        zIndex: 10,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                      }}
+                      aria-label="Next image"
+                    >
+                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                      </svg>
+                    </button>
+                  </>
+                )}
+                
+                {/* Image Counter */}
+                {images.length > 1 && (
+                  <div
+                    className="position-absolute bottom-0 end-0 m-3 bg-dark bg-opacity-50 rounded-pill px-3 py-1"
+                    style={{
+                      zIndex: 10,
+                      color: 'white',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {currentImageIndex + 1} / {images.length}
+                  </div>
+                )}
+                
+                {/* Heart icon for favorites - only show when user is logged in */}
+                {isLoggedIn && (
+                  <button
+                    className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      zIndex: 10,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      transition: 'transform 0.2s ease'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite();
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <svg 
+                      width="20" 
+                      height="20" 
+                      fill={isFavorite ? '#FF385C' : 'currentColor'} 
+                      viewBox="0 0 16 16"
+                      style={{ transition: 'fill 0.2s ease' }}
+                    >
+                      {isFavorite ? (
+                        <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
+                      ) : (
+                        <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+                      )}
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4">
+            <div 
+              className="rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center"
+              style={{ height: '400px' }}
+            >
+              <span className="text-muted">Preview unavailable</span>
             </div>
           </div>
         )}
