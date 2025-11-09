@@ -11,7 +11,10 @@ class User {
     this.role = userData.role || 'customer';
     this.isVerified = userData.isVerified || false;
     this.isSuspended = userData.isSuspended || false;
+    this.suspendedReason = userData.suspendedReason || '';
+    this.suspendedAt = userData.suspendedAt || null;
     this.favorites = userData.favorites || [];
+    this.walletBalance = userData.walletBalance || 0;
   }
 
   // Encapsulation: Private method to validate email
@@ -67,7 +70,7 @@ class User {
 
   // Method to update profile
   updateProfile(updates) {
-    const allowedFields = ['name', 'phone', 'profileImage', 'settings'];
+    const allowedFields = ['name', 'phone'];
     
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
@@ -81,7 +84,8 @@ class User {
   // Method to suspend user (Admin functionality)
   suspend(reason) {
     this.isSuspended = true;
-    this.suspendedReason = reason;
+    this.suspendedReason = reason || '';
+    this.suspendedAt = new Date();
     this.updatedAt = new Date();
   }
 
@@ -89,6 +93,7 @@ class User {
   unsuspend() {
     this.isSuspended = false;
     this.suspendedReason = '';
+    this.suspendedAt = null;
     this.updatedAt = new Date();
   }
 
@@ -96,18 +101,6 @@ class User {
   verify() {
     this.isVerified = true;
     this.updatedAt = new Date();
-  }
-
-  // Method to add device token
-  addDeviceToken(token) {
-    if (!this.deviceTokens.includes(token)) {
-      this.deviceTokens.push(token);
-    }
-  }
-
-  // Method to remove device token
-  removeDeviceToken(token) {
-    this.deviceTokens = this.deviceTokens.filter(t => t !== token);
   }
 
   // Method to get user info (excluding sensitive data)
@@ -119,7 +112,8 @@ class User {
       phone: this.phone,
       role: this.role,
       isVerified: this.isVerified,
-      favorites: this.favorites
+      favorites: this.favorites,
+      walletBalance: this.walletBalance || 0
     };
   }
 

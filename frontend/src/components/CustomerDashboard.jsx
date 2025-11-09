@@ -41,7 +41,7 @@ const CustomerDashboard = () => {
             <div className="card-icon">🏠</div>
             <h3>Browse Properties</h3>
             <p>Find your perfect accommodation from thousands of listings</p>
-            <button className="card-button" onClick={() => navigate('/browse-hotels')}>Start Browsing</button>
+            <button className="card-button" onClick={() => navigate('/')}>Start Browsing</button>
           </div>
 
           <div className="dashboard-card">

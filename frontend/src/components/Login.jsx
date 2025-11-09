@@ -66,9 +66,9 @@ const Login = () => {
         
         // Redirect based on role
         if (response.data.user.role === 'customer') {
-          navigate('/browse-hotels');
-        } else if (response.data.user.role === 'hotel_owner') {
-          navigate('/hotel_owner-dashboard');
+          navigate('/');
+        } else if (response.data.user.role === 'hotel') {
+          navigate('/hotel-dashboard');
         } else if (response.data.user.role === 'admin') {
           navigate('/admin-dashboard');
         } else {

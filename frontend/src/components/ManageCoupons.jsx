@@ -35,7 +35,7 @@ const ManageCoupons = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
-      // Use the owner-specific endpoint to get only the hotel owner's hotels
+      // Use the owner-specific endpoint to get only the hotel's hotels
       const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -185,7 +185,7 @@ const ManageCoupons = () => {
           </div>
           <button 
             className="btn btn-outline-secondary"
-            onClick={() => navigate('/hotel_owner-dashboard')}
+            onClick={() => navigate('/hotel-dashboard')}
             style={{ height: 'fit-content' }}
           >
             ← Go Back

@@ -15,6 +15,7 @@ app.use(cors({
 // Serve static files from uploads directory
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -24,18 +25,6 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
 });
 
-// Import User model
-const User = require('./models/userModel');
-
-// Get all users (for testing)
-app.get("/users", async (req, res) => {
-    try {
-        const users = await User.find().select('-passwordHash');
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -66,6 +55,14 @@ app.use('/api/upload', uploadRoutes);
 
 // Error handling middleware
 app.use(errorMiddleware);
+
+// Start auto-confirm service
+const { startAutoConfirmService } = require('./utils/autoConfirmService');
+startAutoConfirmService();
+
+// Start auto-flag service
+const { startAutoFlagService } = require('./utils/autoFlagService');
+startAutoFlagService();
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

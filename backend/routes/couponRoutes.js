@@ -9,12 +9,12 @@ const {
   deleteCoupon
 } = require('../controllers/couponController');
 
-// Protected routes - Hotel Owner only
-router.post('/', authenticateToken, authorizeRoles(['hotel_owner']), createCoupon);
-router.get('/hotel/:hotelId', authenticateToken, authorizeRoles(['hotel_owner']), getHotelCoupons);
-router.get('/:couponId', authenticateToken, authorizeRoles(['hotel_owner']), getCouponDetails);
-router.put('/:couponId', authenticateToken, authorizeRoles(['hotel_owner']), updateCoupon);
-router.delete('/:couponId', authenticateToken, authorizeRoles(['hotel_owner']), deleteCoupon);
+// Protected routes - Hotel only
+router.post('/', authenticateToken, authorizeRoles(['hotel']), createCoupon);
+router.get('/hotel/:hotelId', authenticateToken, authorizeRoles(['hotel']), getHotelCoupons);
+router.get('/:couponId', authenticateToken, authorizeRoles(['hotel']), getCouponDetails);
+router.put('/:couponId', authenticateToken, authorizeRoles(['hotel']), updateCoupon);
+router.delete('/:couponId', authenticateToken, authorizeRoles(['hotel']), deleteCoupon);
 
 module.exports = router;
 

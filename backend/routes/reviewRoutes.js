@@ -9,8 +9,8 @@ router.post('/', authenticateToken, authorizeRoles(['customer']), createReview);
 // List reviews for a hotel (public)
 router.get('/hotel/:hotelId', listHotelReviews);
 
-// Reply to review (owner or admin)
-router.post('/:reviewId/reply', authenticateToken, authorizeRoles(['hotel_owner', 'admin']), replyToReview);
+// Reply to review (hotel or admin)
+router.post('/:reviewId/reply', authenticateToken, authorizeRoles(['hotel', 'admin']), replyToReview);
 
 module.exports = router;
 

@@ -114,10 +114,10 @@ class AdminUserService extends BaseService {
    * @private
    */
   _buildUserQuery(role, status, search) {
-    const query = { role: { $in: ['customer', 'hotel_owner'] } };
+    const query = { role: { $in: ['customer', 'hotel'] } };
 
     // Filter by role
-    if (role && ['customer', 'hotel_owner'].includes(role)) {
+    if (role && ['customer', 'hotel'].includes(role)) {
       query.role = role;
     }
 
@@ -148,14 +148,14 @@ class AdminUserService extends BaseService {
     if (users.length === 0) return [];
 
     const userIds = users.map(u => u._id);
-    const hotelOwnerIds = users.filter(u => u.role === 'hotel_owner').map(u => u._id);
+    const hotelIds = users.filter(u => u.role === 'hotel').map(u => u._id);
 
     // Bulk query for all stats using aggregation
     const [hotelStats, bookingStats, reviewStats] = await Promise.all([
-      // Hotel counts for hotel owners
-      hotelOwnerIds.length > 0 
+      // Hotel counts for hotels
+      hotelIds.length > 0 
         ? HotelModel.aggregate([
-            { $match: { ownerId: { $in: hotelOwnerIds } } },
+            { $match: { ownerId: { $in: hotelIds } } },
             { $group: { _id: '$ownerId', count: { $sum: 1 } } }
           ])
         : [],
@@ -182,7 +182,7 @@ class AdminUserService extends BaseService {
     return users.map(user => ({
       ...user,
       stats: {
-        hotelCount: user.role === 'hotel_owner' ? (hotelMap.get(user._id.toString()) || 0) : 0,
+        hotelCount: user.role === 'hotel' ? (hotelMap.get(user._id.toString()) || 0) : 0,
         bookingCount: bookingMap.get(user._id.toString()) || 0,
         reviewCount: reviewMap.get(user._id.toString()) || 0
       }

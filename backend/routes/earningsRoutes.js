@@ -6,9 +6,9 @@ const {
   getEarningsByHotel
 } = require('../controllers/earningsController');
 
-// Protected routes - Hotel Owner only
-router.get('/dashboard', authenticateToken, authorizeRoles(['hotel_owner']), getEarningsDashboard);
-router.get('/hotel/:hotelId', authenticateToken, authorizeRoles(['hotel_owner']), getEarningsByHotel);
+// Protected routes - Hotel only
+router.get('/dashboard', authenticateToken, authorizeRoles(['hotel']), getEarningsDashboard);
+router.get('/hotel/:hotelId', authenticateToken, authorizeRoles(['hotel']), getEarningsByHotel);
 
 module.exports = router;
 

@@ -6,9 +6,10 @@ import Signup from './components/Signup';
 import Login from './components/Login';
 import CustomerDashboard from './components/CustomerDashboard';
 import AdminDashboard from './components/AdminDashboard';
-import HotelOwnerDashboard from './components/HotelOwnerDashboard';
+import HotelDashboard from './components/HotelDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 // Customer components
+import Home from './components/Home';
 import BrowseHotels from './components/BrowseHotels';
 import HotelDetails from './components/HotelDetails';
 import Favorites from './components/Favorites';
@@ -16,7 +17,8 @@ import CreateBooking from './components/CreateBooking';
 import Payment from './components/Payment';
 import BookingHistory from './components/BookingHistory';
 import LeaveReview from './components/LeaveReview';
-// Hotel Owner components
+import RescheduleBooking from './components/RescheduleBooking';
+// Hotel components
 import ManageHotelProfile from './components/ManageHotelProfile';
 import ManageCoupons from './components/ManageCoupons';
 import OwnerBookingManagement from './components/OwnerBookingManagement';
@@ -88,6 +90,7 @@ function AppContent() {
       <Navbar />
       <Routes>
         <Route path="/" element={<BrowseHotels />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         
@@ -142,20 +145,28 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
-        
-        {/* Hotel Owner Routes */}
         <Route 
-          path="/hotel_owner-dashboard" 
+          path="/reschedule/:bookingId" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
-              <HotelOwnerDashboard />
+            <ProtectedRoute requiredRole="customer">
+              <RescheduleBooking />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Hotel Routes */}
+        <Route 
+          path="/hotel-dashboard" 
+          element={
+            <ProtectedRoute requiredRole="hotel">
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="/manage-hotel-profile" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
+            <ProtectedRoute requiredRole="hotel">
               <ManageHotelProfile />
             </ProtectedRoute>
           } 
@@ -163,7 +174,7 @@ function AppContent() {
         <Route 
           path="/manage-coupons" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
+            <ProtectedRoute requiredRole="hotel">
               <ManageCoupons />
             </ProtectedRoute>
           } 
@@ -171,7 +182,7 @@ function AppContent() {
         <Route 
           path="/owner-bookings" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
+            <ProtectedRoute requiredRole="hotel">
               <OwnerBookingManagement />
             </ProtectedRoute>
           } 
@@ -179,7 +190,7 @@ function AppContent() {
         <Route 
           path="/reply-reviews" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
+            <ProtectedRoute requiredRole="hotel">
               <ReplyToReviews />
             </ProtectedRoute>
           } 
@@ -187,7 +198,7 @@ function AppContent() {
         <Route 
           path="/earnings-dashboard" 
           element={
-            <ProtectedRoute requiredRole="hotel_owner">
+            <ProtectedRoute requiredRole="hotel">
               <EarningsDashboard />
             </ProtectedRoute>
           } 

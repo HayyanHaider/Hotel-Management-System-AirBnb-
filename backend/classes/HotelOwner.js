@@ -32,8 +32,13 @@ class HotelOwner extends User {
 
   // Polymorphism: Override hasPermission method
   hasPermission(permission) {
-    const hotelOwnerPermissions = [
-      ...super.hasPermission(permission) ? ['view_profile', 'update_profile'] : [],
+    // Check base permissions first
+    if (super.hasPermission(permission)) {
+      return true;
+    }
+    
+    // Hotel-specific permissions
+    const hotelPermissions = [
       'manage_hotels',
       'add_hotels',
       'update_hotel_info',
@@ -43,7 +48,7 @@ class HotelOwner extends User {
       'view_earnings',
       'manage_availability'
     ];
-    return hotelOwnerPermissions.includes(permission);
+    return hotelPermissions.includes(permission);
   }
 
   // Method to add hotel to owned hotels
@@ -170,7 +175,7 @@ class HotelOwner extends User {
     };
   }
 
-  // Override getPublicInfo to include hotel owner specific data
+  // Override getPublicInfo to include hotel specific data
   getPublicInfo() {
     const baseInfo = super.getPublicInfo();
     return {

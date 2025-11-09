@@ -6,7 +6,6 @@ class Customer extends User {
     this.loyaltyPoints = userData.loyaltyPoints || 0;
     this.bookingHistory = userData.bookingHistory || [];
     this.reviewsGiven = userData.reviewsGiven || [];
-    this.preferredLocations = userData.preferredLocations || [];
   }
 
   // Inheritance: Override parent method
@@ -23,8 +22,13 @@ class Customer extends User {
 
   // Polymorphism: Override hasPermission method
   hasPermission(permission) {
+    // Check base permissions first
+    if (super.hasPermission(permission)) {
+      return true;
+    }
+    
+    // Customer-specific permissions
     const customerPermissions = [
-      ...super.hasPermission(permission) ? ['view_profile', 'update_profile'] : [],
       'book_rooms',
       'cancel_bookings',
       'write_reviews',
@@ -97,17 +101,6 @@ class Customer extends User {
       return true;
     }
     return false;
-  }
-
-  // Method to add preferred location
-  addPreferredLocation(location) {
-    if (!this.preferredLocations) {
-      this.preferredLocations = [];
-    }
-    if (!this.preferredLocations.includes(location)) {
-      this.preferredLocations.push(location);
-      this.updatedAt = new Date();
-    }
   }
 
   // Method to get booking statistics

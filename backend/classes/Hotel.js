@@ -10,17 +10,19 @@ class Hotel {
     this.suspensionReason = hotelData.suspensionReason || '';
     this.rejectionReason = hotelData.rejectionReason || '';
     this.rating = hotelData.rating || 0;
+    this.ratingAvg = hotelData.ratingAvg || 0;
     this.totalReviews = hotelData.totalReviews || 0;
+    this.isFlagged = hotelData.isFlagged || false;
+    this.flaggedReason = hotelData.flaggedReason || '';
+    this.flaggedForLowRating = hotelData.flaggedForLowRating || false;
+    this.flaggedAt = hotelData.flaggedAt || null;
     this.ownerId = hotelData.ownerId;
-    this.location = hotelData.location || hotelData.address || {};
-    this.address = hotelData.address || hotelData.location?.address || '';
-    this.city = hotelData.city || hotelData.location?.city || '';
-    this.state = hotelData.state || hotelData.location?.state || '';
-    this.country = hotelData.country || hotelData.location?.country || '';
+    this.location = hotelData.location || {};
     this.pricing = hotelData.pricing || {};
     this.images = hotelData.images || [];
     this.capacity = hotelData.capacity || {};
-    this.contactInfo = hotelData.contactInfo || {};
+    this.totalRooms = hotelData.totalRooms || 1;
+    this.commissionRate = hotelData.commissionRate || 0.10;
     this.createdAt = hotelData.createdAt;
     this.updatedAt = hotelData.updatedAt;
   }
@@ -33,16 +35,23 @@ class Hotel {
       errors.push('Hotel name is required');
     }
     
-    if (!this.address || this.address.trim().length === 0) {
+    if (!this.location || !this.location.address || this.location.address.trim().length === 0) {
       errors.push('Hotel address is required');
     }
     
-    if (!this.city || this.city.trim().length === 0) {
+    if (!this.location || !this.location.city || this.location.city.trim().length === 0) {
       errors.push('City is required');
     }
     
     if (!this.ownerId) {
       errors.push('Owner ID is required');
+    }
+    
+    // Pricing and capacity are now optional - removed validation
+    // They can be set later by the hotel owner
+    
+    if (!this.totalRooms || this.totalRooms <= 0) {
+      errors.push('Total rooms must be at least 1');
     }
     
     return errors;
@@ -55,6 +64,9 @@ class Hotel {
 
   // Method to add amenity
   addAmenity(amenity) {
+    if (!this.amenities) {
+      this.amenities = [];
+    }
     if (!this.amenities.includes(amenity)) {
       this.amenities.push(amenity);
       this.updatedAt = new Date();
@@ -63,6 +75,10 @@ class Hotel {
 
   // Method to remove amenity
   removeAmenity(amenity) {
+    if (!this.amenities) {
+      this.amenities = [];
+      return;
+    }
     const index = this.amenities.indexOf(amenity);
     if (index > -1) {
       this.amenities.splice(index, 1);
@@ -83,6 +99,10 @@ class Hotel {
 
   // Method to remove image
   removeImage(imageUrl) {
+    if (!this.images) {
+      this.images = [];
+      return;
+    }
     const index = this.images.indexOf(imageUrl);
     if (index > -1) {
       this.images.splice(index, 1);
@@ -92,23 +112,25 @@ class Hotel {
 
   // Method to update rating
   updateRating(newRating) {
-    const totalRatingPoints = this.rating * this.totalReviews;
+    if (!this.totalReviews) {
+      this.totalReviews = 0;
+    }
+    if (!this.ratingAvg) {
+      this.ratingAvg = 0;
+    }
+    
+    const totalRatingPoints = this.ratingAvg * this.totalReviews;
     this.totalReviews += 1;
-    this.rating = (totalRatingPoints + newRating) / this.totalReviews;
-    this.updatedAt = new Date();
-  }
-
-  // Method to update price range
-  updatePriceRange(minPrice, maxPrice) {
-    this.priceRange = { min: minPrice, max: maxPrice };
+    this.ratingAvg = (totalRatingPoints + newRating) / this.totalReviews;
+    this.rating = this.ratingAvg; // Keep rating field for backward compatibility
     this.updatedAt = new Date();
   }
 
   // Method to update hotel information
   updateInfo(updates) {
     const allowedFields = [
-      'name', 'description', 'address', 'city', 'country',
-      'coordinates', 'amenities', 'policies', 'contactInfo'
+      'name', 'description', 'location', 'amenities', 
+      'policies', 'pricing', 'images', 'capacity', 'totalRooms'
     ];
     
     allowedFields.forEach(field => {
@@ -120,85 +142,83 @@ class Hotel {
     this.updatedAt = new Date();
   }
 
-  // Method to activate hotel
-  activate() {
-    this.isActive = true;
-    this.updatedAt = new Date();
-  }
-
-  // Method to deactivate hotel
-  deactivate() {
-    this.isActive = false;
-    this.updatedAt = new Date();
-  }
-
   // Method to approve hotel
   approve() {
     this.isApproved = true;
+    this.rejectionReason = '';
     this.updatedAt = new Date();
   }
 
   // Method to reject hotel approval
-  reject() {
+  reject(reason = '') {
     this.isApproved = false;
+    this.rejectionReason = reason;
+    this.updatedAt = new Date();
+  }
+
+  // Method to suspend hotel
+  suspend(reason = '') {
+    this.isSuspended = true;
+    this.suspensionReason = reason;
+    this.updatedAt = new Date();
+  }
+
+  // Method to unsuspend hotel
+  unsuspend() {
+    this.isSuspended = false;
+    this.suspensionReason = '';
+    this.updatedAt = new Date();
+  }
+
+  // Method to flag hotel
+  flag(reason = '', forLowRating = false) {
+    this.isFlagged = true;
+    this.flaggedReason = reason;
+    this.flaggedForLowRating = forLowRating;
+    this.flaggedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  // Method to unflag hotel
+  unflag() {
+    this.isFlagged = false;
+    this.flaggedReason = '';
+    this.flaggedForLowRating = false;
+    this.flaggedAt = null;
     this.updatedAt = new Date();
   }
 
   // Method to check if hotel is bookable
   isBookable() {
-    return (this.isActive !== false) && this.isApproved && !this.isSuspended;
+    return this.isApproved && !this.isSuspended && !this.isFlagged;
   }
 
   // Method to get hotel statistics
   getStats() {
     return {
-      rating: this.rating || 0,
+      rating: this.ratingAvg || this.rating || 0,
       totalReviews: this.totalReviews || 0,
-      priceRange: this.getPriceRange(),
-      isActive: this.isActive !== false,
-      isApproved: this.isApproved || false,
+      isApproved: this.isApproved,
+      isSuspended: this.isSuspended,
+      isFlagged: this.isFlagged,
+      totalRooms: this.totalRooms || 1,
       capacity: this.capacity || {}
     };
   }
 
-  // Method to search hotels by criteria
-  static searchByCriteria(hotels, criteria) {
-    return hotels.filter(hotel => {
-      let matches = true;
-      
-      if (criteria.city && hotel.city.toLowerCase() !== criteria.city.toLowerCase()) {
-        matches = false;
-      }
-      
-      if (criteria.minRating && hotel.rating < criteria.minRating) {
-        matches = false;
-      }
-      
-      if (criteria.maxPrice && hotel.priceRange.min > criteria.maxPrice) {
-        matches = false;
-      }
-      
-      if (criteria.amenities && criteria.amenities.length > 0) {
-        const hasAllAmenities = criteria.amenities.every(amenity => 
-          hotel.amenities.includes(amenity)
-        );
-        if (!hasAllAmenities) {
-          matches = false;
-        }
-      }
-      
-      return matches && hotel.isBookable();
-    });
-  }
-
   // Method to calculate distance from coordinates
   calculateDistance(lat, lng) {
+    if (!this.location || !this.location.coordinates || 
+        !this.location.coordinates.lat || !this.location.coordinates.lng) {
+      return null; // Cannot calculate distance without coordinates
+    }
+    
     const R = 6371; // Earth's radius in kilometers
-    const dLat = this.#toRadians(lat - this.coordinates.lat);
-    const dLng = this.#toRadians(lng - this.coordinates.lng);
+    const dLat = this.#toRadians(lat - this.location.coordinates.lat);
+    const dLng = this.#toRadians(lng - this.location.coordinates.lng);
     
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.#toRadians(this.coordinates.lat)) * 
+              Math.cos(this.#toRadians(this.location.coordinates.lat)) * 
               Math.cos(this.#toRadians(lat)) *
               Math.sin(dLng / 2) * Math.sin(dLng / 2);
     
@@ -211,24 +231,59 @@ class Hotel {
     return degrees * (Math.PI / 180);
   }
 
+  // Static method to search hotels by criteria
+  static searchByCriteria(hotels, criteria) {
+    if (!hotels) return [];
+    
+    return hotels.filter(hotel => {
+      let matches = true;
+      
+      if (criteria.city && hotel.location && 
+          hotel.location.city.toLowerCase() !== criteria.city.toLowerCase()) {
+        matches = false;
+      }
+      
+      if (criteria.minRating && (hotel.ratingAvg || hotel.rating || 0) < criteria.minRating) {
+        matches = false;
+      }
+      
+      if (criteria.maxPrice && hotel.pricing && 
+          hotel.pricing.basePrice > criteria.maxPrice) {
+        matches = false;
+      }
+      
+      if (criteria.minPrice && hotel.pricing && 
+          hotel.pricing.basePrice < criteria.minPrice) {
+        matches = false;
+      }
+      
+      if (criteria.amenities && criteria.amenities.length > 0) {
+        const hasAllAmenities = criteria.amenities.every(amenity => 
+          hotel.amenities && hotel.amenities.includes(amenity)
+        );
+        if (!hasAllAmenities) {
+          matches = false;
+        }
+      }
+      
+      return matches && hotel.isBookable();
+    });
+  }
+
   // Method to get public hotel information
   getPublicInfo() {
     return {
       id: this.id,
       name: this.name,
       description: this.description,
-      address: this.address || this.location?.address || '',
-      city: this.city || this.location?.city || '',
-      state: this.state || this.location?.state || '',
-      country: this.country || this.location?.country || '',
       location: this.location || {},
       images: this.images || [],
       amenities: this.amenities || [],
-      rating: this.rating || 0,
+      rating: this.ratingAvg || this.rating || 0,
       totalReviews: this.totalReviews || 0,
-      priceRange: this.getPriceRange(),
       pricing: this.pricing || {},
       capacity: this.capacity || {},
+      totalRooms: this.totalRooms || 1,
       isApproved: this.isApproved,
       isSuspended: this.isSuspended
     };
@@ -239,75 +294,21 @@ class Hotel {
     return {
       ...this.getPublicInfo(),
       ownerId: this.ownerId,
-      isApproved: this.isApproved,
       policies: this.policies,
-      contactInfo: this.contactInfo,
+      isFlagged: this.isFlagged,
+      flaggedReason: this.flaggedReason,
+      flaggedForLowRating: this.flaggedForLowRating,
+      flaggedAt: this.flaggedAt,
+      suspensionReason: this.suspensionReason,
+      rejectionReason: this.rejectionReason,
+      commissionRate: this.commissionRate,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
   }
 
-  // Method to get basic hotel information
-  getBasicInfo() {
-    return {
-      id: this.id,
-      name: this.name,
-      description: this.description,
-      location: this.location,
-      address: this.address || this.location?.address,
-      city: this.city || this.location?.city,
-      state: this.state || this.location?.state,
-      country: this.country || this.location?.country,
-      images: this.images,
-      amenities: this.amenities,
-      rating: this.rating,
-      totalReviews: this.totalReviews,
-      pricing: this.pricing,
-      isApproved: this.isApproved,
-      isSuspended: this.isSuspended
-    };
-  }
-
-  // Method to get search result information (for search listings)
-  getSearchResult() {
-    const priceRange = this.getPriceRange();
-    return {
-      id: this.id,
-      name: this.name,
-      description: this.description,
-      location: {
-        address: this.address || this.location?.address || '',
-        city: this.city || this.location?.city || '',
-        state: this.state || this.location?.state || '',
-        country: this.country || this.location?.country || ''
-      },
-      images: this.images || [],
-      amenities: this.amenities || [],
-      rating: this.rating || 0,
-      totalReviews: this.totalReviews || 0,
-      priceRange: priceRange,
-      capacity: this.capacity || {},
-      isApproved: this.isApproved,
-      isSuspended: this.isSuspended,
-      suspensionReason: this.suspensionReason || '',
-      rejectionReason: this.rejectionReason || ''
-    };
-  }
-
-  // Method to get price range from hotel pricing
-  getPriceRange() {
-    // Use pricing from hotel model
-    if (this.pricing && this.pricing.basePrice) {
-      return {
-        min: this.pricing.basePrice,
-        max: this.pricing.basePrice
-      };
-    }
-    return { min: 0, max: 0 };
-  }
-
   // Method to check if hotel has available capacity for given dates and guests
-  hasAvailableRooms(checkIn, checkOut, guests) {
+  hasAvailableCapacity(guests) {
     // Check if hotel is bookable
     if (!this.isBookable()) {
       return false;
@@ -320,6 +321,80 @@ class Hotel {
 
     // If no capacity info, assume available if hotel is approved
     return this.isApproved && !this.isSuspended;
+  }
+
+  // Method to check if hotel has available rooms for given dates and guests
+  // Note: This is a simplified check - actual availability should check bookings
+  hasAvailableRooms(checkIn, checkOut, guests) {
+    // Check if hotel is bookable
+    if (!this.isBookable()) {
+      return false;
+    }
+
+    // Check capacity
+    if (this.capacity && this.capacity.guests) {
+      if (this.capacity.guests < guests) {
+        return false;
+      }
+    }
+
+    // Check if hotel has rooms available
+    if (this.totalRooms && this.totalRooms <= 0) {
+      return false;
+    }
+
+    // Basic validation - dates should be valid
+    if (!checkIn || !checkOut) {
+      return false;
+    }
+
+    if (new Date(checkIn) >= new Date(checkOut)) {
+      return false;
+    }
+
+    // If all checks pass, assume available
+    // Note: Actual availability checking should be done in the controller by querying bookings
+    return true;
+  }
+
+  // Method to get price range
+  getPriceRange() {
+    const basePrice = this.pricing?.basePrice || 0;
+    const cleaningFee = this.pricing?.cleaningFee || 0;
+    const serviceFee = this.pricing?.serviceFee || 0;
+    
+    return {
+      min: basePrice,
+      max: basePrice + cleaningFee + serviceFee
+    };
+  }
+
+  // Method to get search result format (for hotel listings)
+  getSearchResult() {
+    return {
+      id: this.id,
+      _id: this.id, // For compatibility
+      name: this.name,
+      description: this.description,
+      location: this.location || {},
+      images: this.images || [],
+      amenities: this.amenities || [],
+      rating: this.ratingAvg || this.rating || 0,
+      ratingAvg: this.ratingAvg || this.rating || 0,
+      totalReviews: this.totalReviews || 0,
+      pricing: this.pricing || {},
+      capacity: this.capacity || {},
+      totalRooms: this.totalRooms || 1,
+      isApproved: this.isApproved,
+      isSuspended: this.isSuspended,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
+    };
+  }
+
+  // Method to get basic info (alias for getPublicInfo for backward compatibility)
+  getBasicInfo() {
+    return this.getPublicInfo();
   }
 }
 

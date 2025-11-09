@@ -13,25 +13,32 @@ const HotelSchema = new Schema({
   suspensionReason: { type: String, default: '' },
   rejectionReason: { type: String, default: '' },
   rating: { type: Number, default: 0, min: 0, max: 5 },
+  ratingAvg: { type: Number, default: 0, min: 0, max: 5 },
   totalReviews: { type: Number, default: 0 },
   isFlagged: { type: Boolean, default: false },
   flaggedReason: { type: String, default: '' },
+  flaggedForLowRating: { type: Boolean, default: false },
+  flaggedAt: { type: Date, default: null },
   ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   location: {
     address: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
     zipCode: { type: String, required: true },
-    country: { type: String, required: true }
+    country: { type: String, required: true },
+    coordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null }
+    }
   },
   pricing: {
-    basePrice: { type: Number, required: true, min: 0 },
+    basePrice: { type: Number, default: 0, min: 0 },
     cleaningFee: { type: Number, default: 0 },
     serviceFee: { type: Number, default: 0 }
   },
   images: [{ type: String }],
   capacity: {
-    guests: { type: Number, required: true, min: 1 },
+    guests: { type: Number, default: 1, min: 1 },
     bedrooms: { type: Number, default: 1 },
     bathrooms: { type: Number, default: 1 }
   },

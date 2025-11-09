@@ -2,13 +2,19 @@ const PaymentModel = require('../models/paymentModel');
 const BookingModel = require('../models/bookingModel');
 const CustomerModel = require('../models/customerModel');
 const CouponModel = require('../models/couponModel');
+const HotelModel = require('../models/hotelModel');
+const UserModel = require('../models/userModel');
 const Payment = require('../classes/Payment');
 const Booking = require('../classes/Booking');
+const { sendEmail, emailTemplates } = require('../utils/emailService');
+const { generateInvoicePDF } = require('../utils/pdfService');
+const path = require('path');
+const fs = require('fs');
 
 // Process Payment Controller
 const processPayment = async (req, res) => {
   try {
-    const { bookingId, paymentMethod, cardDetails } = req.body;
+    const { bookingId, paymentMethod, cardDetails, walletBalance } = req.body;
     const userId = req.user?.userId;
     
     if (!userId) {
@@ -27,7 +33,6 @@ const processPayment = async (req, res) => {
         loyaltyPoints: 0,
         bookingHistory: [],
         reviewsGiven: [],
-        preferredLocations: []
       });
     }
     const customerId = customerDoc._id;
@@ -83,7 +88,11 @@ const processPayment = async (req, res) => {
     }
 
     // Process payment using OOP method
-    const paymentResult = await paymentInstance.processPayment(cardDetails);
+    const paymentResult = await paymentInstance.processPayment(
+      cardDetails, 
+      walletBalance, 
+      userId
+    );
 
     if (!paymentResult.success) {
       // Save failed payment attempt
@@ -103,6 +112,28 @@ const processPayment = async (req, res) => {
         success: false,
         message: paymentResult.error
       });
+    }
+
+    // Handle wallet payment deduction
+    if (paymentMethod === 'wallet' && paymentResult.requiresWalletDeduction) {
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      if (user.walletBalance < paymentInstance.amount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Insufficient wallet balance'
+        });
+      }
+
+      // Deduct from wallet
+      user.walletBalance -= paymentInstance.amount;
+      await user.save();
     }
 
     // Save successful payment
@@ -133,6 +164,91 @@ const processPayment = async (req, res) => {
         $inc: { currentUses: 1 }
       });
       console.log(`Coupon usage incremented for coupon ${dbBooking.couponId} after payment confirmation`);
+    }
+
+    // Generate PDF invoice and send invoice email to customer (async)
+    try {
+      const updatedBooking = await BookingModel.findById(bookingId)
+        .populate('hotelId', 'name location address')
+        .populate('couponId', 'code discountPercentage');
+      const user = await UserModel.findById(userId);
+      
+      if (user && updatedBooking) {
+        // Generate PDF invoice
+        const invoiceDir = path.join(__dirname, '../invoices');
+        if (!fs.existsSync(invoiceDir)) {
+          fs.mkdirSync(invoiceDir, { recursive: true });
+        }
+        
+        const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;
+        const invoicePath = path.join(invoiceDir, invoiceFileName);
+        const invoiceData = {
+          invoiceNumber: `INV-${bookingId}-${Date.now()}`,
+          date: new Date(),
+          bookingId: bookingId,
+          customer: {
+            name: user.name,
+            email: user.email,
+            phone: user.phone
+          },
+          hotel: {
+            name: updatedBooking.hotelId?.name || 'Hotel',
+            address: updatedBooking.hotelId?.location?.address || ''
+          },
+          checkIn: updatedBooking.checkIn,
+          checkOut: updatedBooking.checkOut,
+          nights: updatedBooking.nights || 1,
+          guests: updatedBooking.guests || 1,
+          basePrice: updatedBooking.priceSnapshot?.basePriceTotal || 0,
+          cleaningFee: updatedBooking.priceSnapshot?.cleaningFee || 0,
+          serviceFee: updatedBooking.priceSnapshot?.serviceFee || 0,
+          discount: updatedBooking.priceSnapshot?.discounts || 0,
+          couponCode: updatedBooking.priceSnapshot?.couponCode,
+          total: paymentInstance.amount,
+          payment: {
+            method: paymentMethod,
+            transactionId: paymentResult.transactionId,
+            date: new Date()
+          }
+        };
+        
+        // Generate PDF invoice and send invoice email to customer
+        generateInvoicePDF(invoiceData, invoicePath)
+          .then(async () => {
+            console.log('PDF invoice generated:', invoicePath);
+            // Store invoice filename (relative path) in booking record
+            await BookingModel.findByIdAndUpdate(bookingId, {
+              invoicePath: invoiceFileName
+            });
+            
+            // Send invoice email to customer
+            const emailTemplate = emailTemplates.invoiceEmail(
+              successfulPayment,
+              updatedBooking,
+              updatedBooking.hotelId || {},
+              { name: user.name, email: user.email },
+              invoiceFileName
+            );
+            sendEmail(user.email, emailTemplate.subject, emailTemplate.html, emailTemplate.text)
+              .catch(err => console.error('Error sending invoice email:', err));
+          })
+          .catch(err => {
+            console.error('Error generating PDF invoice:', err);
+            // Still send email even if PDF generation fails
+            const emailTemplate = emailTemplates.invoiceEmail(
+              successfulPayment,
+              updatedBooking,
+              updatedBooking.hotelId || {},
+              { name: user.name, email: user.email },
+              null
+            );
+            sendEmail(user.email, emailTemplate.subject, emailTemplate.html, emailTemplate.text)
+              .catch(emailErr => console.error('Error sending invoice email:', emailErr));
+          });
+      }
+    } catch (emailError) {
+      console.error('Error sending invoice email:', emailError);
+      // Don't fail the request if email fails
     }
 
     res.json({
@@ -350,9 +466,86 @@ const getPaymentDetails = async (req, res) => {
   }
 };
 
+// Download Invoice Controller
+const downloadInvoice = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    // Find customer document
+    let customerDoc = await CustomerModel.findOne({ user: userId });
+    if (!customerDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+    const customerId = customerDoc._id;
+
+    // Find booking
+    const booking = await BookingModel.findOne({ 
+      _id: bookingId, 
+      userId: customerId 
+    });
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    if (!booking.invoicePath) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found for this booking'
+      });
+    }
+
+    // Construct full path to invoice file
+    const invoiceDir = path.join(__dirname, '../invoices');
+    const invoicePath = path.join(invoiceDir, booking.invoicePath);
+
+    // Check if file exists
+    if (!fs.existsSync(invoicePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice file not found'
+      });
+    }
+
+    // Send file
+    res.download(invoicePath, `invoice-${bookingId}.pdf`, (err) => {
+      if (err) {
+        console.error('Error downloading invoice:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            message: 'Error downloading invoice'
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Download invoice error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while downloading invoice'
+    });
+  }
+};
+
 module.exports = {
   processPayment,
   getPaymentHistory,
   processRefund,
-  getPaymentDetails
+  getPaymentDetails,
+  downloadInvoice
 };

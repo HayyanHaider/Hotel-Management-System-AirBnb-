@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import LocationPickerMap from './LocationPickerMap';
 import './Dashboard.css';
 
 const ManageHotelProfile = () => {
@@ -17,22 +18,13 @@ const ManageHotelProfile = () => {
     state: '',
     zipCode: '',
     country: '',
+    latitude: '',
+    longitude: '',
     amenities: [],
     images: [],
-    pricing: {
-      basePrice: '',
-      cleaningFee: '',
-      serviceFee: ''
-    },
-    capacity: {
-      guests: '',
-      bedrooms: '',
-      bathrooms: ''
-    },
     totalRooms: ''
   });
   const [amenityInput, setAmenityInput] = useState('');
-  const [imageInput, setImageInput] = useState('');
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -44,7 +36,7 @@ const ManageHotelProfile = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
-      // Use the owner-specific endpoint to get only the hotel owner's hotels
+      // Use the owner-specific endpoint to get only the hotel's hotels
       const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -70,18 +62,10 @@ const ManageHotelProfile = () => {
       state: hotel.location?.state || '',
       zipCode: hotel.location?.zipCode || '',
       country: hotel.location?.country || '',
+      latitude: hotel.location?.coordinates?.lat || '',
+      longitude: hotel.location?.coordinates?.lng || '',
       amenities: hotel.amenities || [],
       images: hotel.images || [],
-      pricing: {
-        basePrice: hotel.pricing?.basePrice || '',
-        cleaningFee: hotel.pricing?.cleaningFee || '',
-        serviceFee: hotel.pricing?.serviceFee || ''
-      },
-      capacity: {
-        guests: hotel.capacity?.guests || '',
-        bedrooms: hotel.capacity?.bedrooms || '',
-        bathrooms: hotel.capacity?.bathrooms || ''
-      },
       totalRooms: hotel.totalRooms || ''
     });
     setShowCreateForm(false);
@@ -98,18 +82,10 @@ const ManageHotelProfile = () => {
       state: '',
       zipCode: '',
       country: '',
+      latitude: '',
+      longitude: '',
       amenities: [],
       images: [],
-      pricing: {
-        basePrice: '',
-        cleaningFee: '',
-        serviceFee: ''
-      },
-      capacity: {
-        guests: '',
-        bedrooms: '',
-        bathrooms: ''
-      },
       totalRooms: ''
     });
   };
@@ -118,6 +94,12 @@ const ManageHotelProfile = () => {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('token');
+      // Validate that coordinates are provided
+      if (!formData.latitude || !formData.longitude) {
+        alert('Please select a location on the map by clicking on it');
+        return;
+      }
+
       const hotelData = {
         name: formData.name,
         description: formData.description,
@@ -126,20 +108,14 @@ const ManageHotelProfile = () => {
           city: formData.city,
           state: formData.state,
           zipCode: formData.zipCode,
-          country: formData.country
+          country: formData.country,
+          coordinates: {
+            lat: formData.latitude ? parseFloat(formData.latitude) : null,
+            lng: formData.longitude ? parseFloat(formData.longitude) : null
+          }
         },
         amenities: formData.amenities,
         images: formData.images,
-        pricing: {
-          basePrice: parseFloat(formData.pricing.basePrice) || 0,
-          cleaningFee: parseFloat(formData.pricing.cleaningFee) || 0,
-          serviceFee: parseFloat(formData.pricing.serviceFee) || 0
-        },
-        capacity: {
-          guests: parseInt(formData.capacity.guests) || 1,
-          bedrooms: parseInt(formData.capacity.bedrooms) || 1,
-          bathrooms: parseInt(formData.capacity.bathrooms) || 1
-        },
         totalRooms: parseInt(formData.totalRooms) || 1
       };
 
@@ -156,8 +132,22 @@ const ManageHotelProfile = () => {
           hotelData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        alert('Hotel created successfully! Pending admin approval.');
+        alert('Hotel created successfully! Your hotel is now pending admin approval. It will be visible to customers once approved by an administrator.');
         setShowCreateForm(false);
+        setFormData({
+          name: '',
+          description: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+          latitude: '',
+          longitude: '',
+          amenities: [],
+          images: [],
+          totalRooms: ''
+        });
       }
       
       setEditingHotel(null);
@@ -206,27 +196,28 @@ const ManageHotelProfile = () => {
     });
   };
 
-  const addImage = () => {
-    if (imageInput.trim()) {
-      setFormData({
-        ...formData,
-        images: [...formData.images, imageInput.trim()]
-      });
-      setImageInput('');
-    }
-  };
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
+
+    // Validate file sizes (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const invalidFiles = files.filter(file => file.size > maxSize);
+    if (invalidFiles.length > 0) {
+      alert(`Some files exceed the 10MB limit. Please select smaller images.`);
+      e.target.value = '';
+      return;
+    }
 
     setUploading(true);
     try {
       const token = sessionStorage.getItem('token');
       const uploadFormData = new FormData();
       
-      // Upload multiple images
-      files.forEach((file) => {
+      // Upload multiple images (up to 10 per request, but can upload multiple times)
+      const filesToUpload = files.slice(0, 10);
+      filesToUpload.forEach((file) => {
         uploadFormData.append('images', file);
       });
 
@@ -247,15 +238,18 @@ const ManageHotelProfile = () => {
           ...prev,
           images: [...prev.images, ...uploadedUrls]
         }));
-        alert(`${files.length} image(s) uploaded successfully!`);
+        // Reset file input to allow uploading more images
+        e.target.value = '';
+        console.log(`${uploadedUrls.length} image(s) uploaded successfully to Cloudinary!`);
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert(error.response?.data?.message || 'Error uploading images');
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Error uploading images';
+      alert(errorMessage);
+      // Reset file input on error too
+      e.target.value = '';
     } finally {
       setUploading(false);
-      // Reset file input
-      e.target.value = '';
     }
   };
 
@@ -280,7 +274,7 @@ const ManageHotelProfile = () => {
           </div>
           <button 
             className="btn btn-outline-secondary"
-            onClick={() => navigate('/hotel_owner-dashboard')}
+            onClick={() => navigate('/hotel-dashboard')}
             style={{ height: 'fit-content' }}
           >
             ← Go Back
@@ -289,11 +283,19 @@ const ManageHotelProfile = () => {
       </div>
 
       <div className="container">
-        <div className="mb-3">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3>Your Hotels</h3>
           <button className="btn btn-primary" onClick={handleCreateNew}>
             + Create New Hotel
           </button>
         </div>
+
+        {hotels.length > 0 && hotels.some(h => !h.isApproved && !h.isSuspended) && (
+          <div className="alert alert-info mb-4">
+            <strong>ℹ️ Note:</strong> Some of your hotels are pending approval. 
+            Hotels must be approved by an administrator before they are visible to customers.
+          </div>
+        )}
 
         {hotels.length === 0 && !showCreateForm && !editingHotel && (
           <div className="text-center">
@@ -335,6 +337,15 @@ const ManageHotelProfile = () => {
                           <div className="alert alert-warning mt-3 mb-0">
                             <strong>⚠️ Rejection Reason:</strong>
                             <p className="mb-0 mt-1">{hotel.rejectionReason}</p>
+                          </div>
+                        )}
+                        {!hotel.isSuspended && !hotel.isApproved && !hotel.rejectionReason && (
+                          <div className="alert alert-info mt-3 mb-0">
+                            <strong>ℹ️ Pending Approval:</strong>
+                            <p className="mb-0 mt-1">
+                              Your hotel is currently pending admin approval. It will be visible to customers once approved. 
+                              Please wait for an administrator to review and approve your hotel listing.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -442,91 +453,32 @@ const ManageHotelProfile = () => {
                       />
                     </div>
                   </div>
-                  <div className="row">
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Base Price ($)</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.pricing.basePrice}
-                        onChange={(e) => setFormData({
+                  
+                  {/* Map Location Picker Section */}
+                  <div className="mb-4">
+                    <h5 className="mb-3">📍 Map Location <span className="text-danger">*</span></h5>
+                    <p className="text-muted small mb-3">
+                      Click on the map to place a marker at your hotel's location. The coordinates will be automatically saved.
+                    </p>
+                    <LocationPickerMap
+                      onLocationSelect={(lat, lng) => {
+                        setFormData({
                           ...formData,
-                          pricing: { ...formData.pricing, basePrice: e.target.value }
-                        })}
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Cleaning Fee ($)</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.pricing.cleaningFee}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          pricing: { ...formData.pricing, cleaningFee: e.target.value }
-                        })}
-                        min="0"
-                      />
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Service Fee ($)</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.pricing.serviceFee}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          pricing: { ...formData.pricing, serviceFee: e.target.value }
-                        })}
-                        min="0"
-                      />
-                    </div>
+                          latitude: lat.toString(),
+                          longitude: lng.toString()
+                        });
+                      }}
+                      initialLat={formData.latitude ? parseFloat(formData.latitude) : null}
+                      initialLng={formData.longitude ? parseFloat(formData.longitude) : null}
+                      height="400px"
+                    />
+                    {(!formData.latitude || !formData.longitude) && (
+                      <div className="text-danger small mt-2">
+                        ⚠️ Please select a location on the map by clicking on it
+                      </div>
+                    )}
                   </div>
-                  <div className="row">
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Max Guests</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.capacity.guests}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          capacity: { ...formData.capacity, guests: e.target.value }
-                        })}
-                        min="1"
-                        required
-                      />
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Bedrooms</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.capacity.bedrooms}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          capacity: { ...formData.capacity, bedrooms: e.target.value }
-                        })}
-                        min="1"
-                      />
-                    </div>
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Bathrooms</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={formData.capacity.bathrooms}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          capacity: { ...formData.capacity, bathrooms: e.target.value }
-                        })}
-                        min="1"
-                      />
-                    </div>
-                  </div>
-
+                  
                   <div className="mb-3">
                     <label className="form-label">Total Rooms *</label>
                     <input
@@ -575,53 +527,80 @@ const ManageHotelProfile = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label">Images</label>
+                  <div className="mb-4">
+                    <label className="form-label">Hotel Images <span className="text-danger">*</span></label>
+                    <p className="text-muted small mb-3">
+                      Upload images of your hotel. You can upload up to 10 images at once (max 10MB each). 
+                      You can upload images multiple times to add more images. Images will be stored in Cloudinary.
+                    </p>
                     <div className="mb-3">
                       <input
                         type="file"
                         className="form-control"
-                        accept="image/*"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                         multiple
                         onChange={handleImageUpload}
                         disabled={uploading}
+                        id="hotel-image-upload"
                       />
-                      {uploading && <p className="text-muted small mt-2">Uploading images...</p>}
-                    </div>
-                    <div className="mb-2">
-                      <small className="text-muted">Or add image URL:</small>
-                      <div className="d-flex gap-2 mt-1">
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          value={imageInput}
-                          onChange={(e) => setImageInput(e.target.value)}
-                          placeholder="Add image URL"
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addImage())}
-                        />
-                        <button type="button" className="btn btn-outline-primary btn-sm" onClick={addImage}>
-                          Add URL
-                        </button>
-                      </div>
-                    </div>
-                    <div className="d-flex flex-wrap gap-2">
-                      {formData.images.map((image, index) => (
-                        <div key={index} className="position-relative">
-                          <img
-                            src={image}
-                            alt={`Hotel ${index + 1}`}
-                            style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
-                            onError={(e) => e.target.style.display = 'none'}
-                          />
-                          <button
-                            type="button"
-                            className="btn-close position-absolute top-0 end-0"
-                            style={{ fontSize: '10px', backgroundColor: 'rgba(255,255,255,0.8)' }}
-                            onClick={() => removeImage(index)}
-                          />
+                      {uploading && (
+                        <div className="mt-2">
+                          <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span className="visually-hidden">Uploading...</span>
+                          </div>
+                          <span className="text-muted small">Uploading images to Cloudinary...</span>
                         </div>
-                      ))}
+                      )}
                     </div>
+                    {formData.images.length === 0 && (
+                      <div className="alert alert-warning">
+                        <strong>⚠️ Required:</strong> Please upload at least one image of your hotel.
+                      </div>
+                    )}
+                    {formData.images.length > 0 && (
+                      <div className="mt-3">
+                        <p className="small text-muted mb-2">
+                          {formData.images.length} image(s) uploaded. Click X to remove an image. 
+                          You can upload more images by selecting files again.
+                        </p>
+                        <div className="d-flex flex-wrap gap-3">
+                          {formData.images.map((image, index) => (
+                            <div key={index} className="position-relative">
+                              <img
+                                src={image}
+                                alt={`Hotel ${index + 1}`}
+                                style={{ 
+                                  width: '150px', 
+                                  height: '150px', 
+                                  objectFit: 'cover', 
+                                  borderRadius: '8px',
+                                  border: '2px solid #e0e0e0'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  console.error('Error loading image:', image);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle"
+                                style={{ 
+                                  width: '28px', 
+                                  height: '28px', 
+                                  padding: '0',
+                                  lineHeight: '1',
+                                  fontSize: '16px'
+                                }}
+                                onClick={() => removeImage(index)}
+                                title="Remove image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="d-flex gap-2">
                     <button type="submit" className="btn btn-primary">

@@ -28,10 +28,10 @@ router.get('/admin-dashboard', verifyToken, authorize('admin'), (req, res) => {
   });
 });
 
-router.get('/hotel-owner-dashboard', verifyToken, authorize('hotel_owner'), (req, res) => {
+router.get('/hotel-dashboard', verifyToken, authorize('hotel'), (req, res) => {
   res.json({
     success: true,
-    message: 'Welcome to Hotel Owner Dashboard',
+    message: 'Welcome to Hotel Dashboard',
     user: req.user
   });
 });

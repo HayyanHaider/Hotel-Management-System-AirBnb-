@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const { getOwnerBookings, confirmBooking, rejectBooking, checkIn, checkOut } = require('../controllers/ownerBookingController');
 
-router.use(authenticateToken, authorizeRoles(['hotel_owner']));
+router.use(authenticateToken, authorizeRoles(['hotel']));
 
 router.get('/', getOwnerBookings);
 router.put('/:bookingId/confirm', confirmBooking);

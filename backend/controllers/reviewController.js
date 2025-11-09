@@ -16,7 +16,6 @@ const createReview = async (req, res) => {
         loyaltyPoints: 0,
         bookingHistory: [],
         reviewsGiven: [],
-        preferredLocations: []
       });
     }
     const customerId = customerDoc._id;
@@ -85,7 +84,7 @@ const listHotelReviews = async (req, res) => {
   }
 };
 
-// Reply to a review (hotel owner or admin)
+// Reply to a review (hotel or admin)
 const replyToReview = async (req, res) => {
   try {
     const user = req.user;
@@ -101,7 +100,7 @@ const replyToReview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
 
-    // Allow admin or hotel owner (ownership check can be added if hotel ownership link exists)
+    // Allow admin or hotel (ownership check can be added if hotel ownership link exists)
     review.reply = { by: user.userId, text, repliedAt: new Date() };
     await review.save();
     return res.json({ success: true, review });

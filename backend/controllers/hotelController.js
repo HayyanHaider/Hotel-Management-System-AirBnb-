@@ -45,20 +45,24 @@ const createHotel = async (req, res) => {
         city: hotelInstance.city || location?.city || '',
         state: hotelInstance.state || location?.state || '',
         zipCode: location?.zipCode || '',
-        country: hotelInstance.country || location?.country || ''
+        country: hotelInstance.country || location?.country || '',
+        coordinates: {
+          lat: location?.coordinates?.lat || null,
+          lng: location?.coordinates?.lng || null
+        }
       },
       amenities: hotelInstance.amenities,
       images: hotelInstance.images,
-      contactInfo: hotelInstance.contactInfo,
+      contactInfo: hotelInstance.contactInfo || {},
       pricing: {
-        basePrice: pricing?.basePrice || 0,
-        cleaningFee: pricing?.cleaningFee || 0,
-        serviceFee: pricing?.serviceFee || 0
+        basePrice: 0, // Default value, can be set later
+        cleaningFee: 0,
+        serviceFee: 0
       },
       capacity: {
-        guests: capacity?.guests || 1,
-        bedrooms: capacity?.bedrooms || 1,
-        bathrooms: capacity?.bathrooms || 1
+        guests: 1, // Default value, can be set later
+        bedrooms: 1,
+        bathrooms: 1
       },
       totalRooms: totalRooms || 1,
       ownerId: hotelInstance.ownerId,
@@ -121,15 +125,19 @@ const getHotels = async (req, res) => {
     } else if (sortBy === 'rating') {
       sort.ratingAvg = order === 'desc' ? -1 : 1;
     } else if (sortBy === 'popularity') {
-      sort.ratingCount = order === 'desc' ? -1 : 1;
+      sort.totalReviews = order === 'desc' ? -1 : 1;
     } else {
       sort.createdAt = -1;
     }
 
+    // Default limit to 50 if not specified to show more hotels
+    const queryLimit = limit ? Number(limit) : 50;
+    const queryPage = page ? Number(page) : 1;
+    
     const dbHotels = await HotelModel.find(searchCriteria)
       .sort(sort)
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
+      .limit(queryLimit)
+      .skip((queryPage - 1) * queryLimit);
 
     // Convert to OOP instances and apply filters
     const hotelInstances = dbHotels.map(dbHotel => {
@@ -188,11 +196,21 @@ const getHotels = async (req, res) => {
     }
 
     const hotelsData = filteredHotels.map(hotel => hotel.getSearchResult());
+    
+    // Get total count for pagination (before filtering by date/price)
+    const totalCount = await HotelModel.countDocuments(searchCriteria);
 
     res.json({
       success: true,
       count: hotelsData.length,
-      hotels: hotelsData
+      total: totalCount,
+      hotels: hotelsData,
+      pagination: {
+        page: queryPage,
+        limit: queryLimit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / queryLimit)
+      }
     });
 
   } catch (error) {
@@ -259,7 +277,7 @@ const getHotelDetails = async (req, res) => {
   }
 };
 
-// Update Hotel Controller (Hotel Owner only)
+// Update Hotel Controller (Hotel only)
 const updateHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;
@@ -288,7 +306,11 @@ const updateHotel = async (req, res) => {
         city: location.city || dbHotel.location?.city || '',
         state: location.state || dbHotel.location?.state || '',
         zipCode: location.zipCode || dbHotel.location?.zipCode || '',
-        country: location.country || dbHotel.location?.country || ''
+        country: location.country || dbHotel.location?.country || '',
+        coordinates: {
+          lat: location.coordinates?.lat !== undefined ? location.coordinates.lat : (dbHotel.location?.coordinates?.lat || null),
+          lng: location.coordinates?.lng !== undefined ? location.coordinates.lng : (dbHotel.location?.coordinates?.lng || null)
+        }
       };
     }
     
@@ -353,7 +375,7 @@ const updateHotel = async (req, res) => {
   }
 };
 
-// Get Hotel Owner's Hotels Controller
+// Get Hotel's Hotels Controller
 const getOwnerHotels = async (req, res) => {
   try {
     const ownerId = req.user.userId;
@@ -408,7 +430,7 @@ const getOwnerHotels = async (req, res) => {
   }
 };
 
-// Delete Hotel Controller (Hotel Owner only)
+// Delete Hotel Controller (Hotel only)
 const deleteHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;

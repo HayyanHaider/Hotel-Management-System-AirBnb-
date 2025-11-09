@@ -58,7 +58,7 @@ const Navbar = () => {
     sessionStorage.removeItem('user');
     setUser(null);
     window.dispatchEvent(new Event('userStatusChanged'));
-    navigate('/browse-hotels');
+    navigate('/');
   };
 
   const handleLogoClick = (e) => {
@@ -68,13 +68,13 @@ const Navbar = () => {
         navigate('/admin-dashboard', { replace: true });
         window.dispatchEvent(new Event('resetAdminDashboard'));
       } else if (user.role === 'customer') {
-        navigate('/browse-hotels', { replace: true });
-      } else if (user.role === 'hotel_owner') {
-        navigate('/hotel_owner-dashboard', { replace: true });
+        navigate('/', { replace: true });
+      } else if (user.role === 'hotel') {
+        navigate('/hotel-dashboard', { replace: true });
       }
     } else {
       e.preventDefault();
-      navigate('/browse-hotels', { replace: true });
+      navigate('/', { replace: true });
     }
   };
 
@@ -95,8 +95,8 @@ const Navbar = () => {
         <Link
           to={
             user && user.role === 'admin' ? "/admin-dashboard" :
-            user && user.role === 'customer' ? "/browse-hotels" :
-            user && user.role === 'hotel_owner' ? "/hotel_owner-dashboard" : "/browse-hotels"
+            user && user.role === 'customer' ? "/" :
+            user && user.role === 'hotel' ? "/hotel-dashboard" : "/"
           }
           className="navbar-brand d-flex align-items-center text-decoration-none"
           onClick={handleLogoClick}
@@ -193,10 +193,10 @@ const Navbar = () => {
                     </>
                   )}
                   
-                  {user.role === 'hotel_owner' && (
+                  {user.role === 'hotel' && (
                     <>
                       <li>
-                        <Link className="dropdown-item py-2" to="/hotel_owner-dashboard">
+                        <Link className="dropdown-item py-2" to="/hotel-dashboard">
                           <span className="me-2">🏠</span> Dashboard
                         </Link>
                       </li>
@@ -280,7 +280,8 @@ const Navbar = () => {
         {/* Small-screen right actions (show settings/avatar without 3-dot toggler) */}
         <div className="d-flex d-lg-none align-items-center ms-auto">
           {user ? (
-            <div className="dropdown position-relative">
+            <>
+              <div className="dropdown position-relative">
               <button
                 className="btn rounded-circle d-flex align-items-center justify-content-center"
                 type="button"
@@ -325,10 +326,10 @@ const Navbar = () => {
                   </>
                 )}
                 
-                {user.role === 'hotel_owner' && (
+                {user.role === 'hotel' && (
                   <>
                     <li>
-                      <Link className="dropdown-item py-2" to="/hotel_owner-dashboard">
+                      <Link className="dropdown-item py-2" to="/hotel-dashboard">
                         <span className="me-2">🏠</span> Dashboard
                       </Link>
                     </li>
@@ -361,6 +362,7 @@ const Navbar = () => {
                 </li>
               </ul>
             </div>
+            </>
           ) : (
             !isAuthPage && (
               <div className="d-flex align-items-center gap-2">

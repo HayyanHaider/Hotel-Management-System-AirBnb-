@@ -65,6 +65,35 @@ const BookingHistory = () => {
     navigate(`/review/${bookingId}`);
   };
 
+  const handleReschedule = (bookingId) => {
+    navigate(`/reschedule/${bookingId}`);
+  };
+
+  const handleDownloadInvoice = async (bookingId) => {
+    try {
+      const token = sessionStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:5000/api/payments/invoice/${bookingId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${bookingId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      alert(error.response?.data?.message || 'Error downloading invoice');
+    }
+  };
+
   if (loading) {
     return <div className="dashboard-container text-center">Loading...</div>;
   }
@@ -129,27 +158,47 @@ const BookingHistory = () => {
                       </div>
                       <div className="d-flex flex-column gap-2">
                         {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                          <>
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => handleReschedule(booking._id || booking.id)}
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleCancel(booking._id || booking.id)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'confirmed' && booking.invoicePath && (
                           <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleCancel(booking._id || booking.id)}
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleDownloadInvoice(booking._id || booking.id)}
                           >
-                            Cancel
+                            Download Invoice
                           </button>
                         )}
                         {(booking.status === 'completed' || booking.status === 'checked-out') && (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleReview(booking._id || booking.id)}
-                          >
-                            Leave Review
-                          </button>
+                          <>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleReview(booking._id || booking.id)}
+                            >
+                              Leave Review
+                            </button>
+                            {booking.invoicePath && (
+                              <button
+                                className="btn btn-success btn-sm"
+                                onClick={() => handleDownloadInvoice(booking._id || booking.id)}
+                              >
+                                Download Invoice
+                              </button>
+                            )}
+                          </>
                         )}
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => navigate(`/booking/${booking._id || booking.id}`)}
-                        >
-                          View Details
-                        </button>
                       </div>
                     </div>
                   </div>

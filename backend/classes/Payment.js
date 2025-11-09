@@ -6,19 +6,17 @@ class Payment {
     this.amount = paymentData.amount;
     this.method = paymentData.method || paymentData.paymentMethod;
     this.paymentMethod = paymentData.paymentMethod || paymentData.method;
+    this.type = paymentData.type || 'booking_payment';
     this.status = paymentData.status || 'pending';
+    this.transactionId = paymentData.transactionId || null;
+    this.processedAt = paymentData.processedAt || null;
+    this.failureReason = paymentData.failureReason || null;
     this.refundStatus = paymentData.refundStatus || 'not_refunded';
     this.refundedAt = paymentData.refundedAt || null;
-    this.type = paymentData.type || 'booking_payment';
-    this.transactionId = paymentData.transactionId || null;
-    this.failureReason = paymentData.failureReason || null;
     this.refundReason = paymentData.refundReason || null;
-    this.refundAmount = paymentData.refundAmount || null;
-    this.processedAt = paymentData.processedAt || null;
-    this.completedAt = paymentData.completedAt || null;
+    this.originalPaymentId = paymentData.originalPaymentId || null;
     this.createdAt = paymentData.createdAt || new Date();
     this.updatedAt = paymentData.updatedAt || new Date();
-    this.currency = paymentData.currency || 'USD';
   }
 
   // Encapsulation: Private method to validate payment data
@@ -62,6 +60,7 @@ class Payment {
     const feeRates = {
       'card': 0.029, // 2.9%
       'paypal': 0.034, // 3.4%
+      'wallet': 0, // No fee for wallet payments
       'bank_transfer': 0.01, // 1%
       'crypto': 0.015 // 1.5%
     };
@@ -70,7 +69,7 @@ class Payment {
   }
 
   // Method to process payment
-  async processPayment(cardDetails = null) {
+  async processPayment(cardDetails = null, walletBalance = null, userId = null) {
     // Allow processing if status is pending or not set
     if (this.status && this.status !== 'pending') {
       throw new Error('Only pending payments can be processed');
@@ -80,7 +79,50 @@ class Payment {
     this.updatedAt = new Date();
     
     try {
-      // Calculate processing fee
+      // Handle wallet payments
+      if (this.paymentMethod === 'wallet') {
+        if (!userId) {
+          return {
+            success: false,
+            error: 'User ID is required for wallet payments',
+            transactionId: null
+          };
+        }
+        
+        if (walletBalance === null || walletBalance === undefined) {
+          return {
+            success: false,
+            error: 'Wallet balance is required',
+            transactionId: null
+          };
+        }
+        
+        if (walletBalance < this.amount) {
+          return {
+            success: false,
+            error: `Insufficient wallet balance. You have $${walletBalance.toFixed(2)}, but need $${this.amount.toFixed(2)}`,
+            transactionId: null
+          };
+        }
+        
+        // Wallet payment - no processing fee
+        this.processingFee = 0;
+        this.netAmount = this.amount;
+        
+        // Deduct from wallet (this will be done in the controller)
+        this.status = 'completed';
+        this.transactionId = `wallet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.processedAt = new Date();
+        
+        return {
+          success: true,
+          transactionId: this.transactionId,
+          message: 'Payment processed successfully from wallet',
+          requiresWalletDeduction: true
+        };
+      }
+      
+      // Calculate processing fee for other payment methods
       this.calculateProcessingFee();
       
       // Simulate payment gateway processing
@@ -89,12 +131,10 @@ class Payment {
       if (result.success) {
         this.status = 'completed';
         this.transactionId = result.transactionId;
-        this.completedAt = new Date();
-        this.gatewayResponse = result;
+        this.processedAt = new Date();
       } else {
         this.status = 'failed';
         this.failureReason = result.error;
-        this.gatewayResponse = result;
       }
       
       this.updatedAt = new Date();
@@ -166,18 +206,20 @@ class Payment {
       const result = await this.#processRefund(amountToRefund);
       
       if (result.success) {
-        this.status = 'refunded';
-        this.refundAmount = amountToRefund;
+        this.refundStatus = 'processed';
         this.refundReason = reason;
         this.refundedAt = new Date();
         this.updatedAt = new Date();
         return true;
       } else {
+        this.refundStatus = 'failed';
+        this.refundReason = reason;
         throw new Error(result.error);
       }
       
     } catch (error) {
       this.failureReason = `Refund failed: ${error.message}`;
+      this.refundStatus = 'failed';
       this.updatedAt = new Date();
       return false;
     }
@@ -238,19 +280,18 @@ class Payment {
 
   // Method to check if payment is refunded
   isRefunded() {
-    return this.status === 'refunded';
+    return this.refundStatus === 'processed' || this.status === 'refunded';
   }
 
   // Method to get payment summary
   getSummary() {
     return {
       amount: this.amount,
-      processingFee: this.processingFee,
-      netAmount: this.netAmount,
-      currency: this.currency,
+      processingFee: this.processingFee || 0,
+      netAmount: this.netAmount || this.amount,
       paymentMethod: this.paymentMethod,
       status: this.status,
-      refundAmount: this.refundAmount
+      refundStatus: this.refundStatus
     };
   }
 
@@ -299,15 +340,15 @@ class Payment {
   getStats() {
     return {
       amount: this.amount,
-      processingFee: this.processingFee,
-      netAmount: this.netAmount,
+      processingFee: this.processingFee || 0,
+      netAmount: this.netAmount || this.amount,
       status: this.status,
+      refundStatus: this.refundStatus,
       paymentMethod: this.paymentMethod,
       isSuccessful: this.isSuccessful(),
       isPending: this.isPending(),
       isFailed: this.isFailed(),
-      isRefunded: this.isRefunded(),
-      refundAmount: this.refundAmount
+      isRefunded: this.isRefunded()
     };
   }
 
@@ -316,11 +357,10 @@ class Payment {
     return {
       id: this.id,
       amount: this.amount,
-      currency: this.currency,
       status: this.status,
       paymentMethod: this.paymentMethod,
       createdAt: this.createdAt,
-      completedAt: this.completedAt
+      processedAt: this.processedAt
     };
   }
 
@@ -330,13 +370,16 @@ class Payment {
       ...this.getPublicInfo(),
       bookingId: this.bookingId,
       customerId: this.customerId,
+      type: this.type,
       transactionId: this.transactionId,
-      processingFee: this.processingFee,
-      netAmount: this.netAmount,
-      refundAmount: this.refundAmount,
+      processingFee: this.processingFee || 0,
+      netAmount: this.netAmount || this.amount,
+      refundStatus: this.refundStatus,
       refundReason: this.refundReason,
       failureReason: this.failureReason,
       refundedAt: this.refundedAt,
+      processedAt: this.processedAt,
+      originalPaymentId: this.originalPaymentId,
       updatedAt: this.updatedAt
     };
   }
@@ -347,12 +390,11 @@ class Payment {
       paymentId: this.id,
       transactionId: this.transactionId,
       amount: this.amount,
-      processingFee: this.processingFee,
-      netAmount: this.netAmount,
-      currency: this.currency,
+      processingFee: this.processingFee || 0,
+      netAmount: this.netAmount || this.amount,
       paymentMethod: this.paymentMethod,
       status: this.status,
-      paidAt: this.completedAt,
+      paidAt: this.processedAt,
       bookingId: this.bookingId
     };
   }

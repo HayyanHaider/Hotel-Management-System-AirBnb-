@@ -15,6 +15,9 @@ const CreateBooking = () => {
   const [submitting, setSubmitting] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeError, setPromoCodeError] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   useEffect(() => {
     fetchHotelDetails();
@@ -97,7 +100,8 @@ const CreateBooking = () => {
         hotelId: hotelId,
         checkInDate: checkIn,
         checkOutDate: checkOut,
-        guests: parseInt(guests) || 1
+        guests: parseInt(guests) || 1,
+        couponCode: promoCode || undefined
       };
 
       console.log('Sending booking data:', bookingData); // Debug log
@@ -202,6 +206,103 @@ const CreateBooking = () => {
                       Hotel is not available for the selected dates and number of guests. Please select different dates or reduce the number of guests.
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Promo Code Section */}
+              <div className="mb-4">
+                <label className="form-label">Promo Code (Optional)</label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value.toUpperCase());
+                      setPromoCodeError('');
+                    }}
+                  />
+                  <button
+                    className="btn btn-outline-secondary"
+                    type="button"
+                    onClick={() => {
+                      if (!promoCode) {
+                        setPromoCodeError('Please enter a promo code');
+                        return;
+                      }
+                      // Coupon will be validated and applied by backend when creating booking
+                      setAppliedCoupon({ code: promoCode, discountPercentage: 0 });
+                      setPromoCodeError('');
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoCodeError && (
+                  <div className="text-danger small mt-1">{promoCodeError}</div>
+                )}
+                {appliedCoupon && (
+                  <div className="alert alert-success mt-2">
+                    ✓ Coupon "{appliedCoupon.code}" applied! {appliedCoupon.discountPercentage}% discount
+                  </div>
+                )}
+              </div>
+
+              {/* Price Breakdown */}
+              {hotel && checkIn && checkOut && (
+                <div className="mb-4">
+                  <h5>Price Breakdown</h5>
+                  <div className="border rounded p-3">
+                    {(() => {
+                      const checkInDate = new Date(checkIn);
+                      const checkOutDate = new Date(checkOut);
+                      const nights = Math.max(1, Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)) - 1);
+                      const basePrice = hotel.pricing?.basePrice || 0;
+                      const cleaningFee = hotel.pricing?.cleaningFee || 0;
+                      const serviceFee = hotel.pricing?.serviceFee || 0;
+                      const subtotal = (basePrice * nights) + cleaningFee + serviceFee;
+                      const discount = appliedCoupon ? (subtotal * (appliedCoupon.discountPercentage / 100)) : 0;
+                      const total = subtotal - discount;
+                      
+                      return (
+                        <>
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>${basePrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
+                            <span>${(basePrice * nights).toFixed(2)}</span>
+                          </div>
+                          {cleaningFee > 0 && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span>Cleaning fee</span>
+                              <span>${cleaningFee.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {serviceFee > 0 && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span>Service fee</span>
+                              <span>${serviceFee.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <hr />
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span>${subtotal.toFixed(2)}</span>
+                          </div>
+                          {appliedCoupon && discount > 0 && (
+                            <div className="d-flex justify-content-between mb-2 text-success">
+                              <span>Discount ({appliedCoupon.discountPercentage}%)</span>
+                              <span>-${discount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <hr />
+                          <div className="d-flex justify-content-between fw-bold">
+                            <span>Total</span>
+                            <span>${total.toFixed(2)}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 

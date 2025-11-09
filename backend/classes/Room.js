@@ -1,11 +1,20 @@
 class Room {
   constructor(roomData) {
     this.id = roomData.id;
+    this.hotelId = roomData.hotelId;
     this.name = roomData.name;
     this.type = roomData.type;
+    this.description = roomData.description || '';
     this.pricePerNight = roomData.pricePerNight;
+    this.capacity = roomData.capacity;
+    this.totalRooms = roomData.totalRooms || 1;
+    this.availableRooms = roomData.availableRooms || 1;
     this.amenities = roomData.amenities || [];
+    this.images = roomData.images || [];
     this.isAvailable = roomData.isAvailable !== undefined ? roomData.isAvailable : true;
+    this.isActive = roomData.isActive !== undefined ? roomData.isActive : true;
+    this.createdAt = roomData.createdAt;
+    this.updatedAt = roomData.updatedAt;
   }
 
   // Encapsulation: Private method to validate room data
@@ -16,8 +25,8 @@ class Room {
       errors.push('Hotel ID is required');
     }
     
-    if (!this.roomNumber || this.roomNumber.trim().length === 0) {
-      errors.push('Room number is required');
+    if (!this.name || this.name.trim().length === 0) {
+      errors.push('Room name is required');
     }
     
     if (!this.type || this.type.trim().length === 0) {
@@ -32,6 +41,14 @@ class Room {
       errors.push('Valid capacity is required');
     }
     
+    if (this.totalRooms && this.totalRooms < 1) {
+      errors.push('Total rooms must be at least 1');
+    }
+    
+    if (this.availableRooms && this.availableRooms < 0) {
+      errors.push('Available rooms cannot be negative');
+    }
+    
     return errors;
   }
 
@@ -40,35 +57,13 @@ class Room {
     return this.#validateRoomData();
   }
 
-  // Method to check availability for specific dates
-  isAvailableForDates(checkIn, checkOut) {
-    if (!this.isAvailable || !this.isActive) {
-      return false;
-    }
-
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-
-    // Check if dates are in unavailable dates
-    for (let unavailableDate of this.unavailableDates) {
-      const unavailable = new Date(unavailableDate);
-      if (unavailable >= checkInDate && unavailable < checkOutDate) {
-        return false;
-      }
-    }
-
-    // Check existing bookings
-    for (let bookingId of this.bookings) {
-      // In real implementation, you would fetch booking details
-      // For now, we assume booking has checkIn and checkOut dates
-      // This is a simplified check
-    }
-
-    return true;
+  // Method to check if room is available for booking
+  isAvailableForBooking() {
+    return this.isAvailable && this.isActive && this.availableRooms > 0;
   }
 
   // Method to calculate total price for stay
-  calculateTotalPrice(checkIn, checkOut, guestCount = 1) {
+  calculateTotalPrice(checkIn, checkOut) {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
@@ -77,129 +72,21 @@ class Room {
       throw new Error('Invalid date range');
     }
 
-    if (guestCount > this.capacity) {
-      throw new Error('Guest count exceeds room capacity');
-    }
-
-    let totalPrice = this.pricePerNight * nights;
-
-    // Apply discounts
-    totalPrice = this.applyDiscounts(totalPrice, nights);
-
-    // Extra guest charges (if applicable)
-    if (guestCount > 2) {
-      const extraGuests = guestCount - 2;
-      totalPrice += extraGuests * 20 * nights; // $20 per extra guest per night
-    }
-
+    const totalPrice = this.pricePerNight * nights;
+    
     return {
       basePrice: this.pricePerNight * nights,
       totalPrice: totalPrice,
       nights: nights,
-      pricePerNight: this.pricePerNight,
-      currency: this.currency
+      pricePerNight: this.pricePerNight
     };
-  }
-
-  // Method to apply discounts
-  applyDiscounts(basePrice, nights) {
-    let discountedPrice = basePrice;
-
-    for (let discount of this.discounts) {
-      if (this.isDiscountApplicable(discount, nights)) {
-        if (discount.type === 'percentage') {
-          discountedPrice -= (basePrice * discount.value / 100);
-        } else if (discount.type === 'fixed') {
-          discountedPrice -= discount.value;
-        }
-      }
-    }
-
-    return Math.max(discountedPrice, 0);
-  }
-
-  // Method to check if discount is applicable
-  isDiscountApplicable(discount, nights) {
-    const now = new Date();
-    
-    // Check if discount is active
-    if (discount.startDate && new Date(discount.startDate) > now) {
-      return false;
-    }
-    
-    if (discount.endDate && new Date(discount.endDate) < now) {
-      return false;
-    }
-
-    // Check minimum nights requirement
-    if (discount.minNights && nights < discount.minNights) {
-      return false;
-    }
-
-    return true;
-  }
-
-  // Method to add booking
-  addBooking(bookingId) {
-    if (!this.bookings.includes(bookingId)) {
-      this.bookings.push(bookingId);
-      this.updatedAt = new Date();
-    }
-  }
-
-  // Method to remove booking
-  removeBooking(bookingId) {
-    const index = this.bookings.indexOf(bookingId);
-    if (index > -1) {
-      this.bookings.splice(index, 1);
-      this.updatedAt = new Date();
-    }
-  }
-
-  // Method to add unavailable date
-  addUnavailableDate(date) {
-    const dateStr = new Date(date).toISOString().split('T')[0];
-    if (!this.unavailableDates.includes(dateStr)) {
-      this.unavailableDates.push(dateStr);
-      this.updatedAt = new Date();
-    }
-  }
-
-  // Method to remove unavailable date
-  removeUnavailableDate(date) {
-    const dateStr = new Date(date).toISOString().split('T')[0];
-    const index = this.unavailableDates.indexOf(dateStr);
-    if (index > -1) {
-      this.unavailableDates.splice(index, 1);
-      this.updatedAt = new Date();
-    }
-  }
-
-  // Method to add discount
-  addDiscount(discount) {
-    this.discounts.push({
-      id: discount.id || `discount_${Date.now()}`,
-      type: discount.type, // 'percentage' or 'fixed'
-      value: discount.value,
-      minNights: discount.minNights || 1,
-      startDate: discount.startDate,
-      endDate: discount.endDate,
-      description: discount.description || ''
-    });
-    this.updatedAt = new Date();
-  }
-
-  // Method to remove discount
-  removeDiscount(discountId) {
-    this.discounts = this.discounts.filter(discount => discount.id !== discountId);
-    this.updatedAt = new Date();
   }
 
   // Method to update room information
   updateInfo(updates) {
     const allowedFields = [
-      'roomNumber', 'type', 'description', 'capacity', 'pricePerNight',
-      'images', 'amenities', 'size', 'bedType'
+      'name', 'type', 'description', 'capacity', 'pricePerNight',
+      'totalRooms', 'availableRooms', 'images', 'amenities'
     ];
     
     allowedFields.forEach(field => {
@@ -229,6 +116,15 @@ class Room {
     this.updatedAt = new Date();
   }
 
+  // Method to update available rooms count
+  updateAvailableRooms(count) {
+    if (count < 0 || count > this.totalRooms) {
+      throw new Error('Available rooms count must be between 0 and total rooms');
+    }
+    this.availableRooms = count;
+    this.updatedAt = new Date();
+  }
+
   // Method to add amenity
   addAmenity(amenity) {
     if (!this.amenities.includes(amenity)) {
@@ -248,6 +144,9 @@ class Room {
 
   // Method to add image
   addImage(imageUrl) {
+    if (!this.images) {
+      this.images = [];
+    }
     if (!this.images.includes(imageUrl)) {
       this.images.push(imageUrl);
       this.updatedAt = new Date();
@@ -267,6 +166,10 @@ class Room {
   static searchByCriteria(rooms, criteria) {
     return rooms.filter(room => {
       let matches = true;
+      
+      if (criteria.hotelId && room.hotelId !== criteria.hotelId) {
+        matches = false;
+      }
       
       if (criteria.type && room.type !== criteria.type) {
         matches = false;
@@ -289,26 +192,20 @@ class Room {
         }
       }
       
-      if (criteria.checkIn && criteria.checkOut) {
-        if (!room.isAvailableForDates(criteria.checkIn, criteria.checkOut)) {
-          matches = false;
-        }
-      }
-      
-      return matches && room.isActive && room.isAvailable;
+      return matches && room.isActive && room.isAvailableForBooking();
     });
   }
 
   // Method to get room statistics
   getStats() {
     return {
-      totalBookings: this.bookings.length,
-      unavailableDays: this.unavailableDates.length,
-      activeDiscounts: this.discounts.length,
+      totalRooms: this.totalRooms,
+      availableRooms: this.availableRooms,
       pricePerNight: this.pricePerNight,
       capacity: this.capacity,
       isActive: this.isActive,
-      isAvailable: this.isAvailable
+      isAvailable: this.isAvailable,
+      isAvailableForBooking: this.isAvailableForBooking()
     };
   }
 
@@ -316,17 +213,17 @@ class Room {
   getPublicInfo() {
     return {
       id: this.id,
-      roomNumber: this.roomNumber,
+      name: this.name,
       type: this.type,
       description: this.description,
       capacity: this.capacity,
       pricePerNight: this.pricePerNight,
-      currency: this.currency,
+      totalRooms: this.totalRooms,
+      availableRooms: this.availableRooms,
       images: this.images,
       amenities: this.amenities,
-      size: this.size,
-      bedType: this.bedType,
-      isAvailable: this.isAvailable
+      isAvailable: this.isAvailable,
+      isAvailableForBooking: this.isAvailableForBooking()
     };
   }
 
@@ -335,9 +232,6 @@ class Room {
     return {
       ...this.getPublicInfo(),
       hotelId: this.hotelId,
-      bookings: this.bookings,
-      unavailableDates: this.unavailableDates,
-      discounts: this.discounts,
       isActive: this.isActive,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt

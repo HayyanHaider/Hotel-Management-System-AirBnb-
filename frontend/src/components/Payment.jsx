@@ -18,12 +18,30 @@ const Payment = () => {
     email: '',
     password: ''
   });
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchBookingDetails();
+    fetchWalletBalance();
   }, [bookingId]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await axios.get('http://localhost:5000/api/auth/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success && response.data.user) {
+        setWalletBalance(response.data.user.walletBalance || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+    }
+  };
 
   const fetchBookingDetails = async () => {
     try {
@@ -63,6 +81,14 @@ const Payment = () => {
       return;
     }
 
+    if (paymentMethod === 'wallet') {
+      const totalAmount = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
+      if (walletBalance < totalAmount) {
+        alert(`Insufficient wallet balance. You have $${walletBalance.toFixed(2)}, but need $${totalAmount.toFixed(2)}. Please add funds or use another payment method.`);
+        return;
+      }
+    }
+
     try {
       setProcessing(true);
       const token = sessionStorage.getItem('token');
@@ -73,7 +99,8 @@ const Payment = () => {
           bookingId,
           paymentMethod,
           cardDetails: paymentMethod === 'card' ? cardDetails : null,
-          paypalDetails: paymentMethod === 'paypal' ? paypalDetails : null
+          paypalDetails: paymentMethod === 'paypal' ? paypalDetails : null,
+          walletBalance: paymentMethod === 'wallet' ? walletBalance : null
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -185,6 +212,7 @@ const Payment = () => {
                 >
                   <option value="card">Credit/Debit Card</option>
                   <option value="paypal">PayPal</option>
+                  <option value="wallet">Wallet Balance</option>
                 </select>
               </div>
 
@@ -269,6 +297,38 @@ const Payment = () => {
                   <div className="alert alert-info">
                     <small>
                       <strong>Note:</strong> You will be redirected to PayPal to complete the payment securely.
+                    </small>
+                  </div>
+                </>
+              )}
+
+              {paymentMethod === 'wallet' && (
+                <>
+                  <div className="mb-3">
+                    <div className="alert alert-info">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span><strong>Wallet Balance:</strong></span>
+                        <span className="fw-bold">${walletBalance.toFixed(2)}</span>
+                      </div>
+                      <div className="mt-2 d-flex justify-content-between align-items-center">
+                        <span><strong>Total Amount:</strong></span>
+                        <span className="fw-bold">${(booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0).toFixed(2)}</span>
+                      </div>
+                      {walletBalance >= (booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0) ? (
+                        <div className="mt-2 text-success">
+                          <strong>✓ Sufficient balance</strong>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-danger">
+                          <strong>✗ Insufficient balance</strong>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="alert alert-warning">
+                    <small>
+                      <strong>Note:</strong> Payment will be deducted from your wallet balance. If you don't have sufficient balance, please add funds or use another payment method.
                     </small>
                   </div>
                 </>

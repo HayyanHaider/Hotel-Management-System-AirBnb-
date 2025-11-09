@@ -30,7 +30,9 @@ const BookingSchema = new Schema({
     totalPrice: { type: Number, default: 0 },
     couponCode: { type: String, default: null },
     couponDiscountPercentage: { type: Number, default: null }
-  }
+  },
+  invoicePath: { type: String, default: '' },
+  autoConfirmedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Booking', BookingSchema);

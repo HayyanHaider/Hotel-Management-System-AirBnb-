@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './HotelOwnerDashboard.css';
+import './HotelDashboard.css';
 
-const HotelOwnerDashboard = () => {
+const HotelDashboard = () => {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [activeSection, setActiveSection] = useState('home');
@@ -20,7 +20,7 @@ const HotelOwnerDashboard = () => {
     }
 
     const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== 'hotel_owner') {
+    if (parsedUser.role !== 'hotel') {
       navigate('/login');
       return;
     }
@@ -282,4 +282,4 @@ const HotelOwnerDashboard = () => {
   );
 };
 
-export default HotelOwnerDashboard;
+export default HotelDashboard;

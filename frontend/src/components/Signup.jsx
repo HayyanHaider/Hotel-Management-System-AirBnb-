@@ -27,7 +27,7 @@ const Signup = () => {
       setFormData(prev => ({ ...prev, role: 'customer' }));
     } else if (type === 'host') {
       setSignupType('host');
-      setFormData(prev => ({ ...prev, role: 'hotel_owner' }));
+      setFormData(prev => ({ ...prev, role: 'hotel' }));
     } else {
       setSignupType('all');
     }
@@ -78,29 +78,75 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Clear previous errors
+    setErrors({});
+    
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/signup', {
+      console.log('Submitting signup data:', {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+        password: formData.password ? '***' : '',
         phone: formData.phone,
         role: formData.role
       });
+
+      const requestData = {
+        name: formData.name?.trim() || '',
+        email: formData.email?.trim() || '',
+        password: formData.password || '',
+        role: formData.role || 'customer'
+      };
+      
+      // Only include phone if it has a value
+      if (formData.phone && formData.phone.trim()) {
+        requestData.phone = formData.phone.trim();
+      }
+
+      console.log('Request data being sent:', { ...requestData, password: '***' });
+
+      const response = await axios.post('http://localhost:5000/api/auth/signup', requestData);
+
+      console.log('Signup response:', response.data);
 
       if (response.data.success) {
         sessionStorage.setItem('token', response.data.token);
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
         window.dispatchEvent(new Event('userStatusChanged'));
-        navigate(`/${response.data.user.role}-dashboard`);
+        
+        // Redirect based on role
+        if (response.data.user.role === 'customer') {
+          navigate('/');
+        } else if (response.data.user.role === 'hotel') {
+          navigate('/hotel-dashboard');
+        } else if (response.data.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate(`/${response.data.user.role}-dashboard`);
+        }
       }
     } catch (error) {
+      console.error('Signup error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorMessage = 'Signup failed. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.log('Setting error message:', errorMessage);
       setErrors({
-        submit: error.response?.data?.message || 'Signup failed. Please try again.'
+        submit: errorMessage
       });
     } finally {
       setLoading(false);
@@ -185,7 +231,7 @@ const Signup = () => {
                         className="form-select"
                       >
                         <option value="customer">Customer</option>
-                        <option value="hotel_owner">Hotel Owner</option>
+                        <option value="hotel">Hotel</option>
                       </select>
                     </div>
                   )}

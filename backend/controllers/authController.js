@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 const User = require('../classes/User');
 const Customer = require('../classes/Customer');
-const HotelOwner = require('../classes/HotelOwner');
+const HotelOwner = require('../classes/HotelOwner'); // Internal class name (kept to avoid conflict with Hotel class)
 const Admin = require('../classes/Admin');
 
 // Generate JWT Token
@@ -20,7 +20,7 @@ const createUserInstance = (userData) => {
   switch (userData.role) {
     case 'customer':
       return new Customer(userData);
-    case 'hotel_owner':
+    case 'hotel':
       return new HotelOwner(userData);
     case 'admin':
       return new Admin(userData);
@@ -35,28 +35,83 @@ const signup = async (req, res) => {
     console.log('Signup request received:', req.body);
     const { name, email, password, phone, role } = req.body;
 
+    // Basic validation for required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Validate role
+    const validRoles = ['customer', 'hotel', 'admin'];
+    const userRole = role || 'customer';
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      });
+    }
+
+    // Trim and normalize input data (handle null/undefined)
+    const trimmedName = (name && typeof name === 'string') ? name.trim() : '';
+    const trimmedEmail = (email && typeof email === 'string') ? email.trim().toLowerCase() : '';
+    const trimmedPhone = (phone && typeof phone === 'string') ? phone.trim() : '';
+
+    // Additional validation after trimming
+    if (!trimmedName || trimmedName.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required and cannot be empty'
+      });
+    }
+
+    if (!trimmedEmail || trimmedEmail.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required and cannot be empty'
+      });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
     // Create user instance using OOP
     const userData = {
-      name,
-      email,
-      phone: phone || '',
-      role: role || 'customer'
+      name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone,
+      role: userRole
     };
 
     const userInstance = createUserInstance(userData);
 
-    // Validate using OOP method
+    // Validate using OOP method (additional validation)
     const validationErrors = userInstance.validate();
     if (validationErrors.length > 0) {
-      console.log('Validation failed:', validationErrors);
+      console.log('OOP Validation failed:', validationErrors);
       return res.status(400).json({
         success: false,
         message: validationErrors.join(', ')
       });
     }
 
-    // Check if user already exists
-    const existingUser = await UserModel.findOne({ email });
+    // Check if user already exists (using trimmed and normalized email)
+    const existingUser = await UserModel.findOne({ email: trimmedEmail });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -65,7 +120,14 @@ const signup = async (req, res) => {
     }
 
     // Hash password using OOP method
-    await userInstance.hashPassword(password);
+    try {
+      await userInstance.hashPassword(password);
+    } catch (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError.message || 'Invalid password'
+      });
+    }
 
     // Create new user in database
     const newUser = new UserModel({
@@ -88,26 +150,12 @@ const signup = async (req, res) => {
           user: newUser._id,
           loyaltyPoints: 0,
           bookingHistory: [],
-          reviewsGiven: [],
-          preferredLocations: []
-        });
-      }
-    } else if (userInstance.role === 'hotel_owner') {
-      const HotelOwnerModel = require('../models/hotelOwnerModel');
-      const existingOwner = await HotelOwnerModel.findOne({ user: newUser._id });
-      if (!existingOwner) {
-        await HotelOwnerModel.create({
-          user: newUser._id,
-          ownedHotels: [],
-          commissionRate: 0.10,
-          totalEarnings: 0,
-          monthlyEarnings: 0,
-          walletBalance: 0,
-          businessLicense: '',
-          taxId: ''
+          reviewsGiven: []
         });
       }
     }
+    // Note: Hotel users don't need a separate model - they're just users with 'hotel' role
+    // Hotel-specific data is stored in the Hotel model's ownerId field
 
     // Generate token using OOP method
     userInstance.id = newUser._id;
@@ -123,10 +171,29 @@ const signup = async (req, res) => {
   } catch (error) {
     console.error('Signup error:', error);
     console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: validationErrors.join(', ')
+      });
+    }
+    
+    // Handle duplicate key error (email already exists)
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error during signup',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };

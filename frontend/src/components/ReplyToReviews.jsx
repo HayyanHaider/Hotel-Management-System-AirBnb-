@@ -90,7 +90,7 @@ const ReplyToReviews = () => {
           </div>
           <button 
             className="btn btn-outline-secondary"
-            onClick={() => navigate('/hotel_owner-dashboard')}
+            onClick={() => navigate('/hotel-dashboard')}
             style={{ height: 'fit-content' }}
           >
             ← Go Back
