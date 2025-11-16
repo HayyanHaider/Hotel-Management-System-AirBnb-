@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import LocationPickerMap from './LocationPickerMap';
 import './Dashboard.css';
 
@@ -36,16 +37,31 @@ const ManageHotelProfile = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
+      if (!token) {
+        console.error('No token found');
+        setHotels([]);
+        return;
+      }
+
       // Use the owner-specific endpoint to get only the hotel's hotels
       const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('Hotels API response:', response.data);
+
       if (response.data.success) {
-        setHotels(response.data.hotels || []);
+        const hotelsList = response.data.hotels || [];
+        console.log('Hotels fetched:', hotelsList.length, hotelsList);
+        setHotels(hotelsList);
+      } else {
+        console.error('API returned success: false', response.data);
+        setHotels([]);
       }
     } catch (error) {
       console.error('Error fetching hotels:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      toast.error(`Error loading hotels: ${error.response?.data?.message || error.message}`);
       setHotels([]);
     } finally {
       setLoading(false);
@@ -96,7 +112,7 @@ const ManageHotelProfile = () => {
       const token = sessionStorage.getItem('token');
       // Validate that coordinates are provided
       if (!formData.latitude || !formData.longitude) {
-        alert('Please select a location on the map by clicking on it');
+        toast.warning('Please select a location on the map by clicking on it');
         return;
       }
 
@@ -125,14 +141,14 @@ const ManageHotelProfile = () => {
           hotelData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        alert('Hotel updated successfully!');
+        toast.success('Hotel updated successfully!');
       } else {
         await axios.post(
           'http://localhost:5000/api/hotels',
           hotelData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        alert('Hotel created successfully! Your hotel is now pending admin approval. It will be visible to customers once approved by an administrator.');
+        toast.success('Hotel created successfully! Your hotel is now pending admin approval. It will be visible to customers once approved by an administrator.');
         setShowCreateForm(false);
         setFormData({
           name: '',
@@ -154,7 +170,7 @@ const ManageHotelProfile = () => {
       fetchHotels();
     } catch (error) {
       console.error('Error saving hotel:', error);
-      alert(error.response?.data?.message || 'Error saving hotel');
+      toast.error(error.response?.data?.message || 'Error saving hotel');
     }
   };
 
@@ -168,14 +184,14 @@ const ManageHotelProfile = () => {
       await axios.delete(`http://localhost:5000/api/hotels/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Hotel deleted successfully!');
+      toast.success('Hotel deleted successfully!');
       fetchHotels();
       if (editingHotel && (editingHotel._id === hotelId || editingHotel.id === hotelId)) {
         setEditingHotel(null);
       }
     } catch (error) {
       console.error('Error deleting hotel:', error);
-      alert(error.response?.data?.message || 'Error deleting hotel');
+      toast.error(error.response?.data?.message || 'Error deleting hotel');
     }
   };
 
@@ -205,7 +221,7 @@ const ManageHotelProfile = () => {
     const maxSize = 10 * 1024 * 1024; // 10MB
     const invalidFiles = files.filter(file => file.size > maxSize);
     if (invalidFiles.length > 0) {
-      alert(`Some files exceed the 10MB limit. Please select smaller images.`);
+      toast.warning(`Some files exceed the 10MB limit. Please select smaller images.`);
       e.target.value = '';
       return;
     }
@@ -245,7 +261,7 @@ const ManageHotelProfile = () => {
     } catch (error) {
       console.error('Error uploading images:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Error uploading images';
-      alert(errorMessage);
+      toast.error(errorMessage);
       // Reset file input on error too
       e.target.value = '';
     } finally {
@@ -298,8 +314,14 @@ const ManageHotelProfile = () => {
         )}
 
         {hotels.length === 0 && !showCreateForm && !editingHotel && (
-          <div className="text-center">
-            <p>No hotels found. Create a hotel to get started.</p>
+          <div className="text-center py-5">
+            <div className="alert alert-info">
+              <h5>No hotels found</h5>
+              <p className="mb-3">You haven't created any hotels yet. Click "Create New Hotel" to add your first property.</p>
+              <button className="btn btn-primary" onClick={handleCreateNew}>
+                + Create Your First Hotel
+              </button>
+            </div>
           </div>
         )}
 

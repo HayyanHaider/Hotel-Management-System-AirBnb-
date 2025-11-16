@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login, getProfile, verifyTokenController } = require('../controllers/authController');
+const { signup, login, getProfile, verifyTokenController, updateProfile } = require('../controllers/authController');
 const { verifyToken, authorize } = require('../middleware/authMiddleware');
+const { initiateGmailAuth, handleGmailCallback, checkGmailStatus, revokeGmailAuth } = require('../controllers/gmailController');
 
 // Public routes
 router.post('/signup', signup);
 router.post('/login', login);
 
+// Gmail OAuth2 routes
+router.get('/gmail/authorize', verifyToken, initiateGmailAuth);
+router.get('/gmail/callback', handleGmailCallback);
+router.get('/gmail/status', verifyToken, checkGmailStatus);
+router.post('/gmail/revoke', verifyToken, revokeGmailAuth);
+
 // Protected routes
 router.get('/profile', verifyToken, getProfile);
+router.put('/profile', verifyToken, updateProfile);
 router.get('/verify-token', verifyToken, verifyTokenController);
 
 // Role-specific routes for testing

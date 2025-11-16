@@ -14,7 +14,17 @@ const UserSchema = new Schema({
   suspendedReason: { type: String, default: '' },
   suspendedAt: { type: Date, default: null },
   favorites: [{ type: Schema.Types.ObjectId, ref: 'Hotel' }],
-  walletBalance: { type: Number, default: 0, min: 0 }
+  walletBalance: { type: Number, default: 0, min: 0 },
+  // Gmail OAuth2 tokens for sending emails from user's account
+  gmailTokens: {
+    access_token: { type: String },
+    refresh_token: { type: String },
+    expiry_date: { type: Number },
+    token_type: { type: String, default: 'Bearer' },
+    scope: { type: String }
+  },
+  gmailAuthorized: { type: Boolean, default: false },
+  gmailAuthorizedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

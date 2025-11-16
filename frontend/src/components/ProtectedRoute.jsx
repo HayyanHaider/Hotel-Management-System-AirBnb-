@@ -12,7 +12,12 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   // If a specific role is required, check if user has that role
   if (requiredRole) {
     const user = JSON.parse(userData);
-    if (user.role !== requiredRole) {
+    // Handle both 'hotel' and 'hotel_owner' roles for hotel routes
+    if (requiredRole === 'hotel') {
+      if (user.role !== 'hotel' && user.role !== 'hotel_owner') {
+        return <Navigate to="/" replace />;
+      }
+    } else if (user.role !== requiredRole) {
       return <Navigate to="/" replace />;
     }
   }

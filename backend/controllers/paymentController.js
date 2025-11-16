@@ -168,12 +168,21 @@ const processPayment = async (req, res) => {
 
     // Generate PDF invoice and send invoice email to customer (async)
     try {
+      console.log('📧 Starting email sending process for booking:', bookingId);
       const updatedBooking = await BookingModel.findById(bookingId)
         .populate('hotelId', 'name location address')
         .populate('couponId', 'code discountPercentage');
       const user = await UserModel.findById(userId);
       
+      if (!user) {
+        console.error('❌ User not found for email sending:', userId);
+      }
+      if (!updatedBooking) {
+        console.error('❌ Booking not found for email sending:', bookingId);
+      }
+      
       if (user && updatedBooking) {
+        console.log('📧 User and booking found, proceeding with email:', { userEmail: user.email, bookingId: bookingId });
         // Generate PDF invoice
         const invoiceDir = path.join(__dirname, '../invoices');
         if (!fs.existsSync(invoiceDir)) {
@@ -222,6 +231,7 @@ const processPayment = async (req, res) => {
             });
             
             // Send invoice email to customer
+            // Try to send from user's Gmail account if authorized, otherwise use system email
             const emailTemplate = emailTemplates.invoiceEmail(
               successfulPayment,
               updatedBooking,
@@ -229,8 +239,38 @@ const processPayment = async (req, res) => {
               { name: user.name, email: user.email },
               invoiceFileName
             );
-            sendEmail(user.email, emailTemplate.subject, emailTemplate.html, emailTemplate.text)
-              .catch(err => console.error('Error sending invoice email:', err));
+            
+            // Attach PDF invoice if available
+            const attachments = [];
+            if (invoicePath && fs.existsSync(invoicePath)) {
+              attachments.push({
+                filename: `invoice-${bookingId}.pdf`,
+                path: invoicePath
+              });
+            }
+            
+            sendEmail(
+              user.email, 
+              emailTemplate.subject, 
+              emailTemplate.html, 
+              emailTemplate.text,
+              {
+                userId: userId,
+                useUserGmail: true, // Try to use user's Gmail account
+                attachments: attachments
+              }
+            )
+              .then(result => {
+                if (result.success) {
+                  console.log(`✅ Booking confirmation email sent ${result.sentFrom === 'user_gmail' ? 'from user Gmail account' : 'from system account'}`);
+                } else {
+                  console.error('❌ Failed to send booking confirmation email:', result.error || result.message);
+                }
+              })
+              .catch(err => {
+                console.error('❌ Error sending invoice email:', err);
+                console.error('❌ Error stack:', err.stack);
+              });
           })
           .catch(err => {
             console.error('Error generating PDF invoice:', err);
@@ -242,8 +282,27 @@ const processPayment = async (req, res) => {
               { name: user.name, email: user.email },
               null
             );
-            sendEmail(user.email, emailTemplate.subject, emailTemplate.html, emailTemplate.text)
-              .catch(emailErr => console.error('Error sending invoice email:', emailErr));
+            sendEmail(
+              user.email, 
+              emailTemplate.subject, 
+              emailTemplate.html, 
+              emailTemplate.text,
+              {
+                userId: userId,
+                useUserGmail: true // Try to use user's Gmail account
+              }
+            )
+              .then(result => {
+                if (result.success) {
+                  console.log(`✅ Booking confirmation email sent ${result.sentFrom === 'user_gmail' ? 'from user Gmail account' : 'from system account'}`);
+                } else {
+                  console.error('❌ Failed to send booking confirmation email:', result.error || result.message);
+                }
+              })
+              .catch(emailErr => {
+                console.error('❌ Error sending invoice email:', emailErr);
+                console.error('❌ Error stack:', emailErr.stack);
+              });
           });
       }
     } catch (emailError) {

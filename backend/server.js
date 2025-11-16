@@ -64,5 +64,17 @@ startAutoConfirmService();
 const { startAutoFlagService } = require('./utils/autoFlagService');
 startAutoFlagService();
 
+// Check email configuration on startup
+const checkEmailConfig = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('⚠️  Email service not configured - booking confirmation emails will not be sent');
+    console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to your .env file to enable email sending');
+  } else {
+    console.log('✅ Email service configured');
+  }
+};
+
+checkEmailConfig();
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

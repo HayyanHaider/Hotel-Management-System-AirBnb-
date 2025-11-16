@@ -67,12 +67,12 @@ const Login = () => {
         // Redirect based on role
         if (response.data.user.role === 'customer') {
           navigate('/');
-        } else if (response.data.user.role === 'hotel') {
+        } else if (response.data.user.role === 'hotel' || response.data.user.role === 'hotel_owner') {
           navigate('/hotel-dashboard');
         } else if (response.data.user.role === 'admin') {
           navigate('/admin-dashboard');
         } else {
-          navigate(`/${response.data.user.role}-dashboard`);
+          navigate('/');
         }
       }
     } catch (error) {
@@ -85,13 +85,14 @@ const Login = () => {
   };
 
   return (
-    <div className="d-flex align-items-center bg-light overflow-hidden"
-    style={{overflow:'hidden',
-            height:'91vh'
+    <div className="d-flex align-items-center justify-content-center bg-light"
+    style={{
+      minHeight: 'calc(100vh - 80px)',
+      padding: '20px 0'
     }}>
       <div className="container">
-        <div className="row justify-content-center py-3">
-          <div className="col-sm-10 col-md-6 col-lg-4">
+        <div className="row justify-content-center">
+          <div className="col-12 col-sm-10 col-md-6 col-lg-5 col-xl-4">
             <div className="card shadow-sm border-0 rounded-4">
               <div className="card-body p-4">
                 {/* Logo */}

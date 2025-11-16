@@ -73,7 +73,13 @@ const authorizeRoles = (roles) => {
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Handle hotel_owner role - treat it as 'hotel' for authorization
+    let userRole = req.user.role;
+    if (userRole === 'hotel_owner' && roles.includes('hotel')) {
+      userRole = 'hotel'; // Allow hotel_owner to access hotel routes
+    }
+
+    if (!roles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Insufficient permissions.'

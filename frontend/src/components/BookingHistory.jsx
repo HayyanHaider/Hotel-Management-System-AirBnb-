@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const BookingHistory = () => {
@@ -17,7 +18,7 @@ const BookingHistory = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       if (!token) {
-        alert('Please login to view bookings');
+        toast.warning('Please login to view bookings');
         navigate('/login');
         return;
       }
@@ -52,12 +53,12 @@ const BookingHistory = () => {
       );
 
       if (response.data.success) {
-        alert('Booking cancelled successfully');
+        toast.success('Booking cancelled successfully');
         fetchBookings();
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      alert(error.response?.data?.message || 'Error cancelling booking');
+      toast.error(error.response?.data?.message || 'Error cancelling booking');
     }
   };
 
@@ -90,7 +91,7 @@ const BookingHistory = () => {
       link.remove();
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      alert(error.response?.data?.message || 'Error downloading invoice');
+      toast.error(error.response?.data?.message || 'Error downloading invoice');
     }
   };
 

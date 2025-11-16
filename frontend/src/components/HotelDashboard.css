@@ -139,6 +139,28 @@
   overflow-x: hidden;
 }
 
+/* Section wrapper for embedded components */
+.owner-section {
+  width: 100%;
+}
+
+/* Hide duplicate headers and adjust styling in embedded components */
+.owner-section .dashboard-header {
+  display: none !important;
+}
+
+/* Hide "Go Back" buttons in embedded components */
+.owner-section .btn-outline-secondary,
+.owner-section button[onClick*="navigate"] {
+  display: none !important;
+}
+
+/* Adjust dashboard-container padding when embedded */
+.owner-section .dashboard-container {
+  padding: 0;
+  margin: 0;
+}
+
 .owner-header {
   margin-bottom: 2rem;
 }

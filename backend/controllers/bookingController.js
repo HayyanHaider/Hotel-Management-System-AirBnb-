@@ -77,11 +77,17 @@ const createBooking = async (req, res) => {
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
     
+    // Set time to midnight for date-only comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkInDateOnly = new Date(checkIn);
+    checkInDateOnly.setHours(0, 0, 0, 0);
+    
     // Validate dates
     if (checkIn >= checkOut) {
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
-    if (checkIn < new Date()) {
+    if (checkInDateOnly < today) {
       return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
     }
 
@@ -314,6 +320,45 @@ const cancelBooking = async (req, res) => {
             status: 'cancelled',
             cancelledAt: new Date()
           });
+
+          // Send cancellation email for pending bookings too
+          try {
+            const updatedBooking = await BookingModel.findById(bookingId)
+              .populate('hotelId', 'name location address');
+            
+            const user = await UserModel.findById(userId);
+            
+            if (user && updatedBooking && updatedBooking.hotelId) {
+              console.log('📧 Sending cancellation email for pending booking:', bookingId);
+              
+              const emailTemplate = emailTemplates.cancellationEmail(
+                updatedBooking,
+                updatedBooking.hotelId,
+                { name: user.name, email: user.email },
+                null // No refund for pending bookings
+              );
+              
+              sendEmail(
+                user.email,
+                emailTemplate.subject,
+                emailTemplate.html,
+                emailTemplate.text,
+                {
+                  userId: userId,
+                  useUserGmail: true
+                }
+              )
+                .then(result => {
+                  if (result.success) {
+                    console.log(`✅ Cancellation email sent ${result.sentFrom === 'user_gmail' ? 'from user Gmail account' : 'from system account'}`);
+                  }
+                })
+                .catch(err => console.error('❌ Error sending cancellation email:', err));
+            }
+          } catch (emailError) {
+            console.error('Error sending cancellation email:', emailError);
+          }
+
           return res.json({ success: true, message: 'Booking cancelled successfully' });
         }
 
@@ -343,13 +388,59 @@ const cancelBooking = async (req, res) => {
       console.log(`Coupon usage decremented for coupon ${dbBooking.couponId} after booking cancellation`);
     }
 
+    const refundAmount = dbBooking.priceSnapshot?.totalPrice || dbBooking.totalPrice;
+
     await BookingModel.findByIdAndUpdate(bookingId, {
       status: 'cancelled',
       cancelledAt: new Date(),
       cancellationPolicyApplied: '24h-before-check-in',
       cancellationFee: 0,
-      refundAmount: dbBooking.priceSnapshot?.totalPrice || dbBooking.totalPrice
+      refundAmount: refundAmount
     });
+
+    // Send cancellation email to customer (async)
+    try {
+      const updatedBooking = await BookingModel.findById(bookingId)
+        .populate('hotelId', 'name location address')
+        .populate('couponId', 'code discountPercentage');
+      
+      const user = await UserModel.findById(userId);
+      
+      if (user && updatedBooking && updatedBooking.hotelId) {
+        console.log('📧 Sending cancellation email for booking:', bookingId);
+        
+        const emailTemplate = emailTemplates.cancellationEmail(
+          updatedBooking,
+          updatedBooking.hotelId,
+          { name: user.name, email: user.email },
+          refundAmount
+        );
+        
+        sendEmail(
+          user.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text,
+          {
+            userId: userId,
+            useUserGmail: true // Try to use user's Gmail account
+          }
+        )
+          .then(result => {
+            if (result.success) {
+              console.log(`✅ Cancellation email sent ${result.sentFrom === 'user_gmail' ? 'from user Gmail account' : 'from system account'}`);
+            } else {
+              console.error('❌ Failed to send cancellation email:', result.error || result.message);
+            }
+          })
+          .catch(err => {
+            console.error('❌ Error sending cancellation email:', err);
+          });
+      }
+    } catch (emailError) {
+      console.error('Error sending cancellation email:', emailError);
+      // Don't fail the request if email fails
+    }
 
     return res.json({ success: true, message: 'Booking cancelled successfully' });
   } catch (error) {
@@ -439,6 +530,12 @@ const rescheduleBooking = async (req, res) => {
     const newCheckIn = new Date(checkInDate);
     const newCheckOut = new Date(checkOutDate);
     
+    // Set time to midnight for date-only comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newCheckInDateOnly = new Date(newCheckIn);
+    newCheckInDateOnly.setHours(0, 0, 0, 0);
+    
     if (newCheckIn >= newCheckOut) {
       return res.status(400).json({ 
         success: false, 
@@ -446,7 +543,7 @@ const rescheduleBooking = async (req, res) => {
       });
     }
     
-    if (newCheckIn < new Date()) {
+    if (newCheckInDateOnly < today) {
       return res.status(400).json({ 
         success: false, 
         message: 'Check-in date cannot be in the past' 

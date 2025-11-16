@@ -154,10 +154,14 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center bg-light py-4">
+    <div className="d-flex align-items-center justify-content-center bg-light"
+    style={{
+      minHeight: 'calc(100vh - 80px)',
+      padding: '20px 0'
+    }}>
       <div className="container">
         <div className="row justify-content-center">
-          <div className="col-sm-10 col-md-7 col-lg-5">
+          <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
             <div className="card shadow-sm border-0 rounded-4">
               <div className="card-body p-4">
                 {/* Logo */}

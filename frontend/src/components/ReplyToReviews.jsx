@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const ReplyToReviews = () => {
@@ -53,7 +54,7 @@ const ReplyToReviews = () => {
 
   const handleReply = async (reviewId) => {
     if (!replyText.trim()) {
-      alert('Please enter a reply');
+      toast.warning('Please enter a reply');
       return;
     }
 
@@ -66,13 +67,13 @@ const ReplyToReviews = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      alert('Reply submitted successfully!');
+        toast.success('Reply submitted successfully!');
       setReplyingTo(null);
       setReplyText('');
       fetchReviews();
     } catch (error) {
       console.error('Error submitting reply:', error);
-      alert(error.response?.data?.message || 'Error submitting reply');
+      toast.error(error.response?.data?.message || 'Error submitting reply');
     }
   };
 

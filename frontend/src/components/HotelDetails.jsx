@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import './Home.css';
+import './HotelDetails.css';
 
-// Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -14,7 +14,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Red marker icon for hotel location
 const redIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -33,22 +32,45 @@ const HotelDetails = () => {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(1);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [reviews, setReviews] = useState([]);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Get today's date in YYYY-MM-DD format - recalculate on each render to ensure it's current
+  const todayDate = useMemo(() => {
+    const today = new Date();
+    // Use local date components to avoid timezone issues
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   useEffect(() => {
-    // Check if user is logged in
     const token = sessionStorage.getItem('token');
     setIsLoggedIn(!!token);
-    
     fetchHotelDetails();
     checkFavorite();
     fetchReviews();
-    setCurrentImageIndex(0); // Reset image index when hotel changes
   }, [hotelId]);
+
+  // Update check-out date if it's before or equal to check-in date
+  useEffect(() => {
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      const minCheckOut = new Date(checkInDate);
+      minCheckOut.setDate(minCheckOut.getDate() + 1);
+      
+      if (checkOutDate <= checkInDate) {
+        const year = minCheckOut.getFullYear();
+        const month = String(minCheckOut.getMonth() + 1).padStart(2, '0');
+        const day = String(minCheckOut.getDate()).padStart(2, '0');
+        setCheckOut(`${year}-${month}-${day}`);
+      }
+    }
+  }, [checkIn]);
 
   const fetchHotelDetails = async () => {
     try {
@@ -57,10 +79,7 @@ const HotelDetails = () => {
       const response = await axios.get(`http://localhost:5000/api/hotels/${hotelId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
-
       if (response.data.success) {
-        console.log('Hotel data received:', response.data.hotel);
-        console.log('Hotel images:', response.data.hotel.images);
         setHotel(response.data.hotel);
       }
     } catch (error) {
@@ -85,11 +104,9 @@ const HotelDetails = () => {
     try {
       const token = sessionStorage.getItem('token');
       if (!token) return;
-
       const response = await axios.get('http://localhost:5000/api/users/favorites', {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       if (response.data.success) {
         const favorites = response.data.favorites || [];
         setIsFavorite(favorites.some(f => String(f._id || f.id) === String(hotelId)));
@@ -100,16 +117,18 @@ const HotelDetails = () => {
   };
 
   const toggleFavorite = async (e) => {
-    // Prevent event bubbling if called from button click
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
+    if (e) e.stopPropagation();
     
+    // If user is not logged in, redirect to login page
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
     try {
       const token = sessionStorage.getItem('token');
       if (!token) {
-        // This shouldn't happen since button is hidden when not logged in, but just in case
+        navigate('/login');
         return;
       }
 
@@ -126,13 +145,16 @@ const HotelDetails = () => {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      alert(error.response?.data?.message || 'Error updating favorite. Please try again.');
+      const errorMessage = error && error.response && error.response.data && error.response.data.message 
+        ? error.response.data.message 
+        : 'Error updating favorite';
+      toast.error(errorMessage);
     }
   };
 
   const handleBookNow = () => {
     if (!checkIn || !checkOut) {
-      alert('Please select check-in and check-out dates');
+      toast.warning('Please select check-in and check-out dates');
       return;
     }
     navigate(`/booking/${hotelId}`, {
@@ -142,29 +164,69 @@ const HotelDetails = () => {
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const diffTime = Math.abs(checkOutDate - checkInDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    const diff = Math.abs(new Date(checkOut).getTime() - new Date(checkIn).getTime());
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   const calculateTotal = () => {
     if (!hotel) return 0;
     const nights = calculateNights();
-    const basePrice = hotel.pricing?.basePrice || 0;
-    const cleaningFee = hotel.pricing?.cleaningFee || 0;
-    const serviceFee = hotel.pricing?.serviceFee || 0;
-    return (basePrice * nights) + cleaningFee + serviceFee;
+    return (hotel.pricing?.basePrice || 0) * nights + (hotel.pricing?.cleaningFee || 0) + (hotel.pricing?.serviceFee || 0);
   };
+
+  // Get minimum check-out date (check-in date + 1 day)
+  const getMinCheckOutDate = () => {
+    if (!checkIn) return todayDate;
+    const checkInDate = new Date(checkIn);
+    checkInDate.setDate(checkInDate.getDate() + 1);
+    const year = checkInDate.getFullYear();
+    const month = String(checkInDate.getMonth() + 1).padStart(2, '0');
+    const day = String(checkInDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const processImages = (imgs = []) => {
+    if (!imgs || !Array.isArray(imgs)) return [];
+    return imgs.map(img => {
+      if (!img) return null;
+      let url = '';
+      if (typeof img === 'string') {
+        url = img.trim();
+      } else if (img && typeof img === 'object' && img.url) {
+        url = String(img.url).trim();
+      } else {
+        url = String(img).trim();
+      }
+      if (!url || url === 'undefined' || url === 'null' || url === '') return null;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = url.startsWith('/uploads/') || url.startsWith('/') 
+          ? `http://localhost:5000${url}` 
+          : `http://localhost:5000/uploads/${url}`;
+      }
+      return url;
+    }).filter(Boolean);
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleThumbnailClick = (index) => {
+    setCurrentImageIndex(index);
+  };
+
+  const images = processImages(hotel?.images || []);
 
   if (loading) {
     return (
-      <div className="bg-white" style={{ minHeight: '100vh', paddingTop: '100px' }}>
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="hotel-container loading">
+        <div className="text-center">
+          <div className="spinner"></div>
+          <p className="text-muted" style={{ marginTop: '16px' }}>Loading...</p>
         </div>
       </div>
     );
@@ -172,10 +234,14 @@ const HotelDetails = () => {
 
   if (!hotel) {
     return (
-      <div className="bg-white" style={{ minHeight: '100vh', paddingTop: '100px' }}>
-        <div className="container text-center py-5">
-          <h2>Hotel not found</h2>
-          <button className="btn btn-outline-dark mt-3" onClick={() => navigate('/browse-hotels')}>
+      <div className="hotel-container not-found">
+        <div className="text-center">
+          <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '16px' }}>Hotel not found</h2>
+          <button
+            onClick={() => navigate('/browse-hotels')}
+            className="back-btn"
+            style={{ padding: '8px 24px', border: '1px solid var(--color-border)', borderRadius: '8px' }}
+          >
             Browse Hotels
           </button>
         </div>
@@ -183,535 +249,277 @@ const HotelDetails = () => {
     );
   }
 
-  // Handle images - they might be objects with url property or direct URLs
-  // Also ensure local storage URLs are properly formatted
-  const images = (hotel?.images || []).map(img => {
-    let imageUrl = '';
-    if (typeof img === 'string') {
-      imageUrl = img.trim();
-    } else if (img && typeof img === 'object') {
-      // Handle object with url property
-      if (img.url) {
-        imageUrl = typeof img.url === 'string' ? img.url.trim() : String(img.url).trim();
-      } else {
-        // Try to stringify the object or use toString
-        imageUrl = String(img).trim();
-      }
-    } else if (img) {
-      imageUrl = String(img).trim();
-    }
-    
-    // Skip empty URLs
-    if (!imageUrl || imageUrl === 'undefined' || imageUrl === 'null') {
-      return null;
-    }
-    
-    // Ensure the URL is properly formatted
-    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-      // If it's a local path, prepend the backend URL
-      if (imageUrl.startsWith('/uploads/')) {
-        imageUrl = `http://localhost:5000${imageUrl}`;
-      } else if (!imageUrl.startsWith('/')) {
-        imageUrl = `http://localhost:5000/uploads/${imageUrl}`;
-      } else {
-        // If it starts with / but not /uploads/, it might be a relative path
-        imageUrl = `http://localhost:5000${imageUrl}`;
-      }
-    }
-    
-    return imageUrl;
-  }).filter(img => img && img !== '' && img !== 'null' && img !== 'undefined');
-  
-  console.log('Processed images:', images);
-  
-  const displayImages = showAllImages ? images : images.slice(0, 5);
-
   return (
-    <div className="bg-white" style={{ minHeight: '100vh', paddingTop: '80px' }}>
-      <div className="container" style={{ maxWidth: '1760px' }}>
-        {/* Header */}
-        <div className="mb-4">
-          <button 
-            className="btn btn-link text-dark text-decoration-none p-0 mb-3" 
-            onClick={() => navigate(-1)}
-            style={{ fontSize: '14px' }}
-          >
-            ← Back
-          </button>
-          <div className="d-flex justify-content-between align-items-start">
-            <div>
-              <h1 className="fw-bold mb-2" style={{ fontSize: '26px' }}>{hotel.name}</h1>
-              <div className="d-flex align-items-center gap-3 flex-wrap">
-                <div className="d-flex align-items-center">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="text-warning">
-                    <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-                  </svg>
-                  <span className="ms-1 fw-semibold">{hotel.rating?.toFixed(1) || '0.0'}</span>
-                  <span className="text-muted ms-1">({hotel.totalReviews || 0} {hotel.totalReviews === 1 ? 'review' : 'reviews'})</span>
-                </div>
-                <span className="text-muted">·</span>
-                <span className="text-decoration-underline" style={{ cursor: 'pointer' }}>
-                  {hotel.location?.city || 'Unknown'}, {hotel.location?.country || 'Unknown'}
-                </span>
-                {hotel.location?.coordinates && (
-                  <>
-                    <span className="text-muted">·</span>
-                    <span className="text-decoration-underline" style={{ cursor: 'pointer' }}>
-                      Show map
-                    </span>
-                  </>
-                )}
+    <div className="hotel-container">
+      <div className="hotel-header">
+        <button onClick={() => navigate(-1)} className="back-btn">
+          ← Back
+        </button>
+        <div className="header-content">
+          <div style={{ flex: 1 }}>
+            <h1 className="hotel-title">{hotel.name}</h1>
+            <div className="header-meta">
+              <div className="rating-badge">
+                <span className="star">★</span>
+                <span className="rating-value">{hotel.rating?.toFixed(1) || '0.0'}</span>
+                <span className="reviews-count">({hotel.totalReviews || 0} reviews)</span>
               </div>
+              <span className="divider">·</span>
+              <span className="location-text">{hotel.location?.city}, {hotel.location?.country}</span>
             </div>
-            {isLoggedIn && (
-              <button
-                className="btn btn-outline-dark rounded-pill d-flex align-items-center gap-2"
-                onClick={toggleFavorite}
-              >
-                <svg width="20" height="20" fill={isFavorite ? '#FF385C' : 'currentColor'} viewBox="0 0 16 16">
-                  <path d={isFavorite ? "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z" : "M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"}/>
-                </svg>
-                {isFavorite ? 'Saved' : 'Save'}
-              </button>
-            )}
           </div>
+          <button
+            onClick={toggleFavorite}
+            className={`header-heart-btn ${isFavorite ? 'active' : ''}`}
+            title={isLoggedIn ? (isFavorite ? 'Remove from favorites' : 'Add to favorites') : 'Login to add favorites'}
+          >
+            {isFavorite ? '♥' : '♡'}
+          </button>
         </div>
+      </div>
 
-        {/* Image Gallery */}
-        {images.length > 0 ? (
-          <div className="mb-4">
-            <div 
-              className="rounded-4 overflow-hidden position-relative"
-              style={{
-                height: images.length === 1 ? '400px' : images.length === 2 ? '400px' : '500px',
-                backgroundColor: '#f7f7f7'
-              }}
-            >
-              {/* Main Image Display */}
-              <div className="position-relative w-100 h-100">
-                {images.length > 0 && images[currentImageIndex] ? (
-                  <>
-                    <img
-                      key={`img-${currentImageIndex}-${images[currentImageIndex]}`}
-                      src={images[currentImageIndex]}
-                      alt={`${hotel.name} ${currentImageIndex + 1}`}
-                      className="w-100 h-100"
-                      style={{ 
-                        objectFit: 'cover',
-                        display: 'block',
-                        position: 'relative',
-                        zIndex: 2
-                      }}
-                      onLoad={(e) => {
-                        console.log('✅ Image loaded successfully:', images[currentImageIndex]);
-                        // Hide placeholder when image loads
-                        const placeholder = e.target.parentElement.querySelector('.image-error-placeholder');
-                        if (placeholder) {
-                          placeholder.style.display = 'none';
-                        }
-                        e.target.style.display = 'block';
-                      }}
-                      onError={(e) => {
-                        console.error('❌ Image failed to load:', images[currentImageIndex]);
-                        console.error('Error event:', e);
-                        // Show placeholder when image fails
-                        e.target.style.display = 'none';
-                        const placeholder = e.target.parentElement.querySelector('.image-error-placeholder');
-                        if (placeholder) {
-                          placeholder.style.display = 'flex';
-                        }
-                      }}
-                      crossOrigin="anonymous"
-                    />
-                    <div
-                      className="w-100 h-100 bg-light d-flex align-items-center justify-content-center position-absolute top-0 start-0 image-error-placeholder"
-                      style={{ 
-                        display: 'none',
-                        zIndex: 1
-                      }}
-                    >
-                      <span className="text-muted">Preview unavailable</span>
-                    </div>
-                  </>
-                ) : (
-                  <div
-                    className="w-100 h-100 bg-light d-flex align-items-center justify-content-center"
-                    style={{ 
-                      zIndex: 1
-                    }}
-                  >
-                    <span className="text-muted">Preview unavailable</span>
-                  </div>
-                )}
-                
-                {/* Navigation Arrows - Only show if more than 1 image */}
+      <div className="gallery-section">
+        <div className="image-gallery">
+          {images.length > 0 ? (
+            <div className="carousel-container">
+              <div className="carousel-main">
+                <img
+                  src={images[currentImageIndex] || "/placeholder.svg"}
+                  alt={`${hotel.name} - Image ${currentImageIndex + 1}`}
+                  className="carousel-image"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+
                 {images.length > 1 && (
                   <>
-                    {/* Previous Button */}
                     <button
-                      className="position-absolute top-50 start-0 translate-middle-y m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        zIndex: 10,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                      }}
-                      aria-label="Previous image"
+                      onClick={handlePrevImage}
+                      className="carousel-arrow carousel-arrow-prev"
+                      title="Previous image"
                     >
-                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
                       </svg>
                     </button>
-                    
-                    {/* Next Button */}
                     <button
-                      className="position-absolute top-50 end-0 translate-middle-y m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        zIndex: 10,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                      }}
-                      aria-label="Next image"
+                      onClick={handleNextImage}
+                      className="carousel-arrow carousel-arrow-next"
+                      title="Next image"
                     >
-                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
                       </svg>
                     </button>
                   </>
                 )}
-                
-                {/* Image Counter */}
+
                 {images.length > 1 && (
-                  <div
-                    className="position-absolute bottom-0 end-0 m-3 bg-dark bg-opacity-50 rounded-pill px-3 py-1"
-                    style={{
-                      zIndex: 10,
-                      color: 'white',
-                      fontSize: '14px'
-                    }}
-                  >
+                  <div className="carousel-counter">
                     {currentImageIndex + 1} / {images.length}
                   </div>
                 )}
-                
-                {/* Heart icon for favorites - only show when user is logged in */}
-                {isLoggedIn && (
-                  <button
-                    className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '36px', 
-                      height: '36px', 
-                      zIndex: 10,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      transition: 'transform 0.2s ease'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite();
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                  >
-                    <svg 
-                      width="20" 
-                      height="20" 
-                      fill={isFavorite ? '#FF385C' : 'currentColor'} 
-                      viewBox="0 0 16 16"
-                      style={{ transition: 'fill 0.2s ease' }}
+              </div>
+
+              {images.length > 1 && (
+                <div className="carousel-thumbnails">
+                  {images.map((img, index) => (
+                    <button
+                      key={index}
+                      className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                      onClick={() => handleThumbnailClick(index)}
+                      title={`Image ${index + 1}`}
                     >
-                      {isFavorite ? (
-                        <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
-                      ) : (
-                        <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                      )}
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <div 
-              className="rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center"
-              style={{ height: '400px' }}
-            >
-              <span className="text-muted">Preview unavailable</span>
-            </div>
-          </div>
-        )}
-
-        <div className="row">
-          {/* Main Content */}
-          <div className="col-lg-7 pe-lg-5">
-            {/* Description */}
-            <div className="mb-5 pb-4 border-bottom">
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h2 className="fw-bold mb-2" style={{ fontSize: '22px' }}>{hotel.name}</h2>
-                  <p className="text-muted mb-0">
-                    {hotel.location?.address}, {hotel.location?.city}, {hotel.location?.country}
-                  </p>
-                </div>
-              </div>
-              <div className="d-flex flex-wrap gap-3 mb-3">
-                <div className="d-flex align-items-center">
-                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" className="me-2">
-                    <path d="M8 16.016a7.5 7.5 0 0 0 1.962-14.74A7.5 7.5 0 0 0 8 16.016zM8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z"/>
-                    <path d="M8 4.5a.5.5 0 0 1 .5.5v2.5h2a.5.5 0 0 1 0 1h-2v2.5a.5.5 0 0 1-1 0v-2.5h-2a.5.5 0 0 1 0-1h2V5a.5.5 0 0 1 .5-.5z"/>
-                  </svg>
-                  <span>{hotel.capacity?.guests || 1} {hotel.capacity?.guests === 1 ? 'guest' : 'guests'}</span>
-                </div>
-                {hotel.capacity?.bedrooms && (
-                  <div className="d-flex align-items-center">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" className="me-2">
-                      <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
-                    </svg>
-                    <span>{hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}</span>
-                  </div>
-                )}
-                {hotel.capacity?.bathrooms && (
-                  <div className="d-flex align-items-center">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" className="me-2">
-                      <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
-                    </svg>
-                    <span>{hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bath' : 'baths'}</span>
-                  </div>
-                )}
-              </div>
-              <p className="mb-0" style={{ fontSize: '16px', lineHeight: '1.6' }}>{hotel.description}</p>
-            </div>
-
-            {/* Amenities */}
-            {hotel.amenities && hotel.amenities.length > 0 && (
-              <div className="mb-5 pb-4 border-bottom">
-                <h3 className="fw-bold mb-4" style={{ fontSize: '22px' }}>What this place offers</h3>
-                <div className="row">
-                  {hotel.amenities.map((amenity, index) => (
-                    <div key={index} className="col-md-6 mb-3 d-flex align-items-center">
-                      <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16" className="me-3">
-                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                      </svg>
-                      <span>{amenity}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Reviews */}
-            <div className="mb-5">
-              <div className="d-flex align-items-center justify-content-between mb-4">
-                <h3 className="fw-bold mb-0" style={{ fontSize: '22px' }}>
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="text-warning me-2">
-                    <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-                  </svg>
-                  {hotel.rating?.toFixed(1) || '0.0'} · {hotel.totalReviews || 0} {hotel.totalReviews === 1 ? 'review' : 'reviews'}
-                </h3>
-              </div>
-              {reviews.length === 0 ? (
-                <p className="text-muted">No reviews yet</p>
-              ) : (
-                <div>
-                  {reviews.slice(0, 5).map((review) => (
-                    <div key={review._id || review.id} className="mb-4 pb-4 border-bottom">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <div className="fw-semibold">{review.userId?.name || review.customer?.name || 'Anonymous'}</div>
-                          <div className="text-muted small">{new Date(review.createdAt).toLocaleDateString()}</div>
-                        </div>
-                        <div className="d-flex align-items-center">
-                          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="text-warning me-1">
-                            <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-                          </svg>
-                          <span>{review.rating}</span>
-                        </div>
-                      </div>
-                      <p className="mb-0">{review.comment || 'No comment'}</p>
-                      {review.reply && review.reply.text && (
-                        <div className="mt-3 p-3 bg-light rounded">
-                          <div className="fw-semibold small mb-1">Response from host:</div>
-                          <div className="small">{review.reply.text}</div>
-                        </div>
-                      )}
-                    </div>
+                      <img src={img || "/placeholder.svg"} alt={`Thumbnail ${index + 1}`} />
+                    </button>
                   ))}
                 </div>
               )}
             </div>
+          ) : (
+            <div className="image-placeholder">
+              <span>Preview unavailable</span>
+            </div>
+          )}
+        </div>
+      </div>
 
-            {/* Location */}
-            {hotel.location && (
-              <div className="mb-5">
-                <h3 className="fw-bold mb-4" style={{ fontSize: '22px' }}>Where you'll be</h3>
-                {hotel.location.coordinates && 
-                 hotel.location.coordinates.lat != null && 
-                 hotel.location.coordinates.lng != null &&
-                 !isNaN(Number(hotel.location.coordinates.lat)) &&
-                 !isNaN(Number(hotel.location.coordinates.lng)) ? (
-                  <div className="border rounded-4 overflow-hidden" style={{ height: '400px', zIndex: 0, position: 'relative' }}>
-                    <MapContainer
-                      center={[Number(hotel.location.coordinates.lat), Number(hotel.location.coordinates.lng)]}
-                      zoom={15}
-                      style={{ height: '100%', width: '100%' }}
-                      scrollWheelZoom={true}
-                      key={`${hotel.location.coordinates.lat}-${hotel.location.coordinates.lng}`}
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
-                      <Marker
-                        position={[Number(hotel.location.coordinates.lat), Number(hotel.location.coordinates.lng)]}
-                        icon={redIcon}
-                      >
-                        <Popup>
-                          <strong>{hotel.name}</strong><br />
-                          {hotel.location.address || ''}<br />
-                          {hotel.location.city || ''}, {hotel.location.country || ''}
-                        </Popup>
-                      </Marker>
-                    </MapContainer>
+      <div className="content-grid">
+        <div className="main-content">
+          <section className="section-card">
+            <h2 className="section-title">{hotel.name}</h2>
+            <p className="section-subtitle">
+              {hotel.location?.address}, {hotel.location?.city}, {hotel.location?.country}
+            </p>
+            <div className="property-stats">
+              <div className="stat-item">
+                <span className="stat-icon">👥</span>
+                <span>{hotel.capacity?.guests || 1} {hotel.capacity?.guests === 1 ? 'guest' : 'guests'}</span>
+              </div>
+              {hotel.capacity?.bedrooms && (
+                <div className="stat-item">
+                  <span>·</span>
+                  <span className="stat-icon">🛏️</span>
+                  <span>{hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}</span>
+                </div>
+              )}
+              {hotel.capacity?.bathrooms && (
+                <div className="stat-item">
+                  <span>·</span>
+                  <span className="stat-icon">🚿</span>
+                  <span>{hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bath' : 'baths'}</span>
+                </div>
+              )}
+            </div>
+            <p className="description-text">{hotel.description}</p>
+          </section>
+
+          {hotel.amenities && hotel.amenities.length > 0 && (
+            <section className="section-card">
+              <h3 className="section-title">What this place offers</h3>
+              <div className="amenities-grid">
+                {hotel.amenities.map((amenity, index) => (
+                  <div key={index} className="amenity-item">
+                    <span className="amenity-check">✓</span>
+                    <span>{amenity}</span>
                   </div>
-                ) : (
-                  <div className="border rounded-4 overflow-hidden" style={{ height: '400px', backgroundColor: '#f7f7f7' }}>
-                    <div className="w-100 h-100 d-flex align-items-center justify-content-center flex-column">
-                      <p className="text-muted mb-2">Map location not available</p>
-                      <p className="text-muted small">The hotel owner needs to set the map coordinates when creating the hotel.</p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="section-card">
+            <h3 className="section-title">
+              <span className="star">★</span> {hotel.rating?.toFixed(1) || '0.0'} · {hotel.totalReviews || 0} reviews
+            </h3>
+            {reviews.length === 0 ? (
+              <p className="text-muted">No reviews yet</p>
+            ) : (
+              <div className="reviews-list">
+                {reviews.slice(0, 5).map((review) => (
+                  <div key={review._id} className="review-item">
+                    <div className="review-header">
+                      <div>
+                        <div className="reviewer-name">{review.userId?.name || review.customer?.name || 'Anonymous'}</div>
+                        <div className="review-date">{new Date(review.createdAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="review-rating">
+                        <span className="star">★</span> {review.rating}
+                      </div>
                     </div>
+                    <p className="review-text">{review.comment || 'No comment'}</p>
+                    {review.reply?.text && (
+                      <div className="host-reply">
+                        <div className="reply-label">Response from host:</div>
+                        <div className="reply-text">{review.reply.text}</div>
+                      </div>
+                    )}
                   </div>
-                )}
-                <p className="mt-3 mb-0">
-                  {hotel.location.address}, {hotel.location.city}, {hotel.location.state} {hotel.location.zipCode}, {hotel.location.country}
-                </p>
+                ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Booking Card */}
-          <div className="col-lg-5">
-            <div className="sticky-top" style={{ top: '90px' }}>
-              <div className="border rounded-4 p-4 shadow-sm">
-                <div className="d-flex justify-content-between align-items-start mb-4">
-                  <div>
-                    <span className="fw-bold" style={{ fontSize: '22px' }}>
-                      ${hotel.pricing?.basePrice || 0}
-                    </span>
-                    <span className="text-muted"> / night</span>
-                  </div>
-                </div>
-
-                <div className="border rounded-3 p-3 mb-3">
-                  <div className="row g-0">
-                    <div className="col-6 border-end pe-3">
-                      <label className="form-label small fw-semibold mb-1">CHECK-IN</label>
-                      <input
-                        type="date"
-                        className="form-control border-0 p-0"
-                        value={checkIn}
-                        onChange={(e) => setCheckIn(e.target.value)}
-                        style={{ fontSize: '14px' }}
-                      />
-                    </div>
-                    <div className="col-6 ps-3">
-                      <label className="form-label small fw-semibold mb-1">CHECKOUT</label>
-                      <input
-                        type="date"
-                        className="form-control border-0 p-0"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        style={{ fontSize: '14px' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label small fw-semibold mb-1">GUESTS</label>
-                  <select
-                    className="form-select"
-                    value={guests}
-                    onChange={(e) => setGuests(parseInt(e.target.value))}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                      <option key={num} value={num}>{num} {num === 1 ? 'guest' : 'guests'}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  className="btn btn-danger w-100 rounded-pill py-3 mb-3"
-                  onClick={handleBookNow}
-                  style={{ backgroundColor: '#FF385C', border: 'none', fontSize: '16px', fontWeight: '600' }}
+          {hotel.location?.coordinates?.lat != null && hotel.location?.coordinates?.lng != null && (
+            <section className="section-card">
+              <h3 className="section-title">Where you'll be</h3>
+              <div className="map-wrapper">
+                <MapContainer
+                  center={[Number(hotel.location.coordinates.lat), Number(hotel.location.coordinates.lng)]}
+                  zoom={15}
+                  scrollWheelZoom
                 >
-                  Reserve
-                </button>
+                  <TileLayer
+                    attribution='&copy; OpenStreetMap contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[Number(hotel.location.coordinates.lat), Number(hotel.location.coordinates.lng)]} icon={redIcon}>
+                    <Popup>
+                      <strong>{hotel.name}</strong><br />
+                      {hotel.location.address}<br />
+                      {hotel.location.city}, {hotel.location.country}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+              <p className="location-address">
+                {hotel.location.address}, {hotel.location.city}, {hotel.location.state} {hotel.location.zipCode}, {hotel.location.country}
+              </p>
+            </section>
+          )}
+        </div>
 
-                {checkIn && checkOut && (
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-decoration-underline" style={{ cursor: 'pointer' }}>
-                        ${hotel.pricing?.basePrice || 0} x {calculateNights()} {calculateNights() === 1 ? 'night' : 'nights'}
-                      </span>
-                      <span>${(hotel.pricing?.basePrice || 0) * calculateNights()}</span>
-                    </div>
-                    {hotel.pricing?.cleaningFee > 0 && (
-                      <div className="d-flex justify-content-between mb-2">
-                        <span className="text-decoration-underline" style={{ cursor: 'pointer' }}>Cleaning fee</span>
-                        <span>${hotel.pricing.cleaningFee}</span>
-                      </div>
-                    )}
-                    {hotel.pricing?.serviceFee > 0 && (
-                      <div className="d-flex justify-content-between mb-2">
-                        <span className="text-decoration-underline" style={{ cursor: 'pointer' }}>Service fee</span>
-                        <span>${hotel.pricing.serviceFee}</span>
-                      </div>
-                    )}
-                    <div className="border-top pt-3 mt-3">
-                      <div className="d-flex justify-content-between fw-bold">
-                        <span>Total</span>
-                        <span>${calculateTotal().toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        <div className="booking-sidebar">
+          <div className="booking-card sticky">
+            <div className="price-header">
+              <div className="price-amount">${hotel.pricing?.basePrice || 0}</div>
+              <div className="price-period">per night</div>
+            </div>
 
-                <div className="text-center small text-muted">
-                  You won't be charged yet
-                </div>
+            <div className="date-inputs">
+              <div className="date-input-group">
+                <label>CHECK-IN</label>
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  min={todayDate}
+                />
+              </div>
+              <div className="date-input-group">
+                <label>CHECKOUT</label>
+                <input
+                  type="date"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  min={getMinCheckOutDate()}
+                />
               </div>
             </div>
+
+            <div className="guests-select">
+              <label>GUESTS</label>
+              <select
+                value={guests}
+                onChange={(e) => setGuests(parseInt(e.target.value))}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>{num} {num === 1 ? 'guest' : 'guests'}</option>
+                ))}
+              </select>
+            </div>
+
+            <button onClick={handleBookNow} className="reserve-btn">
+              Reserve
+            </button>
+
+            {checkIn && checkOut && (
+              <div className="price-breakdown">
+                <div className="breakdown-row">
+                  <span>${hotel.pricing?.basePrice || 0} x {calculateNights()} nights</span>
+                  <span>${((hotel.pricing?.basePrice || 0) * calculateNights()).toFixed(2)}</span>
+                </div>
+                {(hotel.pricing?.cleaningFee || 0) > 0 && (
+                  <div className="breakdown-row">
+                    <span>Cleaning fee</span>
+                    <span>${hotel.pricing.cleaningFee}</span>
+                  </div>
+                )}
+                {(hotel.pricing?.serviceFee || 0) > 0 && (
+                  <div className="breakdown-row">
+                    <span>Service fee</span>
+                    <span>${hotel.pricing.serviceFee}</span>
+                  </div>
+                )}
+                <div className="breakdown-total">
+                  <span>Total</span>
+                  <span>${calculateTotal().toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="booking-note">You won't be charged yet</div>
           </div>
         </div>
       </div>

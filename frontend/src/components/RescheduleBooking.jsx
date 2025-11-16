@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const RescheduleBooking = () => {
@@ -39,7 +40,7 @@ const RescheduleBooking = () => {
       }
     } catch (error) {
       console.error('Error fetching booking details:', error);
-      alert('Error loading booking details');
+      toast.error('Error loading booking details');
       navigate('/booking-history');
     } finally {
       setLoading(false);
@@ -50,7 +51,7 @@ const RescheduleBooking = () => {
     e.preventDefault();
     
     if (!checkIn || !checkOut) {
-      alert('Please select both check-in and check-out dates');
+      toast.warning('Please select both check-in and check-out dates');
       return;
     }
 
@@ -58,12 +59,12 @@ const RescheduleBooking = () => {
     const checkOutDate = new Date(checkOut);
     
     if (checkInDate >= checkOutDate) {
-      alert('Check-out date must be after check-in date');
+      toast.warning('Check-out date must be after check-in date');
       return;
     }
     
     if (checkInDate < new Date()) {
-      alert('Check-in date cannot be in the past');
+      toast.warning('Check-in date cannot be in the past');
       return;
     }
 
@@ -80,12 +81,12 @@ const RescheduleBooking = () => {
       );
 
       if (response.data.success) {
-        alert('Booking rescheduled successfully!');
+        toast.success('Booking rescheduled successfully!');
         navigate('/booking-history');
       }
     } catch (error) {
       console.error('Error rescheduling booking:', error);
-      alert(error.response?.data?.message || 'Error rescheduling booking');
+      toast.error(error.response?.data?.message || 'Error rescheduling booking');
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Home.css';
 
 const BrowseHotels = () => {
@@ -21,10 +22,7 @@ const BrowseHotels = () => {
     sortBy: searchParams.get('sortBy') || 'popularity',
     order: searchParams.get('order') || 'desc'
   });
-  const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
-
-  const availableAmenities = ['WiFi', 'AC', 'Parking', 'Pool', 'Breakfast', 'Gym', 'Spa', 'Restaurant'];
 
   const fetchHotels = useCallback(async () => {
     try {
@@ -121,7 +119,7 @@ const BrowseHotels = () => {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      alert(error.response?.data?.message || 'Error updating favorite. Please try again.');
+      toast.error(error.response?.data?.message || 'Error updating favorite. Please try again.');
     }
   };
 
@@ -147,170 +145,256 @@ const BrowseHotels = () => {
     setSearchParams(newParams);
   };
 
-  const toggleAmenity = (amenity) => {
-    const newAmenities = filters.amenities.includes(amenity)
-      ? filters.amenities.filter(a => a !== amenity)
-      : [...filters.amenities, amenity];
-    handleFilterChange('amenities', newAmenities);
-  };
-
   const handleSort = (sortBy) => {
     const order = filters.sortBy === sortBy && filters.order === 'desc' ? 'asc' : 'desc';
     handleFilterChange('sortBy', sortBy);
     handleFilterChange('order', order);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getDateDisplay = () => {
+    if (filters.checkIn && filters.checkOut) {
+      return `${formatDate(filters.checkIn)} - ${formatDate(filters.checkOut)}`;
+    }
+    if (filters.checkIn) {
+      return formatDate(filters.checkIn);
+    }
+    return 'Add dates';
+  };
+
+  const getGuestsDisplay = () => {
+    if (filters.guests === 1) {
+      return '1 guest';
+    }
+    return `${filters.guests} guests`;
+  };
+
   return (
-    <div className="bg-white" style={{ minHeight: '100vh', paddingTop: '80px' }}>
-      {/* Sticky Search Bar */}
+    <div className="bg-white" style={{ minHeight: '100vh' }}>
+      {/* Modern Search Bar */}
       <div className="sticky-top bg-white border-bottom shadow-sm" style={{ top: '72px', zIndex: 100 }}>
-        <div className="container py-3">
-          <div className="row align-items-center">
-            <div className="col-md-8">
-              <div className="d-flex gap-3 flex-wrap">
-                <div className="border rounded-pill px-4 py-2" style={{ cursor: 'pointer' }}>
-                  <small className="fw-semibold">Location</small>
-                  <input
-                    type="text"
-                    className="border-0 ms-2"
-                    placeholder="Where to?"
-                    value={filters.location}
-                    onChange={(e) => handleFilterChange('location', e.target.value)}
-                    style={{ outline: 'none', width: '150px' }}
-                  />
+        <div className="d-flex justify-content-center" style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}>
+          <div 
+            className="d-flex align-items-center bg-white rounded-pill shadow-sm"
+            style={{ 
+              maxWidth: '700px',
+              width: '100%',
+              border: '1px solid #ddd',
+              overflow: 'hidden',
+              height: '56px'
+            }}
+          >
+              {/* Where Input */}
+              <div 
+                className="flex-grow-1 px-4"
+                style={{ 
+                  borderRight: '1px solid #ddd',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  minWidth: '160px',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
+                  Where
                 </div>
-                <div className="border rounded-pill px-4 py-2" style={{ cursor: 'pointer' }}>
-                  <small className="fw-semibold">Check in</small>
+                <input
+                  type="text"
+                  className="border-0 w-100"
+                  placeholder="Search destinations"
+                  value={filters.location}
+                  onChange={(e) => handleFilterChange('location', e.target.value)}
+                  style={{ 
+                    outline: 'none', 
+                    fontSize: '14px',
+                    backgroundColor: 'transparent',
+                    padding: 0,
+                    margin: 0
+                  }}
+                />
+              </div>
+
+              {/* When Input */}
+              <div 
+                className="px-4 position-relative"
+                style={{ 
+                  borderRight: '1px solid #ddd',
+                  cursor: 'pointer',
+                  minWidth: '200px',
+                  transition: 'background-color 0.2s',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
+                  When
+                </div>
+                <div 
+                  style={{ 
+                    fontSize: '14px',
+                    color: filters.checkIn ? '#000' : '#717171',
+                    cursor: 'pointer',
+                    padding: 0,
+                    margin: 0
+                  }}
+                >
+                  {getDateDisplay()}
+                </div>
+                <input
+                  type="date"
+                  value={filters.checkIn}
+                  onChange={(e) => handleFilterChange('checkIn', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+                {filters.checkIn && (
                   <input
                     type="date"
-                    className="border-0 ms-2"
-                    value={filters.checkIn}
-                    onChange={(e) => handleFilterChange('checkIn', e.target.value)}
-                    style={{ outline: 'none' }}
-                  />
-                </div>
-                <div className="border rounded-pill px-4 py-2" style={{ cursor: 'pointer' }}>
-                  <small className="fw-semibold">Check out</small>
-                  <input
-                    type="date"
-                    className="border-0 ms-2"
                     value={filters.checkOut}
                     onChange={(e) => handleFilterChange('checkOut', e.target.value)}
-                    style={{ outline: 'none' }}
+                    min={filters.checkIn || new Date().toISOString().split('T')[0]}
+                    style={{ 
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
                   />
-                </div>
-                <div className="border rounded-pill px-4 py-2" style={{ cursor: 'pointer' }}>
-                  <small className="fw-semibold">Guests</small>
+                )}
+              </div>
+
+              {/* Who Input */}
+              <div 
+                className="px-4 d-flex justify-content-between align-items-center"
+                style={{ 
+                  cursor: 'pointer',
+                  minWidth: '180px',
+                  transition: 'background-color 0.2s',
+                  height: '100%'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                <div>
+                  <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
+                    Who
+                  </div>
+                  <div 
+                  style={{ 
+                    fontSize: '14px',
+                    color: filters.guests > 1 ? '#000' : '#717171',
+                    padding: 0,
+                    margin: 0
+                  }}
+                  >
+                    {filters.guests === 1 ? 'Add guests' : getGuestsDisplay()}
+                  </div>
                   <input
                     type="number"
-                    className="border-0 ms-2"
+                    className="border-0 w-100"
                     value={filters.guests}
                     onChange={(e) => handleFilterChange('guests', parseInt(e.target.value) || 1)}
                     min="1"
-                    style={{ outline: 'none', width: '60px' }}
+                    style={{ 
+                      outline: 'none', 
+                      fontSize: '14px',
+                      backgroundColor: 'transparent',
+                      display: 'none'
+                    }}
                   />
                 </div>
+                <div className="d-flex align-items-center justify-content-center" style={{ gap: '8px', marginLeft: '16px' }}>
+                  <button
+                    className="btn btn-sm border rounded-circle"
+                    style={{ width: '28px', height: '28px', padding: 0, flexShrink: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (filters.guests > 1) {
+                        handleFilterChange('guests', filters.guests - 1);
+                      }
+                    }}
+                  >
+                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
+                    </svg>
+                  </button>
+                  <span className="d-flex align-items-center justify-content-center" style={{ fontSize: '13px', width: '24px', textAlign: 'center' }}>
+                    {filters.guests}
+                  </span>
+                  <button
+                    className="btn btn-sm border rounded-circle"
+                    style={{ width: '28px', height: '28px', padding: 0, flexShrink: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFilterChange('guests', filters.guests + 1);
+                    }}
+                  >
+                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="col-md-4 text-end">
+
+              {/* Search Button */}
               <button
-                className="btn btn-outline-dark rounded-pill"
-                onClick={() => setShowFilters(!showFilters)}
+                className="btn d-flex align-items-center justify-content-center"
+                style={{
+                  backgroundColor: '#FF385C',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  minWidth: '48px',
+                  border: 'none',
+                  margin: '4px',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 56, 92, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                onClick={() => fetchHotels()}
               >
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="me-1">
-                  <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.397h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                 </svg>
-                Filters
               </button>
             </div>
           </div>
 
-          {/* Advanced Filters Panel */}
-          {showFilters && (
-            <div className="mt-4 p-4 border rounded-4 bg-white">
-              <div className="row">
-                <div className="col-md-3 mb-3">
-                  <label className="form-label fw-semibold">Price Range ($)</label>
-                  <div className="d-flex gap-2">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Min"
-                      value={filters.minPrice}
-                      onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Max"
-                      value={filters.maxPrice}
-                      onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="col-md-3 mb-3">
-                  <label className="form-label fw-semibold">Minimum Rating</label>
-                  <select
-                    className="form-select"
-                    value={filters.minRating}
-                    onChange={(e) => handleFilterChange('minRating', e.target.value)}
-                  >
-                    <option value="">Any rating</option>
-                    <option value="4">4+ Stars</option>
-                    <option value="3">3+ Stars</option>
-                    <option value="2">2+ Stars</option>
-                    <option value="1">1+ Stars</option>
-                  </select>
-                </div>
-                <div className="col-md-6 mb-3">
-                  <label className="form-label fw-semibold">Amenities</label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {availableAmenities.map(amenity => (
-                      <button
-                        key={amenity}
-                        type="button"
-                        className={`btn btn-sm ${filters.amenities.includes(amenity) ? 'btn-dark' : 'btn-outline-dark'}`}
-                        onClick={() => toggleAmenity(amenity)}
-                      >
-                        {amenity}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <button
-                  className="btn btn-link text-decoration-underline"
-                  onClick={() => {
-                    setFilters({
-                      location: '',
-                      checkIn: '',
-                      checkOut: '',
-                      guests: 1,
-                      minPrice: '',
-                      maxPrice: '',
-                      minRating: '',
-                      amenities: [],
-                      sortBy: 'popularity',
-                      order: 'desc'
-                    });
-                    setSearchParams({});
-                  }}
-                >
-                  Clear all
-                </button>
-                <button
-                  className="btn btn-dark rounded-pill px-4"
-                  onClick={() => setShowFilters(false)}
-                >
-                  Show {hotels.length} places
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Sort Options */}
-          <div className="mt-3 d-flex gap-3 align-items-center">
+        {/* Sort Options */}
+        <div className="d-flex justify-content-center mt-2 pb-2">
+          <div className="d-flex gap-3 align-items-center">
             <span className="text-muted small">Sort by:</span>
             <button
               className={`btn btn-sm ${filters.sortBy === 'popularity' ? 'btn-dark' : 'btn-outline-dark'} rounded-pill`}
@@ -351,7 +435,7 @@ const BrowseHotels = () => {
           </div>
         </div>
       ) : (
-        <div className="container py-4">
+        <div className="container py-3">
           <div
             style={{
               display: 'grid',
@@ -423,37 +507,60 @@ const BrowseHotels = () => {
                   >
                     <span className="text-muted">Preview unavailable</span>
                   </div>
-                  {isLoggedIn && (
-                    <button
-                      className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0 d-flex align-items-center justify-content-center"
+                  <button
+                    className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0"
+                    style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      zIndex: 10,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      transition: 'transform 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                      margin: '12px'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isLoggedIn) {
+                        navigate('/login');
+                      } else {
+                        toggleFavorite(hotel.id || hotel._id, e);
+                      }
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    title={isLoggedIn ? (checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites') : 'Login to add favorites'}
+                  >
+                    <svg 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 16 16" 
                       style={{ 
-                        width: '36px', 
-                        height: '36px', 
-                        zIndex: 10,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        transition: 'transform 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        pointerEvents: 'none',
+                        flexShrink: 0
                       }}
-                      onClick={(e) => toggleFavorite(hotel.id || hotel._id, e)}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      title={checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites'}
                     >
-                      <svg 
-                        width="20" 
-                        height="20" 
-                        fill={checkIsFavorite(hotel.id || hotel._id) ? '#FF385C' : 'currentColor'} 
-                        viewBox="0 0 16 16"
-                        style={{ transition: 'fill 0.2s ease' }}
-                      >
-                        {checkIsFavorite(hotel.id || hotel._id) ? (
-                          <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"/>
-                        ) : (
-                          <path d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-                        )}
-                      </svg>
-                    </button>
-                  )}
+                      {isLoggedIn && checkIsFavorite(hotel.id || hotel._id) ? (
+                        <path 
+                          d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                          fill="#FF385C"
+                          stroke="#FF385C"
+                          strokeWidth="0.5"
+                        />
+                      ) : (
+                        <path 
+                          d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                          fill="white"
+                          stroke="#222"
+                          strokeWidth="1"
+                        />
+                      )}
+                    </svg>
+                  </button>
                 </div>
                 <div className="mt-3">
                   <div className="d-flex justify-content-between align-items-start mb-1">

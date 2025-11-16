@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const LeaveReview = () => {
@@ -38,7 +39,7 @@ const LeaveReview = () => {
     e.preventDefault();
 
     if (!rating || rating < 1 || rating > 5) {
-      alert('Please select a rating between 1 and 5');
+      toast.warning('Please select a rating between 1 and 5');
       return;
     }
 
@@ -59,12 +60,12 @@ const LeaveReview = () => {
       );
 
       if (response.data.success) {
-        alert('Review submitted successfully!');
+        toast.success('Review submitted successfully!');
         navigate('/booking-history');
       }
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert(error.response?.data?.message || 'Error submitting review');
+      toast.error(error.response?.data?.message || 'Error submitting review');
     } finally {
       setSubmitting(false);
     }

@@ -62,7 +62,7 @@ const CustomerDashboard = () => {
             <div className="card-icon">👤</div>
             <h3>Profile Settings</h3>
             <p>Update your personal information and preferences</p>
-            <button className="card-button">Edit Profile</button>
+            <button className="card-button" onClick={() => navigate('/edit-profile')}>Edit Profile</button>
           </div>
         </div>
 

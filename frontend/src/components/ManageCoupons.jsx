@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const ManageCoupons = () => {
@@ -79,12 +80,12 @@ const ManageCoupons = () => {
     const hotelId = formData.hotelId || selectedHotel;
     
     if (!hotelId) {
-      alert('Please select a hotel');
+      toast.warning('Please select a hotel');
       return;
     }
     
     if (!formData.code || !formData.discountPercentage || !formData.validFrom || !formData.validTo) {
-      alert('Please fill in all required fields');
+      toast.warning('Please fill in all required fields');
       return;
     }
     
@@ -111,7 +112,7 @@ const ManageCoupons = () => {
             headers: { Authorization: `Bearer ${token}` }
           }
         );
-        alert('Coupon updated successfully!');
+        toast.success('Coupon updated successfully!');
       } else {
         await axios.post(
           'http://localhost:5000/api/coupons',
@@ -120,7 +121,7 @@ const ManageCoupons = () => {
             headers: { Authorization: `Bearer ${token}` }
           }
         );
-        alert('Coupon created successfully!');
+        toast.success('Coupon created successfully!');
       }
       
       setShowForm(false);
@@ -136,7 +137,7 @@ const ManageCoupons = () => {
       fetchCoupons();
     } catch (error) {
       console.error('Error saving coupon:', error);
-      alert(error.response?.data?.message || 'Error saving coupon');
+      toast.error(error.response?.data?.message || 'Error saving coupon');
     }
   };
 
@@ -163,11 +164,11 @@ const ManageCoupons = () => {
       await axios.delete(`http://localhost:5000/api/coupons/${couponId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Coupon deleted successfully!');
+      toast.success('Coupon deleted successfully!');
       fetchCoupons();
     } catch (error) {
       console.error('Error deleting coupon:', error);
-      alert(error.response?.data?.message || 'Error deleting coupon');
+      toast.error(error.response?.data?.message || 'Error deleting coupon');
     }
   };
 
@@ -218,7 +219,7 @@ const ManageCoupons = () => {
           className="btn btn-primary mb-3"
           onClick={() => {
             if (!selectedHotel) {
-              alert('Please select a hotel first');
+              toast.warning('Please select a hotel first');
               return;
             }
             setShowForm(true);

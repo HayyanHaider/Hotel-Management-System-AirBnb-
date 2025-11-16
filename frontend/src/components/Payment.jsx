@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const Payment = () => {
@@ -18,30 +19,12 @@ const Payment = () => {
     email: '',
     password: ''
   });
-  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchBookingDetails();
-    fetchWalletBalance();
   }, [bookingId]);
-
-  const fetchWalletBalance = async () => {
-    try {
-      const token = sessionStorage.getItem('token');
-      if (!token) return;
-      
-      const response = await axios.get('http://localhost:5000/api/auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success && response.data.user) {
-        setWalletBalance(response.data.user.walletBalance || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-    }
-  };
 
   const fetchBookingDetails = async () => {
     try {
@@ -55,13 +38,13 @@ const Payment = () => {
         setBooking(response.data.booking);
       } else {
         console.error('Failed to fetch booking details:', response.data.message);
-        alert('Failed to load booking details. Please try again.');
+        toast.error('Failed to load booking details. Please try again.');
         navigate('/booking-history');
       }
     } catch (error) {
       console.error('Error fetching booking details:', error);
       console.error('Error response:', error.response?.data);
-      alert('Error loading booking details. Please try again.');
+      toast.error('Error loading booking details. Please try again.');
       navigate('/booking-history');
     } finally {
       setLoading(false);
@@ -72,21 +55,13 @@ const Payment = () => {
     e.preventDefault();
 
     if (paymentMethod === 'card' && (!cardDetails.cardNumber || !cardDetails.expiryDate || !cardDetails.cvv)) {
-      alert('Please fill in all card details');
+      toast.warning('Please fill in all card details');
       return;
     }
 
     if (paymentMethod === 'paypal' && (!paypalDetails.email || !paypalDetails.password)) {
-      alert('Please fill in your PayPal email and password');
+      toast.warning('Please fill in your PayPal email and password');
       return;
-    }
-
-    if (paymentMethod === 'wallet') {
-      const totalAmount = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
-      if (walletBalance < totalAmount) {
-        alert(`Insufficient wallet balance. You have $${walletBalance.toFixed(2)}, but need $${totalAmount.toFixed(2)}. Please add funds or use another payment method.`);
-        return;
-      }
     }
 
     try {
@@ -99,8 +74,7 @@ const Payment = () => {
           bookingId,
           paymentMethod,
           cardDetails: paymentMethod === 'card' ? cardDetails : null,
-          paypalDetails: paymentMethod === 'paypal' ? paypalDetails : null,
-          walletBalance: paymentMethod === 'wallet' ? walletBalance : null
+          paypalDetails: paymentMethod === 'paypal' ? paypalDetails : null
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -108,12 +82,12 @@ const Payment = () => {
       );
 
       if (response.data.success) {
-        alert('Payment processed successfully!');
+        toast.success('Payment processed successfully!');
         navigate('/booking-history');
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      alert(error.response?.data?.message || 'Error processing payment');
+      toast.error(error.response?.data?.message || 'Error processing payment');
     } finally {
       setProcessing(false);
     }
@@ -212,7 +186,6 @@ const Payment = () => {
                 >
                   <option value="card">Credit/Debit Card</option>
                   <option value="paypal">PayPal</option>
-                  <option value="wallet">Wallet Balance</option>
                 </select>
               </div>
 
@@ -302,37 +275,6 @@ const Payment = () => {
                 </>
               )}
 
-              {paymentMethod === 'wallet' && (
-                <>
-                  <div className="mb-3">
-                    <div className="alert alert-info">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span><strong>Wallet Balance:</strong></span>
-                        <span className="fw-bold">${walletBalance.toFixed(2)}</span>
-                      </div>
-                      <div className="mt-2 d-flex justify-content-between align-items-center">
-                        <span><strong>Total Amount:</strong></span>
-                        <span className="fw-bold">${(booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0).toFixed(2)}</span>
-                      </div>
-                      {walletBalance >= (booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0) ? (
-                        <div className="mt-2 text-success">
-                          <strong>✓ Sufficient balance</strong>
-                        </div>
-                      ) : (
-                        <div className="mt-2 text-danger">
-                          <strong>✗ Insufficient balance</strong>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="alert alert-warning">
-                    <small>
-                      <strong>Note:</strong> Payment will be deducted from your wallet balance. If you don't have sufficient balance, please add funds or use another payment method.
-                    </small>
-                  </div>
-                </>
-              )}
 
               <div className="d-flex gap-2">
                 <button

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import ManageHotelProfile from './ManageHotelProfile';
+import ManageCoupons from './ManageCoupons';
+import OwnerBookingManagement from './OwnerBookingManagement';
+import ReplyToReviews from './ReplyToReviews';
+import EarningsDashboard from './EarningsDashboard';
 import './HotelDashboard.css';
 
 const HotelDashboard = () => {
@@ -9,6 +14,25 @@ const HotelDashboard = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Sync activeSection with current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/hotel-dashboard' || path === '/') {
+      setActiveSection('home');
+    } else if (path === '/manage-hotel-profile') {
+      setActiveSection('properties');
+    } else if (path === '/manage-coupons') {
+      setActiveSection('coupons');
+    } else if (path === '/owner-bookings') {
+      setActiveSection('bookings');
+    } else if (path === '/reply-reviews') {
+      setActiveSection('reviews');
+    } else if (path === '/earnings-dashboard') {
+      setActiveSection('earnings');
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const token = sessionStorage.getItem('token');
@@ -20,13 +44,24 @@ const HotelDashboard = () => {
     }
 
     const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== 'hotel') {
+    if (parsedUser.role !== 'hotel' && parsedUser.role !== 'hotel_owner') {
       navigate('/login');
       return;
     }
 
     setUser(parsedUser);
     fetchDashboardStats(token);
+
+    // Listen for logo click to reset to home
+    const handleResetDashboard = () => {
+      setActiveSection('home');
+    };
+
+    window.addEventListener('resetHotelDashboard', handleResetDashboard);
+
+    return () => {
+      window.removeEventListener('resetHotelDashboard', handleResetDashboard);
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -98,6 +133,18 @@ const HotelDashboard = () => {
 
   const changeSection = (section) => {
     setActiveSection(section);
+    // Update URL without navigation to keep sidebar
+    const pathMap = {
+      'home': '/hotel-dashboard',
+      'properties': '/manage-hotel-profile',
+      'coupons': '/manage-coupons',
+      'bookings': '/owner-bookings',
+      'reviews': '/reply-reviews',
+      'earnings': '/earnings-dashboard'
+    };
+    if (pathMap[section]) {
+      window.history.pushState({}, '', pathMap[section]);
+    }
   };
 
   if (!user) {
@@ -117,46 +164,31 @@ const HotelDashboard = () => {
           </button>
           <button 
             className={activeSection === 'properties' ? 'active' : ''}
-            onClick={() => {
-              changeSection('properties');
-              navigate('/manage-hotel-profile');
-            }}
+            onClick={() => changeSection('properties')}
           >
             🏨 My Properties
           </button>
           <button 
             className={activeSection === 'coupons' ? 'active' : ''}
-            onClick={() => {
-              changeSection('coupons');
-              navigate('/manage-coupons');
-            }}
+            onClick={() => changeSection('coupons')}
           >
             🎫 Coupons
           </button>
           <button 
             className={activeSection === 'bookings' ? 'active' : ''}
-            onClick={() => {
-              changeSection('bookings');
-              navigate('/owner-bookings');
-            }}
+            onClick={() => changeSection('bookings')}
           >
             📋 Reservations
           </button>
           <button 
             className={activeSection === 'reviews' ? 'active' : ''}
-            onClick={() => {
-              changeSection('reviews');
-              navigate('/reply-reviews');
-            }}
+            onClick={() => changeSection('reviews')}
           >
             ⭐ Reviews
           </button>
           <button 
             className={activeSection === 'earnings' ? 'active' : ''}
-            onClick={() => {
-              changeSection('earnings');
-              navigate('/earnings-dashboard');
-            }}
+            onClick={() => changeSection('earnings')}
           >
             💰 Earnings
           </button>
@@ -233,40 +265,28 @@ const HotelDashboard = () => {
             <div className="quick-actions">
               <h3>Quick Actions</h3>
               <div className="action-buttons">
-                <button onClick={() => {
-                  changeSection('properties');
-                  navigate('/manage-hotel-profile');
-                }} className="action-btn">
+                <button onClick={() => changeSection('properties')} className="action-btn">
                   <span>🏨</span>
                   <div>
                     <strong>Manage Properties</strong>
                     <small>View and edit your hotels</small>
                   </div>
                 </button>
-                <button onClick={() => {
-                  changeSection('coupons');
-                  navigate('/manage-coupons');
-                }} className="action-btn">
+                <button onClick={() => changeSection('coupons')} className="action-btn">
                   <span>🎫</span>
                   <div>
                     <strong>Manage Coupons</strong>
                     <small>Create discount codes</small>
                   </div>
                 </button>
-                <button onClick={() => {
-                  changeSection('bookings');
-                  navigate('/owner-bookings');
-                }} className="action-btn">
+                <button onClick={() => changeSection('bookings')} className="action-btn">
                   <span>📋</span>
                   <div>
                     <strong>View Reservations</strong>
                     <small>{stats?.bookings?.pending || 0} pending</small>
                   </div>
                 </button>
-                <button onClick={() => {
-                  changeSection('earnings');
-                  navigate('/earnings-dashboard');
-                }} className="action-btn">
+                <button onClick={() => changeSection('earnings')} className="action-btn">
                   <span>💰</span>
                   <div>
                     <strong>View Earnings</strong>
@@ -275,6 +295,41 @@ const HotelDashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Properties Section */}
+        {activeSection === 'properties' && (
+          <div className="owner-section">
+            <ManageHotelProfile />
+          </div>
+        )}
+
+        {/* Coupons Section */}
+        {activeSection === 'coupons' && (
+          <div className="owner-section">
+            <ManageCoupons />
+          </div>
+        )}
+
+        {/* Bookings Section */}
+        {activeSection === 'bookings' && (
+          <div className="owner-section">
+            <OwnerBookingManagement />
+          </div>
+        )}
+
+        {/* Reviews Section */}
+        {activeSection === 'reviews' && (
+          <div className="owner-section">
+            <ReplyToReviews />
+          </div>
+        )}
+
+        {/* Earnings Section */}
+        {activeSection === 'earnings' && (
+          <div className="owner-section">
+            <EarningsDashboard />
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const OwnerBookingManagement = () => {
@@ -44,11 +45,11 @@ const OwnerBookingManagement = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      alert('Booking confirmed!');
+        toast.success('Booking confirmed!');
       fetchBookings();
     } catch (error) {
       console.error('Error confirming booking:', error);
-      alert(error.response?.data?.message || 'Error confirming booking');
+      toast.error(error.response?.data?.message || 'Error confirming booking');
     }
   };
 
@@ -66,11 +67,11 @@ const OwnerBookingManagement = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      alert('Booking rejected!');
+        toast.success('Booking rejected!');
       fetchBookings();
     } catch (error) {
       console.error('Error rejecting booking:', error);
-      alert(error.response?.data?.message || 'Error rejecting booking');
+      toast.error(error.response?.data?.message || 'Error rejecting booking');
     }
   };
 
@@ -84,11 +85,11 @@ const OwnerBookingManagement = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      alert('Guest checked in!');
+        toast.success('Guest checked in!');
       fetchBookings();
     } catch (error) {
       console.error('Error checking in:', error);
-      alert(error.response?.data?.message || 'Error checking in');
+      toast.error(error.response?.data?.message || 'Error checking in');
     }
   };
 
@@ -102,11 +103,11 @@ const OwnerBookingManagement = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      alert('Guest checked out!');
+        toast.success('Guest checked out!');
       fetchBookings();
     } catch (error) {
       console.error('Error checking out:', error);
-      alert(error.response?.data?.message || 'Error checking out');
+      toast.error(error.response?.data?.message || 'Error checking out');
     }
   };
 

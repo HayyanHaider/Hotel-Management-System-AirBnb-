@@ -789,7 +789,7 @@ const AdminDashboard = () => {
                                 className="btn-icon"
                                 title={refund.description}
                                 style={{ marginLeft: '6px', cursor: 'pointer', border: 'none', background: 'transparent', padding: 0 }}
-                                onClick={(e) => { e.stopPropagation(); alert(refund.description); }}
+                                onClick={(e) => { e.stopPropagation(); toast.info(refund.description, { autoClose: 5000 }); }}
                                 aria-label="View full description"
                               >
                                 <FaInfoCircle size={16} color="#64748b" />

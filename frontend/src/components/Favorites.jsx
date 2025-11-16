@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const Favorites = () => {
@@ -17,7 +18,7 @@ const Favorites = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       if (!token) {
-        alert('Please login to view favorites');
+        toast.warning('Please login to view favorites');
         navigate('/login');
         return;
       }

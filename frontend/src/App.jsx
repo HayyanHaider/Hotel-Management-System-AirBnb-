@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { ToastContainer } from 'react-toastify';
 import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
 import Signup from './components/Signup';
@@ -18,6 +19,7 @@ import Payment from './components/Payment';
 import BookingHistory from './components/BookingHistory';
 import LeaveReview from './components/LeaveReview';
 import RescheduleBooking from './components/RescheduleBooking';
+import EditProfile from './components/EditProfile';
 // Hotel components
 import ManageHotelProfile from './components/ManageHotelProfile';
 import ManageCoupons from './components/ManageCoupons';
@@ -88,6 +90,18 @@ function AppContent() {
   return (
     <div className="app">
       <Navbar />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <Routes>
         <Route path="/" element={<BrowseHotels />} />
         <Route path="/home" element={<Home />} />
@@ -153,8 +167,16 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/edit-profile" 
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <EditProfile />
+            </ProtectedRoute>
+          } 
+        />
         
-        {/* Hotel Routes */}
+        {/* Hotel Routes - All routes render HotelDashboard which handles sections internally */}
         <Route 
           path="/hotel-dashboard" 
           element={
@@ -167,7 +189,7 @@ function AppContent() {
           path="/manage-hotel-profile" 
           element={
             <ProtectedRoute requiredRole="hotel">
-              <ManageHotelProfile />
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />
@@ -175,7 +197,7 @@ function AppContent() {
           path="/manage-coupons" 
           element={
             <ProtectedRoute requiredRole="hotel">
-              <ManageCoupons />
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />
@@ -183,7 +205,7 @@ function AppContent() {
           path="/owner-bookings" 
           element={
             <ProtectedRoute requiredRole="hotel">
-              <OwnerBookingManagement />
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />
@@ -191,7 +213,7 @@ function AppContent() {
           path="/reply-reviews" 
           element={
             <ProtectedRoute requiredRole="hotel">
-              <ReplyToReviews />
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />
@@ -199,7 +221,7 @@ function AppContent() {
           path="/earnings-dashboard" 
           element={
             <ProtectedRoute requiredRole="hotel">
-              <EarningsDashboard />
+              <HotelDashboard />
             </ProtectedRoute>
           } 
         />

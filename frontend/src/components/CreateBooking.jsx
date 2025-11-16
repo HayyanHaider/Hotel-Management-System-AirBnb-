@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const CreateBooking = () => {
@@ -19,6 +20,26 @@ const CreateBooking = () => {
   const [promoCodeError, setPromoCodeError] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
 
+  // Get today's date in YYYY-MM-DD format for min date validation
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get minimum check-out date (check-in date + 1 day)
+  const getMinCheckOutDate = () => {
+    if (!checkIn) return getTodayDate();
+    const checkInDate = new Date(checkIn);
+    checkInDate.setDate(checkInDate.getDate() + 1);
+    const year = checkInDate.getFullYear();
+    const month = String(checkInDate.getMonth() + 1).padStart(2, '0');
+    const day = String(checkInDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     fetchHotelDetails();
   }, [hotelId]);
@@ -31,6 +52,23 @@ const CreateBooking = () => {
       setIsAvailable(false);
     }
   }, [hotel, checkIn, checkOut, guests]);
+
+  // Update check-out date if it's before or equal to check-in date
+  useEffect(() => {
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      const minCheckOut = new Date(checkInDate);
+      minCheckOut.setDate(minCheckOut.getDate() + 1);
+      
+      if (checkOutDate <= checkInDate) {
+        const year = minCheckOut.getFullYear();
+        const month = String(minCheckOut.getMonth() + 1).padStart(2, '0');
+        const day = String(minCheckOut.getDate()).padStart(2, '0');
+        setCheckOut(`${year}-${month}-${day}`);
+      }
+    }
+  }, [checkIn]);
 
   const fetchHotelDetails = async () => {
     try {
@@ -73,17 +111,17 @@ const CreateBooking = () => {
     e.preventDefault();
     
     if (!hotelId) {
-      alert('Hotel ID is missing. Please try again.');
+      toast.error('Hotel ID is missing. Please try again.');
       return;
     }
 
     if (!checkIn || !checkOut || !guests) {
-      alert('Please fill in all required fields');
+      toast.warning('Please fill in all required fields');
       return;
     }
 
     if (!isAvailable) {
-      alert('Hotel is not available for the selected dates and number of guests. Please select different dates or reduce the number of guests.');
+      toast.error('Hotel is not available for the selected dates and number of guests. Please select different dates or reduce the number of guests.');
       return;
     }
 
@@ -91,7 +129,7 @@ const CreateBooking = () => {
       setSubmitting(true);
       const token = sessionStorage.getItem('token');
       if (!token) {
-        alert('Please login to create a booking');
+          toast.warning('Please login to create a booking');
         navigate('/login');
         return;
       }
@@ -122,23 +160,23 @@ const CreateBooking = () => {
         const appliedCoupon = response.data.appliedCoupon;
         
         if (appliedCoupon) {
-          alert(`Great! Coupon "${appliedCoupon.code}" (${appliedCoupon.discountPercentage}% off) has been automatically applied. You saved $${appliedCoupon.discountAmount.toFixed(2)}!`);
+          toast.success(`Great! Coupon "${appliedCoupon.code}" (${appliedCoupon.discountPercentage}% off) has been automatically applied. You saved $${appliedCoupon.discountAmount.toFixed(2)}!`);
         }
         
         console.log('Booking created successfully, navigating to payment:', bookingId);
         if (bookingId) {
           navigate(`/payment/${bookingId}`);
         } else {
-          alert('Booking created but booking ID is missing. Please check your bookings.');
+          toast.warning('Booking created but booking ID is missing. Please check your bookings.');
           navigate('/booking-history');
         }
       } else {
-        alert('Failed to create booking. Please try again.');
+        toast.error('Failed to create booking. Please try again.');
       }
     } catch (error) {
       console.error('Error creating booking:', error);
       console.error('Error response:', error.response?.data); // Debug log
-      alert(error.response?.data?.message || 'Error creating booking');
+      toast.error(error.response?.data?.message || 'Error creating booking');
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +202,7 @@ const CreateBooking = () => {
                   className="form-control"
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
+                  min={getTodayDate()}
                   required
                 />
               </div>
@@ -175,6 +214,7 @@ const CreateBooking = () => {
                   className="form-control"
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
+                  min={getMinCheckOutDate()}
                   required
                 />
               </div>

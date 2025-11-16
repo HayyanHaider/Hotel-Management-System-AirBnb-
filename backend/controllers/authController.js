@@ -369,9 +369,75 @@ const verifyTokenController = async (req, res) => {
   }
 };
 
+// Update User Profile (Protected Route)
+const updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const userId = req.user.userId;
+
+    const dbUser = await UserModel.findById(userId);
+    
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update allowed fields
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      if (trimmedName.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name must be at least 2 characters long'
+        });
+      }
+      dbUser.name = trimmedName;
+    }
+
+    if (phone !== undefined) {
+      dbUser.phone = phone.trim();
+    }
+
+    await dbUser.save();
+
+    // Create user instance using OOP
+    const userData = {
+      id: dbUser._id,
+      name: dbUser.name,
+      email: dbUser.email,
+      phone: dbUser.phone,
+      role: dbUser.role,
+      isVerified: dbUser.isVerified,
+      isSuspended: dbUser.isSuspended,
+      suspendedReason: dbUser.suspendedReason,
+      walletBalance: dbUser.walletBalance,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt
+    };
+
+    const userInstance = createUserInstance(userData);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: userInstance.getPublicInfo()
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating profile'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
   getProfile,
-  verifyTokenController
+  verifyTokenController,
+  updateProfile
 };

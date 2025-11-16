@@ -69,8 +69,9 @@ const Navbar = () => {
         window.dispatchEvent(new Event('resetAdminDashboard'));
       } else if (user.role === 'customer') {
         navigate('/', { replace: true });
-      } else if (user.role === 'hotel') {
+      } else if (user.role === 'hotel' || user.role === 'hotel_owner') {
         navigate('/hotel-dashboard', { replace: true });
+        window.dispatchEvent(new Event('resetHotelDashboard'));
       }
     } else {
       e.preventDefault();
@@ -96,7 +97,7 @@ const Navbar = () => {
           to={
             user && user.role === 'admin' ? "/admin-dashboard" :
             user && user.role === 'customer' ? "/" :
-            user && user.role === 'hotel' ? "/hotel-dashboard" : "/"
+            (user && (user.role === 'hotel' || user.role === 'hotel_owner')) ? "/hotel-dashboard" : "/"
           }
           className="navbar-brand d-flex align-items-center text-decoration-none"
           onClick={handleLogoClick}
@@ -189,11 +190,16 @@ const Navbar = () => {
                           <span className="me-2">❤️</span> Favorites
                         </Link>
                       </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/edit-profile">
+                          <span className="me-2">✏️</span> Edit Profile
+                        </Link>
+                      </li>
                       <li><hr className="dropdown-divider" /></li>
                     </>
                   )}
                   
-                  {user.role === 'hotel' && (
+                  {(user.role === 'hotel' || user.role === 'hotel_owner') && (
                     <>
                       <li>
                         <Link className="dropdown-item py-2" to="/hotel-dashboard">
@@ -321,6 +327,11 @@ const Navbar = () => {
                     <li>
                       <Link className="dropdown-item py-2" to="/favorites">
                         <span className="me-2">❤️</span> Favorites
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item py-2" to="/edit-profile">
+                        <span className="me-2">✏️</span> Edit Profile
                       </Link>
                     </li>
                   </>
