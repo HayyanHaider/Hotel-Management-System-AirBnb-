@@ -7,48 +7,69 @@ import './Dashboard.css';
 const ReplyToReviews = () => {
   const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
+  const [hotels, setHotels] = useState([]);
+  const [selectedHotelId, setSelectedHotelId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
 
   useEffect(() => {
-    fetchReviews();
+    fetchHotels();
   }, []);
 
-  const fetchReviews = async () => {
+  useEffect(() => {
+    if (selectedHotelId) {
+      fetchReviews(selectedHotelId);
+    } else {
+      setReviews([]);
+    }
+  }, [selectedHotelId]);
+
+  const fetchHotels = async () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       const userId = JSON.parse(sessionStorage.getItem('user'))?.userId;
 
-      // Get owner's hotels first
       const hotelsResponse = await axios.get('http://localhost:5000/api/hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (hotelsResponse.data.success) {
         const userHotels = hotelsResponse.data.hotels.filter(h => String(h.ownerId) === String(userId));
-        const hotelIds = userHotels.map(h => h._id || h.id);
+        setHotels(userHotels);
 
-        // Fetch reviews for all hotels
-        const allReviews = [];
-        for (const hotelId of hotelIds) {
-          try {
-            const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`);
-            if (reviewsResponse.data.success) {
-              allReviews.push(...(reviewsResponse.data.reviews || []));
-            }
-          } catch (error) {
-            console.error(`Error fetching reviews for hotel ${hotelId}:`, error);
-          }
+        if (userHotels.length > 0) {
+          const firstHotelId = userHotels[0]._id || userHotels[0].id;
+          setSelectedHotelId(String(firstHotelId));
         }
+      }
+    } catch (error) {
+      console.error('Error fetching hotels:', error);
+      toast.error('Failed to load hotels');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setReviews(allReviews);
+  const fetchReviews = async (hotelId) => {
+    if (!hotelId) return;
+    try {
+      setReviewsLoading(true);
+      const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`);
+      if (reviewsResponse.data.success) {
+        const pendingReviews = (reviewsResponse.data.reviews || []).filter((review) => {
+          const replyText = review.reply?.text || review.replyText;
+          return !replyText;
+        });
+        setReviews(pendingReviews);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      toast.error('Failed to load reviews');
     } finally {
-      setLoading(false);
+      setReviewsLoading(false);
     }
   };
 
@@ -70,7 +91,7 @@ const ReplyToReviews = () => {
         toast.success('Reply submitted successfully!');
       setReplyingTo(null);
       setReplyText('');
-      fetchReviews();
+      fetchReviews(selectedHotelId);
     } catch (error) {
       console.error('Error submitting reply:', error);
       toast.error(error.response?.data?.message || 'Error submitting reply');
@@ -100,9 +121,29 @@ const ReplyToReviews = () => {
       </div>
 
       <div className="container">
-        {reviews.length === 0 ? (
+        <div className="w-100 mb-3">
+          <label className="form-label">Select Hotel</label>
+          <select
+            className="form-select"
+            value={selectedHotelId}
+            onChange={(e) => setSelectedHotelId(e.target.value)}
+          >
+            <option value="">-- Select a Hotel --</option>
+            {hotels.map((hotel) => (
+              <option key={hotel._id || hotel.id} value={hotel._id || hotel.id}>
+                {hotel.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {reviewsLoading ? (
           <div className="text-center">
-            <p>No reviews found</p>
+            <p>Loading reviews...</p>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center">
+            <p>No reviews awaiting replies</p>
           </div>
         ) : (
           <div className="row g-4">
@@ -121,17 +162,17 @@ const ReplyToReviews = () => {
                       </div>
                     </div>
 
-                    {review.reply && review.reply.text && (
+                    {(review.reply?.text || review.replyText) && (
                       <div className="alert alert-info">
-                        <strong>Your Reply:</strong> {review.reply.text}
+                        <strong>Your Reply:</strong> {review.reply?.text || review.replyText}
                         <br />
                         <small className="text-muted">
-                          {new Date(review.reply.repliedAt).toLocaleDateString()}
+                          {new Date(review.reply?.repliedAt || review.repliedAt).toLocaleDateString()}
                         </small>
                       </div>
                     )}
 
-                    {!review.reply && (
+                    {!review.reply?.text && !review.replyText && (
                       <div>
                         {replyingTo === (review._id || review.id) ? (
                           <div className="mt-3">

@@ -388,10 +388,15 @@ const HotelDetails = () => {
                       </div>
                     </div>
                     <p className="review-text">{review.comment || 'No comment'}</p>
-                    {review.reply?.text && (
-                      <div className="host-reply">
-                        <div className="reply-label">Response from host:</div>
-                        <div className="reply-text">{review.reply.text}</div>
+                    {(review.reply?.text || review.replyText) && (
+                      <div className="host-reply-slim">
+                        <div className="reply-slim-header">
+                          <div className="reply-slim-label">Reply</div>
+                          <div className="reply-slim-date">
+                            {new Date(review.reply?.repliedAt || review.repliedAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <p className="reply-slim-text">{review.reply?.text || review.replyText}</p>
                       </div>
                     )}
                   </div>

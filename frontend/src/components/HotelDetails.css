@@ -66,17 +66,16 @@
   }
   
   /* Header */
-  .hotel-header {
-    padding: var(--spacing-lg) var(--spacing-xl);
-    border-bottom: 1px solid var(--color-border);
-    max-width: 1400px;
-    margin: 0 auto;
-    background: white;
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-admin-sm);
-    border: 1px solid var(--color-gray-200);
-    margin-bottom: 20px;
-  }
+.hotel-header {
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  max-width: 1400px;
+  margin: 0 auto var(--spacing-lg);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
   
   .back-btn {
     background: none;
@@ -386,13 +385,12 @@
   
   /* Sections */
   .section-card {
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-border);
-    background: white;
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-admin-sm);
-    border: 1px solid var(--color-gray-200);
-    margin-bottom: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: var(--spacing-lg);
   }
   
   .section-title {
@@ -483,23 +481,39 @@
     margin-bottom: var(--spacing-sm);
   }
   
-  .host-reply {
-    background: var(--color-bg-light);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    margin-top: var(--spacing-md);
-    font-size: 14px;
-  }
-  
-  .reply-label {
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  
-  .reply-text {
-    color: var(--color-text);
-    line-height: 1.6;
-  }
+.host-reply-slim {
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 14px 18px;
+  margin-top: 12px;
+}
+
+.reply-slim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.reply-slim-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4c4cff;
+  letter-spacing: 0.03em;
+}
+
+.reply-slim-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.reply-slim-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
   
   /* Map */
   .map-wrapper {

@@ -557,7 +557,7 @@ const BrowseHotels = () => {
                     </button>
                   )}
                 </div>
-                <div className="mt-3">
+                <div className="hotel-card-body">
                   <div className="d-flex justify-content-between align-items-start mb-1">
                     <div className="flex-grow-1">
                       <div className="fw-semibold" style={{ fontSize: '16px', lineHeight: '1.2' }}>
@@ -580,10 +580,12 @@ const BrowseHotels = () => {
                     {hotel.totalReviews || 0} {hotel.totalReviews === 1 ? 'review' : 'reviews'}
                   </div>
                   <div className="mt-2">
-                    <span className="fw-semibold" style={{ fontSize: '16px' }}>
-                      PKR {hotel.pricing?.basePrice || hotel.priceRange?.min || '0'}
-                    </span>
-                    <span className="text-muted" style={{ fontSize: '14px' }}> night</span>
+                    <div className="d-flex align-items-baseline gap-1">
+                      <span className="fw-semibold" style={{ fontSize: '16px' }}>
+                        PKR {hotel.pricing?.basePrice || hotel.priceRange?.min || '0'}
+                      </span>
+                      <span className="text-muted" style={{ fontSize: '14px' }}>/ night</span>
+                    </div>
                   </div>
                   {hotel.amenities && hotel.amenities.length > 0 && (
                     <div className="mt-2 d-flex flex-wrap gap-1">

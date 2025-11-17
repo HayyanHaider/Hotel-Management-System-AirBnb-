@@ -76,8 +76,21 @@ const listHotelReviews = async (req, res) => {
     const { hotelId } = req.params;
     const reviews = await ReviewModel.find({ hotelId: hotelId })
       .populate('userId', 'name')
-      .sort({ createdAt: -1 });
-    return res.json({ success: true, count: reviews.length, reviews });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const normalizedReviews = reviews.map((review) => {
+      if (!review.reply && review.replyText) {
+        review.reply = {
+          by: review.reply?.by || null,
+          text: review.replyText,
+          repliedAt: review.repliedAt
+        };
+      }
+      return review;
+    });
+
+    return res.json({ success: true, count: normalizedReviews.length, reviews: normalizedReviews });
   } catch (error) {
     console.error('listHotelReviews error:', error);
     return res.status(500).json({ success: false, message: 'Server error while listing reviews' });
@@ -101,7 +114,10 @@ const replyToReview = async (req, res) => {
     }
 
     // Allow admin or hotel (ownership check can be added if hotel ownership link exists)
-    review.reply = { by: user.userId, text, repliedAt: new Date() };
+    const repliedAt = new Date();
+    review.reply = { by: user.userId, text, repliedAt };
+    review.replyText = text;
+    review.repliedAt = repliedAt;
     await review.save();
     return res.json({ success: true, review });
   } catch (error) {

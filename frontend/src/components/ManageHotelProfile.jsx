@@ -301,9 +301,11 @@ const ManageHotelProfile = () => {
       <div className="container">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h3>Your Hotels</h3>
-          <button className="btn btn-primary" onClick={handleCreateNew}>
-            + Create New Hotel
-          </button>
+          {!showCreateForm && !editingHotel && (
+            <button className="btn btn-primary" onClick={handleCreateNew}>
+              + Create New Hotel
+            </button>
+          )}
         </div>
 
         {hotels.length > 0 && hotels.some(h => !h.isApproved && !h.isSuspended) && (

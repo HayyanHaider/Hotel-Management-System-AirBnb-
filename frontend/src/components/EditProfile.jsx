@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import './Dashboard.css';
+import './EditProfile.css';
 
 const EditProfile = () => {
   const [user, setUser] = useState(null);
@@ -124,91 +124,89 @@ const EditProfile = () => {
   };
 
   if (loading) {
-    return <div className="dashboard-container text-center">Loading...</div>;
+    return (
+      <div className="edit-profile-loading">
+        <div className="edit-profile-loading-spinner"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="dashboard-container" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
-      <div className="d-flex align-items-center mb-4">
-        <button 
-          className="btn btn-outline-secondary me-3"
-          onClick={() => navigate(-1)}
-          style={{ height: 'fit-content' }}
-        >
-          ← Go Back
-        </button>
-        <h1 className="mb-0">Edit Profile</h1>
+    <div className="edit-profile-container">
+      <div className="edit-profile-wrapper">
+        <div className="edit-profile-card">
+          <div className="edit-profile-header">
+            <button 
+              className="edit-profile-back-btn"
+              onClick={() => navigate(-1)}
+            >
+              ← Go Back
+            </button>
+            <h1 className="edit-profile-title">Edit Profile</h1>
+          </div>
+
+          <form onSubmit={handleSubmit} className="edit-profile-form">
+            <div className="edit-profile-form-group">
+              <label htmlFor="name" className="edit-profile-label">Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className={`edit-profile-input ${errors.name ? 'error' : ''}`}
+                placeholder="Enter your name"
+              />
+              {errors.name && <div className="edit-profile-error-text">{errors.name}</div>}
+            </div>
+
+            <div className="edit-profile-form-group">
+              <label htmlFor="email" className="edit-profile-label">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="edit-profile-input"
+                disabled
+              />
+              <small className="edit-profile-hint">Email cannot be changed</small>
+            </div>
+
+            <div className="edit-profile-form-group">
+              <label htmlFor="phone" className="edit-profile-label">Phone Number</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className={`edit-profile-input ${errors.phone ? 'error' : ''}`}
+                placeholder="Enter your phone number (optional)"
+              />
+              {errors.phone && <div className="edit-profile-error-text">{errors.phone}</div>}
+            </div>
+
+            <div className="edit-profile-actions">
+              <button 
+                type="submit" 
+                className="edit-profile-btn edit-profile-btn-submit"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <div className="edit-profile-spinner"></div>
+                    Updating...
+                  </>
+                ) : (
+                  'Update Profile'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="name" className="form-label fw-semibold">Name</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-            placeholder="Enter your name"
-          />
-          {errors.name && <div className="invalid-feedback">{errors.name}</div>}
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="email" className="form-label fw-semibold">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="form-control"
-            disabled
-            style={{ backgroundColor: '#f8f9fa', cursor: 'not-allowed' }}
-          />
-          <small className="text-muted">Email cannot be changed</small>
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="phone" className="form-label fw-semibold">Phone Number</label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-            placeholder="Enter your phone number (optional)"
-          />
-          {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
-        </div>
-
-        <div className="d-flex gap-2">
-          <button 
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => navigate(-1)}
-            disabled={submitting}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="btn btn-danger"
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Updating...
-              </>
-            ) : (
-              'Update Profile'
-            )}
-          </button>
-        </div>
-      </form>
     </div>
   );
 };
