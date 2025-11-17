@@ -172,7 +172,7 @@ const OwnerBookingManagement = () => {
                         <p><strong>Check-in:</strong> {new Date(booking.checkIn).toLocaleDateString()}</p>
                         <p><strong>Check-out:</strong> {new Date(booking.checkOut).toLocaleDateString()}</p>
                         <p><strong>Nights:</strong> {booking.nights}</p>
-                        <p><strong>Total:</strong> ${booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}</p>
+                        <p><strong>Total:</strong> PKR {booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}</p>
                         <p>
                           <strong>Status:</strong> <span className={`badge bg-${getStatusColor(booking.status)}`}>
                             {booking.status}

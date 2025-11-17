@@ -252,11 +252,11 @@ const HotelDashboard = () => {
                 <div className="stat-icon" style={{color: '#0ea5e9'}}>💰</div>
                 <div className="stat-info">
                   <h3 style={{whiteSpace: 'nowrap', fontSize: '1.5rem', color: '#0ea5e9', fontWeight: 'bold'}}>
-                    ${(stats?.earnings?.total || 0).toFixed(2)}
+                    PKR {(stats?.earnings?.total || 0).toFixed(2)}
                   </h3>
                   <p style={{fontWeight: '600'}}>Total Earnings</p>
                   <span className="stat-detail" style={{whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#0284c7'}}>
-                    ${(stats?.earnings?.monthly || 0).toFixed(2)} this month
+                    PKR {(stats?.earnings?.monthly || 0).toFixed(2)} this month
                   </span>
                 </div>
               </div>

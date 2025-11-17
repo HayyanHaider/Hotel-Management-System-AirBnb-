@@ -111,11 +111,13 @@ const BrowseHotels = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setFavorites(prev => prev.filter(id => id !== hotelIdStr));
+        toast.info('Removed from favorites');
       } else {
         await axios.post('http://localhost:5000/api/users/favorites', { hotelId }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setFavorites(prev => [...prev, hotelIdStr]);
+        toast.success('Added to favorites');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -175,7 +177,7 @@ const BrowseHotels = () => {
   };
 
   return (
-    <div className="bg-white" style={{ minHeight: '100vh' }}>
+    <div className="home-container" style={{ minHeight: '100vh' }}>
       {/* Modern Search Bar */}
       <div className="sticky-top bg-white border-bottom shadow-sm" style={{ top: '72px', zIndex: 100 }}>
         <div className="d-flex justify-content-center" style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}>
@@ -507,60 +509,53 @@ const BrowseHotels = () => {
                   >
                     <span className="text-muted">Preview unavailable</span>
                   </div>
-                  <button
-                    className="position-absolute top-0 end-0 m-3 bg-white rounded-circle border-0"
-                    style={{ 
-                      width: '36px', 
-                      height: '36px', 
-                      zIndex: 10,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      transition: 'transform 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0,
-                      margin: '12px'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isLoggedIn) {
-                        navigate('/login');
-                      } else {
-                        toggleFavorite(hotel.id || hotel._id, e);
-                      }
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    title={isLoggedIn ? (checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites') : 'Login to add favorites'}
-                  >
-                    <svg 
-                      width="20" 
-                      height="20" 
-                      viewBox="0 0 16 16" 
+                  {isLoggedIn && (
+                    <button
+                      className="position-absolute top-0 end-0 m-3 border-0"
                       style={{ 
-                        transition: 'all 0.2s ease',
-                        pointerEvents: 'none',
-                        flexShrink: 0
+                        zIndex: 10,
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4px',
+                        margin: '12px',
+                        background: 'transparent'
                       }}
+                      onClick={(e) => toggleFavorite(hotel.id || hotel._id, e)}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      title={checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites'}
                     >
-                      {isLoggedIn && checkIsFavorite(hotel.id || hotel._id) ? (
-                        <path 
-                          d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
-                          fill="#FF385C"
-                          stroke="#FF385C"
-                          strokeWidth="0.5"
-                        />
-                      ) : (
-                        <path 
-                          d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
-                          fill="white"
-                          stroke="#222"
-                          strokeWidth="1"
-                        />
-                      )}
-                    </svg>
-                  </button>
+                      <svg 
+                        width="20" 
+                        height="20" 
+                        viewBox="0 0 16 16" 
+                        style={{ 
+                          transition: 'all 0.2s ease',
+                          pointerEvents: 'none',
+                          flexShrink: 0
+                        }}
+                      >
+                        {checkIsFavorite(hotel.id || hotel._id) ? (
+                          <path 
+                            d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                            fill="#FF385C"
+                            stroke="#FF385C"
+                            strokeWidth="0.5"
+                          />
+                        ) : (
+                          <path 
+                            d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                            fill="white"
+                            stroke="#222"
+                            strokeWidth="1"
+                          />
+                        )}
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="mt-3">
                   <div className="d-flex justify-content-between align-items-start mb-1">
@@ -586,7 +581,7 @@ const BrowseHotels = () => {
                   </div>
                   <div className="mt-2">
                     <span className="fw-semibold" style={{ fontSize: '16px' }}>
-                      ${hotel.pricing?.basePrice || hotel.priceRange?.min || '0'}
+                      PKR {hotel.pricing?.basePrice || hotel.priceRange?.min || '0'}
                     </span>
                     <span className="text-muted" style={{ fontSize: '14px' }}> night</span>
                   </div>

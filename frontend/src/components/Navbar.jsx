@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -58,6 +59,7 @@ const Navbar = () => {
     sessionStorage.removeItem('user');
     setUser(null);
     window.dispatchEvent(new Event('userStatusChanged'));
+    toast.info('You have been logged out.');
     navigate('/');
   };
 
@@ -169,12 +171,7 @@ const Navbar = () => {
                   {/* Role-specific navigation links */}
                   {user.role === 'admin' && (
                     <>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/admin-dashboard">
-                          <span className="me-2">🏠</span> Dashboard
-                        </Link>
-                      </li>
-                      <li><hr className="dropdown-divider" /></li>
+                      
                     </>
                   )}
                   
@@ -201,32 +198,7 @@ const Navbar = () => {
                   
                   {(user.role === 'hotel' || user.role === 'hotel_owner') && (
                     <>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/hotel-dashboard">
-                          <span className="me-2">🏠</span> Dashboard
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/manage-hotel-profile">
-                          <span className="me-2">🏨</span> Manage Hotel
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/manage-rooms">
-                          <span className="me-2">🛏️</span> Manage Rooms
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/owner-bookings">
-                          <span className="me-2">📋</span> Reservations
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/earnings-dashboard">
-                          <span className="me-2">💰</span> Earnings
-                        </Link>
-                      </li>
-                      <li><hr className="dropdown-divider" /></li>
+                      
                     </>
                   )}
                   

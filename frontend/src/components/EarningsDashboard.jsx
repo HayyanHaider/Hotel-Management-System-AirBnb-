@@ -65,7 +65,7 @@ const EarningsDashboard = () => {
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
           >
-            <option value="day">Today</option>
+            <option value="today">Today</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
@@ -77,7 +77,7 @@ const EarningsDashboard = () => {
             <div className="card text-center">
               <div className="card-body">
                 <h6 className="text-muted">Total Earnings</h6>
-                <h3 className="text-success">${earnings.totalEarnings}</h3>
+                <h3 className="text-success">PKR {earnings.totalEarnings}</h3>
               </div>
             </div>
           </div>
@@ -85,7 +85,7 @@ const EarningsDashboard = () => {
             <div className="card text-center">
               <div className="card-body">
                 <h6 className="text-muted">Period Earnings</h6>
-                <h3 className="text-primary">${earnings.periodEarnings}</h3>
+                <h3 className="text-primary">PKR {earnings.periodEarnings}</h3>
               </div>
             </div>
           </div>
@@ -101,7 +101,7 @@ const EarningsDashboard = () => {
             <div className="card text-center">
               <div className="card-body">
                 <h6 className="text-muted">Avg Booking Value</h6>
-                <h3>${earnings.averageBookingValue}</h3>
+                <h3>PKR {earnings.averageBookingValue}</h3>
               </div>
             </div>
           </div>
@@ -127,9 +127,9 @@ const EarningsDashboard = () => {
                       <tr key={hotel.hotelId}>
                         <td>{hotel.hotelName}</td>
                         <td>{hotel.totalBookings}</td>
-                        <td>${hotel.totalEarnings}</td>
-                        <td>${hotel.periodEarnings}</td>
-                        <td>${hotel.averageBookingValue}</td>
+                        <td>PKR {hotel.totalEarnings}</td>
+                        <td>PKR {hotel.periodEarnings}</td>
+                        <td>PKR {hotel.averageBookingValue}</td>
                       </tr>
                     ))}
                   </tbody>

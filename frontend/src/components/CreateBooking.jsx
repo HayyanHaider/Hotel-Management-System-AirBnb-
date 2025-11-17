@@ -160,7 +160,7 @@ const CreateBooking = () => {
         const appliedCoupon = response.data.appliedCoupon;
         
         if (appliedCoupon) {
-          toast.success(`Great! Coupon "${appliedCoupon.code}" (${appliedCoupon.discountPercentage}% off) has been automatically applied. You saved $${appliedCoupon.discountAmount.toFixed(2)}!`);
+          toast.success(`Great! Coupon "${appliedCoupon.code}" (${appliedCoupon.discountPercentage}% off) has been automatically applied. You saved PKR ${appliedCoupon.discountAmount.toFixed(2)}!`);
         }
         
         console.log('Booking created successfully, navigating to payment:', bookingId);
@@ -308,36 +308,36 @@ const CreateBooking = () => {
                       return (
                         <>
                           <div className="d-flex justify-content-between mb-2">
-                            <span>${basePrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
-                            <span>${(basePrice * nights).toFixed(2)}</span>
+                            <span>PKR {basePrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
+                            <span>PKR {(basePrice * nights).toFixed(2)}</span>
                           </div>
                           {cleaningFee > 0 && (
                             <div className="d-flex justify-content-between mb-2">
                               <span>Cleaning fee</span>
-                              <span>${cleaningFee.toFixed(2)}</span>
+                              <span>PKR {cleaningFee.toFixed(2)}</span>
                             </div>
                           )}
                           {serviceFee > 0 && (
                             <div className="d-flex justify-content-between mb-2">
                               <span>Service fee</span>
-                              <span>${serviceFee.toFixed(2)}</span>
+                              <span>PKR {serviceFee.toFixed(2)}</span>
                             </div>
                           )}
                           <hr />
                           <div className="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>${subtotal.toFixed(2)}</span>
+                            <span>PKR {subtotal.toFixed(2)}</span>
                           </div>
                           {appliedCoupon && discount > 0 && (
                             <div className="d-flex justify-content-between mb-2 text-success">
                               <span>Discount ({appliedCoupon.discountPercentage}%)</span>
-                              <span>-${discount.toFixed(2)}</span>
+                              <span>-PKR {discount.toFixed(2)}</span>
                             </div>
                           )}
                           <hr />
                           <div className="d-flex justify-content-between fw-bold">
                             <span>Total</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>PKR {total.toFixed(2)}</span>
                           </div>
                         </>
                       );

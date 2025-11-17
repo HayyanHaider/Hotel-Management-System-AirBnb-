@@ -537,7 +537,7 @@ const AdminDashboard = () => {
                             )}
                             {hotel.isApproved && !hotel.isSuspended && (
                               <button 
-                                className="btn-sm btn-warning"
+                                className="btn-sm btn-danger"
                                 onClick={() => openModal('suspendHotel', hotel)}
                               >
                                 Suspend
@@ -634,7 +634,7 @@ const AdminDashboard = () => {
                           <div className="action-btns">
                             {!user.isSuspended ? (
                               <button 
-                                className="btn-sm btn-warning"
+                                className="btn-sm btn-danger"
                                 onClick={() => openModal('suspendUser', user)}
                               >
                                 Suspend
@@ -702,7 +702,7 @@ const AdminDashboard = () => {
                           <div className="action-btns">
                             {!hotel.isSuspended ? (
                               <button 
-                                className="btn-sm btn-warning"
+                                className="btn-sm btn-danger"
                                 onClick={() => openModal('suspendHotel', hotel)}
                               >
                                 Suspend

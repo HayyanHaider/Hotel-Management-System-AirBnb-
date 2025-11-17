@@ -123,29 +123,29 @@ const Payment = () => {
                       {booking.priceSnapshot.basePricePerDay && (
                         <div className="d-flex justify-content-between mb-2">
                           <span>
-                            ${(booking.priceSnapshot.basePricePerDay || 0).toFixed(2)} × {booking.priceSnapshot.nights || booking.nights} {booking.priceSnapshot.nights === 1 || booking.nights === 1 ? 'night' : 'nights'}
+                            PKR {(booking.priceSnapshot.basePricePerDay || 0).toFixed(2)} × {booking.priceSnapshot.nights || booking.nights} {booking.priceSnapshot.nights === 1 || booking.nights === 1 ? 'night' : 'nights'}
                           </span>
-                          <span>${(booking.priceSnapshot.basePriceTotal || (booking.priceSnapshot.basePricePerDay || 0) * (booking.priceSnapshot.nights || booking.nights || 1)).toFixed(2)}</span>
+                          <span>PKR {(booking.priceSnapshot.basePriceTotal || (booking.priceSnapshot.basePricePerDay || 0) * (booking.priceSnapshot.nights || booking.nights || 1)).toFixed(2)}</span>
                         </div>
                       )}
                       
                       {booking.priceSnapshot.cleaningFee > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span>Cleaning fee</span>
-                          <span>${(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}</span>
+                          <span>PKR {(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}</span>
                         </div>
                       )}
                       
                       {booking.priceSnapshot.serviceFee > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span>Service fee</span>
-                          <span>${(booking.priceSnapshot.serviceFee || 0).toFixed(2)}</span>
+                          <span>PKR {(booking.priceSnapshot.serviceFee || 0).toFixed(2)}</span>
                         </div>
                       )}
                       
                       <div className="d-flex justify-content-between mb-2 mt-3">
                         <strong>Subtotal:</strong>
-                        <strong>${(booking.priceSnapshot.subtotal || 0).toFixed(2)}</strong>
+                        <strong>PKR {(booking.priceSnapshot.subtotal || 0).toFixed(2)}</strong>
                       </div>
                       
                       {booking.priceSnapshot.couponCode && booking.priceSnapshot.couponDiscountPercentage && (
@@ -156,7 +156,7 @@ const Payment = () => {
                             </strong>
                           </span>
                           <span className="text-success">
-                            -${(booking.priceSnapshot.discounts || 0).toFixed(2)}
+                            -PKR {(booking.priceSnapshot.discounts || 0).toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -164,14 +164,14 @@ const Payment = () => {
                       <hr />
                       <div className="d-flex justify-content-between">
                         <h5 className="mb-0">Total:</h5>
-                        <h4 className="mb-0">${(booking.priceSnapshot.totalPrice || 0).toFixed(2)}</h4>
+                        <h4 className="mb-0">PKR {(booking.priceSnapshot.totalPrice || 0).toFixed(2)}</h4>
                       </div>
                     </div>
                   </>
                 )}
                 
                 {!booking.priceSnapshot && (
-                  <h4>Total: ${booking.totalPrice || 0}</h4>
+                  <h4>Total: PKR {booking.totalPrice || 0}</h4>
                 )}
               </div>
             </div>

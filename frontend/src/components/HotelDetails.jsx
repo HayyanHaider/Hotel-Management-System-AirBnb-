@@ -137,11 +137,13 @@ const HotelDetails = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsFavorite(false);
+        toast.info('Removed from favorites');
       } else {
         await axios.post('http://localhost:5000/api/users/favorites', { hotelId }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsFavorite(true);
+        toast.success('Added to favorites');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -268,13 +270,15 @@ const HotelDetails = () => {
               <span className="location-text">{hotel.location?.city}, {hotel.location?.country}</span>
             </div>
           </div>
-          <button
-            onClick={toggleFavorite}
-            className={`header-heart-btn ${isFavorite ? 'active' : ''}`}
-            title={isLoggedIn ? (isFavorite ? 'Remove from favorites' : 'Add to favorites') : 'Login to add favorites'}
-          >
-            {isFavorite ? '♥' : '♡'}
-          </button>
+          {isLoggedIn && (
+            <button
+              onClick={toggleFavorite}
+              className={`header-heart-btn ${isFavorite ? 'active' : ''}`}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorite ? '♥' : '♡'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -315,11 +319,6 @@ const HotelDetails = () => {
                   </>
                 )}
 
-                {images.length > 1 && (
-                  <div className="carousel-counter">
-                    {currentImageIndex + 1} / {images.length}
-                  </div>
-                )}
               </div>
 
               {images.length > 1 && (
@@ -352,26 +351,6 @@ const HotelDetails = () => {
             <p className="section-subtitle">
               {hotel.location?.address}, {hotel.location?.city}, {hotel.location?.country}
             </p>
-            <div className="property-stats">
-              <div className="stat-item">
-                <span className="stat-icon">👥</span>
-                <span>{hotel.capacity?.guests || 1} {hotel.capacity?.guests === 1 ? 'guest' : 'guests'}</span>
-              </div>
-              {hotel.capacity?.bedrooms && (
-                <div className="stat-item">
-                  <span>·</span>
-                  <span className="stat-icon">🛏️</span>
-                  <span>{hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}</span>
-                </div>
-              )}
-              {hotel.capacity?.bathrooms && (
-                <div className="stat-item">
-                  <span>·</span>
-                  <span className="stat-icon">🚿</span>
-                  <span>{hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bath' : 'baths'}</span>
-                </div>
-              )}
-            </div>
             <p className="description-text">{hotel.description}</p>
           </section>
 
@@ -453,7 +432,7 @@ const HotelDetails = () => {
         <div className="booking-sidebar">
           <div className="booking-card sticky">
             <div className="price-header">
-              <div className="price-amount">${hotel.pricing?.basePrice || 0}</div>
+              <div className="price-amount">PKR {hotel.pricing?.basePrice || 0}</div>
               <div className="price-period">per night</div>
             </div>
 
@@ -497,24 +476,24 @@ const HotelDetails = () => {
             {checkIn && checkOut && (
               <div className="price-breakdown">
                 <div className="breakdown-row">
-                  <span>${hotel.pricing?.basePrice || 0} x {calculateNights()} nights</span>
-                  <span>${((hotel.pricing?.basePrice || 0) * calculateNights()).toFixed(2)}</span>
+                  <span>PKR {hotel.pricing?.basePrice || 0} × {calculateNights()} nights</span>
+                  <span>PKR {((hotel.pricing?.basePrice || 0) * calculateNights()).toFixed(2)}</span>
                 </div>
                 {(hotel.pricing?.cleaningFee || 0) > 0 && (
                   <div className="breakdown-row">
                     <span>Cleaning fee</span>
-                    <span>${hotel.pricing.cleaningFee}</span>
+                    <span>PKR {hotel.pricing.cleaningFee}</span>
                   </div>
                 )}
                 {(hotel.pricing?.serviceFee || 0) > 0 && (
                   <div className="breakdown-row">
                     <span>Service fee</span>
-                    <span>${hotel.pricing.serviceFee}</span>
+                    <span>PKR {hotel.pricing.serviceFee}</span>
                   </div>
                 )}
                 <div className="breakdown-total">
                   <span>Total</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>PKR {calculateTotal().toFixed(2)}</span>
                 </div>
               </div>
             )}

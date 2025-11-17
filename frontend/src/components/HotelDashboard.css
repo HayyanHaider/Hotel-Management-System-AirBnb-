@@ -46,9 +46,9 @@
 
 .owner-dashboard {
   display: flex;
-  min-height: 91vh;
-  background-color: var(--color-gray-50);
+  min-height: 100vh;
   font-family: var(--font-family-main);
+  background-color: var(--color-gray-50);
 }
 
 .owner-loading {
