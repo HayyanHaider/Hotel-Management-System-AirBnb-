@@ -107,7 +107,13 @@ const Navbar = () => {
           <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>
           </svg>
-          <span className="ms-2 fw-bold text-dark fs-4">airbnb</span>
+          <span className="ms-2" style={{ 
+            color: '#FF385C', 
+            fontSize: '24px', 
+            fontWeight: '600',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            letterSpacing: '-0.5px'
+          }}>airbnb</span>
         </Link>
 
         {/* Desktop Navigation */}
