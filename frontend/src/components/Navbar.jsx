@@ -109,10 +109,10 @@ const Navbar = () => {
           </svg>
           <span className="ms-2" style={{ 
             color: '#FF385C', 
-            fontSize: '24px', 
-            fontWeight: '600',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            letterSpacing: '-0.5px'
+            fontSize: '26px', 
+            fontWeight: '700',
+            fontFamily: 'Circular, -apple-system, system-ui, Roboto, "Helvetica Neue", sans-serif',
+            letterSpacing: '-0.02em'
           }}>airbnb</span>
         </Link>
 

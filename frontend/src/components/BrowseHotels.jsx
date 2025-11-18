@@ -302,7 +302,7 @@ const BrowseHotels = () => {
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
               >
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
                     Who
                   </div>
@@ -311,7 +311,8 @@ const BrowseHotels = () => {
                     fontSize: '14px',
                     color: filters.guests > 1 ? '#000' : '#717171',
                     padding: 0,
-                    margin: 0
+                    margin: 0,
+                    whiteSpace: 'nowrap'
                   }}
                   >
                     {filters.guests === 1 ? 'Add guests' : getGuestsDisplay()}
