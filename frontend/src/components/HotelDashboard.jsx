@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import ManageHotelProfile from './ManageHotelProfile';
 import ManageCoupons from './ManageCoupons';
 import OwnerBookingManagement from './OwnerBookingManagement';
@@ -126,6 +127,7 @@ const HotelDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      toast.error('Failed to load dashboard statistics');
     } finally {
       setLoading(false);
     }

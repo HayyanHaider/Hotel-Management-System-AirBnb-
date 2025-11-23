@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const EarningsDashboard = () => {
@@ -23,9 +24,12 @@ const EarningsDashboard = () => {
 
       if (response.data.success) {
         setEarnings(response.data.earnings);
+      } else {
+        toast.error('Failed to load earnings data');
       }
     } catch (error) {
       console.error('Error fetching earnings:', error);
+      toast.error(error.response?.data?.message || 'Error loading earnings data');
     } finally {
       setLoading(false);
     }

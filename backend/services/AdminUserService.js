@@ -4,6 +4,7 @@ const BookingModel = require('../models/bookingModel');
 const ReviewModel = require('../models/reviewsModel');
 const BaseService = require('./BaseService');
 const AdminActivityLogger = require('./AdminActivityLogger');
+const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 /**
  * AdminUserService - Handles all user management operations for admins
@@ -72,6 +73,27 @@ class AdminUserService extends BaseService {
       `Suspended user: ${user.name} (${user.email})`,
       { userName: user.name, userEmail: user.email, reason }
     );
+
+    // Send email notification to user
+    try {
+      if (user.email) {
+        const emailTemplate = emailTemplates.userSuspensionEmail(user, reason);
+        
+        await sendEmail(
+          user.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text
+        );
+        
+        console.log(`✅ User suspension email sent to: ${user.email}`);
+      } else {
+        console.warn(`⚠️  Could not send suspension email - user email not found for user: ${user.name}`);
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending user suspension email:', emailError);
+      // Don't fail the suspension if email fails
+    }
 
     return user;
   }

@@ -30,14 +30,14 @@ const ReplyToReviews = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const userId = JSON.parse(sessionStorage.getItem('user'))?.userId;
 
-      const hotelsResponse = await axios.get('http://localhost:5000/api/hotels', {
+      // Use the owner-specific endpoint to get only the logged-in owner's hotels
+      const hotelsResponse = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (hotelsResponse.data.success) {
-        const userHotels = hotelsResponse.data.hotels.filter(h => String(h.ownerId) === String(userId));
+        const userHotels = (hotelsResponse.data.hotels || []).filter(hotel => !hotel.isSuspended);
         setHotels(userHotels);
 
         if (userHotels.length > 0) {
@@ -57,7 +57,11 @@ const ReplyToReviews = () => {
     if (!hotelId) return;
     try {
       setReviewsLoading(true);
-      const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`);
+      const token = sessionStorage.getItem('token');
+      // Fetch reviews for the selected hotel (which should only be from owner's hotels)
+      const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (reviewsResponse.data.success) {
         const pendingReviews = (reviewsResponse.data.reviews || []).filter((review) => {
           const replyText = review.reply?.text || review.replyText;

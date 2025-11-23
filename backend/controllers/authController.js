@@ -5,6 +5,7 @@ const User = require('../classes/User');
 const Customer = require('../classes/Customer');
 const HotelOwner = require('../classes/HotelOwner'); // Internal class name (kept to avoid conflict with Hotel class)
 const Admin = require('../classes/Admin');
+const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 // Generate JWT Token
 const generateToken = (userId, role) => {
@@ -160,6 +161,26 @@ const signup = async (req, res) => {
     // Generate token using OOP method
     userInstance.id = newUser._id;
     const token = userInstance.generateToken();
+
+    // Send welcome email to user (async, don't block response)
+    try {
+      const emailTemplate = emailTemplates.accountCreatedEmail(
+        { name: userInstance.name, email: userInstance.email },
+        userInstance.role
+      );
+      
+      await sendEmail(
+        userInstance.email,
+        emailTemplate.subject,
+        emailTemplate.html,
+        emailTemplate.text
+      );
+      
+      console.log(`✅ Account creation email sent to: ${userInstance.email}`);
+    } catch (emailError) {
+      console.error('❌ Error sending account creation email:', emailError);
+      // Don't fail the signup if email fails
+    }
 
     res.status(201).json({
       success: true,

@@ -56,13 +56,21 @@ const createHotel = async (req, res) => {
       amenities: hotelInstance.amenities,
       images: hotelInstance.images,
       contactInfo: hotelInstance.contactInfo || {},
-      pricing: {
-        basePrice: 0, // Default value, can be set later
+      pricing: pricing && typeof pricing === 'object' ? {
+        basePrice: pricing.basePrice || 0,
+        cleaningFee: pricing.cleaningFee || 0,
+        serviceFee: pricing.serviceFee || 0
+      } : {
+        basePrice: 0,
         cleaningFee: 0,
         serviceFee: 0
       },
-      capacity: {
-        guests: 1, // Default value, can be set later
+      capacity: capacity && typeof capacity === 'object' ? {
+        guests: capacity.guests || 1,
+        bedrooms: capacity.bedrooms || 1,
+        bathrooms: capacity.bathrooms || 1
+      } : {
+        guests: 1,
         bedrooms: 1,
         bathrooms: 1
       },

@@ -29,9 +29,12 @@ const Favorites = () => {
 
       if (response.data.success) {
         setFavorites(response.data.favorites || []);
+      } else {
+        toast.error('Failed to load favorites');
       }
     } catch (error) {
       console.error('Error fetching favorites:', error);
+      toast.error(error.response?.data?.message || 'Error loading favorites');
     } finally {
       setLoading(false);
     }
@@ -40,12 +43,17 @@ const Favorites = () => {
   const removeFavorite = async (hotelId) => {
     try {
       const token = sessionStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
+      const response = await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setFavorites(favorites.filter(f => String(f._id || f.id) !== String(hotelId)));
+      
+      if (response.data.success) {
+        setFavorites(favorites.filter(f => String(f._id || f.id) !== String(hotelId)));
+        toast.success('Removed from favorites');
+      }
     } catch (error) {
       console.error('Error removing favorite:', error);
+      toast.error(error.response?.data?.message || 'Error removing favorite');
     }
   };
 

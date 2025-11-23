@@ -8,8 +8,8 @@ const getEarningsDashboard = async (req, res) => {
     const ownerId = req.user.userId;
     const { period = 'month' } = req.query; // 'day', 'week', 'month', 'year'
 
-    // Get all hotels owned by this owner
-    const hotels = await HotelModel.find({ ownerId });
+    // Get all hotels owned by this owner (excluding suspended hotels)
+    const hotels = await HotelModel.find({ ownerId, isSuspended: { $ne: true } });
     const hotelIds = hotels.map(h => h._id);
 
     if (hotelIds.length === 0) {
@@ -111,25 +111,37 @@ const getEarningsDashboard = async (req, res) => {
         hotelBookingIds.some(bId => String(bId) === String(p.bookingId))
       );
 
-      const hotelGrossEarnings = hotelPayments.reduce((sum, p) => sum + p.amount, 0);
-      const hotelNetEarnings = hotelGrossEarnings * (1 - hotel.commissionRate);
+      // Calculate net earnings by applying commission to each payment individually
+      const hotelNetEarnings = hotelPayments.reduce((sum, p) => {
+        const commissionRate = hotel.commissionRate || 0.10;
+        const grossAmount = p.amount || 0;
+        const commission = grossAmount * commissionRate;
+        return sum + (grossAmount - commission);
+      }, 0);
+
       const hotelPeriodPayments = hotelPayments.filter(p => {
         const paymentDate = new Date(p.processedAt || p.createdAt);
         return paymentDate >= startDate;
       });
+      
       const hotelPeriodEarnings = hotelPeriodPayments.reduce((sum, p) => {
-        return sum + (p.amount * (1 - hotel.commissionRate));
+        const commissionRate = hotel.commissionRate || 0.10;
+        const grossAmount = p.amount || 0;
+        const commission = grossAmount * commissionRate;
+        return sum + (grossAmount - commission);
       }, 0);
+
+      console.log(`Hotel ${hotel.name}: ${hotelPayments.length} payments, Net Earnings: ${hotelNetEarnings.toFixed(2)}`);
 
       return {
         hotelId: hotel._id,
         hotelName: hotel.name,
         totalBookings: hotelBookings.length,
-        totalEarnings: hotelNetEarnings,
-        periodEarnings: hotelPeriodEarnings,
+        totalEarnings: hotelNetEarnings.toFixed(2),
+        periodEarnings: hotelPeriodEarnings.toFixed(2),
         averageBookingValue: hotelBookings.length > 0 
-          ? hotelNetEarnings / hotelBookings.length 
-          : 0
+          ? (hotelNetEarnings / hotelBookings.length).toFixed(2)
+          : '0.00'
       };
     });
 

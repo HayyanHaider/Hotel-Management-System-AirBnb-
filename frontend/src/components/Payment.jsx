@@ -112,63 +112,92 @@ const Payment = () => {
                 <h5>Booking Summary</h5>
                 <p>Check-in: {new Date(booking.checkIn).toLocaleDateString()}</p>
                 <p>Check-out: {new Date(booking.checkOut).toLocaleDateString()}</p>
-                <p>Nights: {booking.nights}</p>
+                <p>Nights: {(() => {
+                  const checkInDate = new Date(booking.checkIn);
+                  const checkOutDate = new Date(booking.checkOut);
+                  checkInDate.setHours(0, 0, 0, 0);
+                  checkOutDate.setHours(0, 0, 0, 0);
+                  const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
+                  return Math.max(1, Math.floor(daysDiff));
+                })()}</p>
                 
-                {booking.priceSnapshot && (
-                  <>
-                    <hr />
-                    <div className="mb-3">
-                      <h6 className="mb-2">Price Breakdown</h6>
-                      
-                      {booking.priceSnapshot.basePricePerDay && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>
-                            PKR {(booking.priceSnapshot.basePricePerDay || 0).toFixed(2)} × {booking.priceSnapshot.nights || booking.nights} {booking.priceSnapshot.nights === 1 || booking.nights === 1 ? 'night' : 'nights'}
-                          </span>
-                          <span>PKR {(booking.priceSnapshot.basePriceTotal || (booking.priceSnapshot.basePricePerDay || 0) * (booking.priceSnapshot.nights || booking.nights || 1)).toFixed(2)}</span>
-                        </div>
-                      )}
-                      
-                      {booking.priceSnapshot.cleaningFee > 0 && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Cleaning fee</span>
-                          <span>PKR {(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}</span>
-                        </div>
-                      )}
-                      
-                      {booking.priceSnapshot.serviceFee > 0 && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Service fee</span>
-                          <span>PKR {(booking.priceSnapshot.serviceFee || 0).toFixed(2)}</span>
-                        </div>
-                      )}
-                      
-                      <div className="d-flex justify-content-between mb-2 mt-3">
-                        <strong>Subtotal:</strong>
-                        <strong>PKR {(booking.priceSnapshot.subtotal || 0).toFixed(2)}</strong>
-                      </div>
-                      
-                      {booking.priceSnapshot.couponCode && booking.priceSnapshot.couponDiscountPercentage && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>
-                            <strong className="text-success">
-                              Coupon Applied: {booking.priceSnapshot.couponCode} ({booking.priceSnapshot.couponDiscountPercentage}% off)
-                            </strong>
-                          </span>
-                          <span className="text-success">
-                            -PKR {(booking.priceSnapshot.discounts || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      
+                {booking.priceSnapshot && (() => {
+                  // Recalculate nights correctly
+                  const checkInDate = new Date(booking.checkIn);
+                  const checkOutDate = new Date(booking.checkOut);
+                  checkInDate.setHours(0, 0, 0, 0);
+                  checkOutDate.setHours(0, 0, 0, 0);
+                  const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
+                  const nights = Math.max(1, Math.floor(daysDiff));
+                  
+                  // Recalculate prices based on correct nights
+                  const basePricePerDay = booking.priceSnapshot.basePricePerDay || 0;
+                  const basePriceTotal = basePricePerDay * nights;
+                  const cleaningFee = booking.priceSnapshot.cleaningFee || 0;
+                  const serviceFee = booking.priceSnapshot.serviceFee || 0;
+                  const subtotal = basePriceTotal + cleaningFee + serviceFee;
+                  
+                  // Calculate discount based on correct subtotal
+                  const couponDiscountPercentage = booking.priceSnapshot.couponDiscountPercentage || 0;
+                  const discounts = couponDiscountPercentage > 0 ? (subtotal * couponDiscountPercentage / 100) : 0;
+                  const total = subtotal - discounts;
+                  
+                  return (
+                    <>
                       <hr />
-                      <div className="d-flex justify-content-between">
-                        <h5 className="mb-0">Total:</h5>
-                        <h4 className="mb-0">PKR {(booking.priceSnapshot.totalPrice || 0).toFixed(2)}</h4>
+                      <div className="mb-3">
+                        <h6 className="mb-2">Price Breakdown</h6>
+                        
+                        {basePricePerDay > 0 && (
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>
+                              PKR {basePricePerDay.toFixed(2)} × {nights} {nights === 1 ? 'night' : 'nights'}
+                            </span>
+                            <span>PKR {basePriceTotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                        
+                        {cleaningFee > 0 && (
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>Cleaning fee</span>
+                            <span>PKR {cleaningFee.toFixed(2)}</span>
+                          </div>
+                        )}
+                        
+                        {serviceFee > 0 && (
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>Service fee</span>
+                            <span>PKR {serviceFee.toFixed(2)}</span>
+                          </div>
+                        )}
+                        
+                        <div className="d-flex justify-content-between mb-2 mt-3">
+                          <strong>Subtotal:</strong>
+                          <strong>PKR {subtotal.toFixed(2)}</strong>
+                        </div>
+                        
+                        {booking.priceSnapshot.couponCode && couponDiscountPercentage > 0 && (
+                          <div className="d-flex justify-content-between mb-2">
+                            <span>
+                              <strong className="text-success">
+                                Coupon Applied: {booking.priceSnapshot.couponCode} ({couponDiscountPercentage}% off)
+                              </strong>
+                            </span>
+                            <span className="text-success">
+                              -PKR {discounts.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <hr />
+                        <div className="d-flex justify-content-between">
+                          <h5 className="mb-0">Total:</h5>
+                          <h4 className="mb-0">PKR {total.toFixed(2)}</h4>
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  );
+                })()}
                 
                 {!booking.priceSnapshot && (
                   <h4>Total: PKR {booking.totalPrice || 0}</h4>

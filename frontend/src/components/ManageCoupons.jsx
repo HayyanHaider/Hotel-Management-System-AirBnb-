@@ -42,7 +42,7 @@ const ManageCoupons = () => {
       });
 
       if (response.data.success) {
-        const userHotels = response.data.hotels || [];
+        const userHotels = (response.data.hotels || []).filter(hotel => !hotel.isSuspended);
         setHotels(userHotels);
         if (userHotels.length > 0) {
           const firstHotelId = userHotels[0]._id || userHotels[0].id;

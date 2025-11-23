@@ -29,6 +29,14 @@ const createCoupon = async (req, res) => {
       });
     }
 
+    // Check if hotel is suspended
+    if (hotel.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot create coupons for a suspended hotel'
+      });
+    }
+
     // Check if coupon code already exists
     const existingCoupon = await CouponModel.findOne({ code: code.toUpperCase() });
     if (existingCoupon) {
@@ -118,6 +126,16 @@ const getHotelCoupons = async (req, res) => {
       });
     }
 
+    // Check if hotel is suspended
+    if (hotel.isSuspended) {
+      return res.json({
+        success: true,
+        count: 0,
+        coupons: [],
+        message: 'Hotel is suspended. Coupons are not available.'
+      });
+    }
+
     const dbCoupons = await CouponModel.find({ hotelId }).sort({ createdAt: -1 });
 
     const couponsData = dbCoupons.map(dbCoupon => {
@@ -176,6 +194,14 @@ const getCouponDetails = async (req, res) => {
       });
     }
 
+    // Check if hotel is suspended
+    if (hotel.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot view coupons for a suspended hotel'
+      });
+    }
+
     const couponData = {
       id: dbCoupon._id,
       hotelId: dbCoupon.hotelId,
@@ -227,6 +253,14 @@ const updateCoupon = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to update this coupon'
+      });
+    }
+
+    // Check if hotel is suspended
+    if (hotel.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot update coupons for a suspended hotel'
       });
     }
 
@@ -302,6 +336,14 @@ const deleteCoupon = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this coupon'
+      });
+    }
+
+    // Check if hotel is suspended
+    if (hotel.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete coupons for a suspended hotel'
       });
     }
 

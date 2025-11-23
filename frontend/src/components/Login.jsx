@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -64,6 +65,8 @@ const Login = () => {
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
         window.dispatchEvent(new Event('userStatusChanged'));
         
+        toast.success('Login successful! Welcome back!');
+        
         // Redirect based on role
         if (response.data.user.role === 'customer') {
           navigate('/');
@@ -76,8 +79,10 @@ const Login = () => {
         }
       }
     } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      toast.error(errorMessage);
       setErrors({
-        submit: error.response?.data?.message || 'Login failed. Please try again.'
+        submit: errorMessage
       });
     } finally {
       setLoading(false);

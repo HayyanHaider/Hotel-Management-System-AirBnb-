@@ -1,6 +1,10 @@
 const HotelModel = require('../models/hotelModel');
+const UserModel = require('../models/userModel');
+const BookingModel = require('../models/bookingModel');
+const CustomerModel = require('../models/customerModel');
 const BaseService = require('./BaseService');
 const AdminActivityLogger = require('./AdminActivityLogger');
+const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 /**
  * AdminHotelService - Handles all hotel management operations for admins
@@ -51,7 +55,7 @@ class AdminHotelService extends BaseService {
         rejectionReason: ''
       },
       { new: true }
-    );
+    ).populate('ownerId', 'name email');
 
     if (!hotel) {
       throw new Error('Hotel not found');
@@ -65,6 +69,28 @@ class AdminHotelService extends BaseService {
       `Approved hotel: ${hotel.name}`,
       { hotelName: hotel.name }
     );
+
+    // Send email notification to hotel owner
+    try {
+      if (hotel.ownerId && hotel.ownerId.email) {
+        const owner = hotel.ownerId;
+        const emailTemplate = emailTemplates.hotelApprovalEmail(hotel, owner);
+        
+        await sendEmail(
+          owner.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text
+        );
+        
+        console.log(`✅ Hotel approval email sent to owner: ${owner.email}`);
+      } else {
+        console.warn(`⚠️  Could not send approval email - hotel owner email not found for hotel: ${hotel.name}`);
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending hotel approval email:', emailError);
+      // Don't fail the approval if email fails
+    }
 
     return hotel;
   }
@@ -118,7 +144,7 @@ class AdminHotelService extends BaseService {
         suspensionReason: reason
       },
       { new: true }
-    );
+    ).populate('ownerId', 'name email');
 
     if (!hotel) {
       throw new Error('Hotel not found');
@@ -132,6 +158,80 @@ class AdminHotelService extends BaseService {
       `Suspended hotel: ${hotel.name}`,
       { hotelName: hotel.name, reason }
     );
+
+    // Send email notification to hotel owner
+    try {
+      if (hotel.ownerId && hotel.ownerId.email) {
+        const owner = hotel.ownerId;
+        const emailTemplate = emailTemplates.hotelSuspensionEmail(hotel, owner, reason);
+        
+        await sendEmail(
+          owner.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text
+        );
+        
+        console.log(`✅ Hotel suspension email sent to owner: ${owner.email}`);
+      } else {
+        console.warn(`⚠️  Could not send suspension email - hotel owner email not found for hotel: ${hotel.name}`);
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending hotel suspension email:', emailError);
+      // Don't fail the suspension if email fails
+    }
+
+    // Cancel all pending and confirmed bookings for this hotel
+    try {
+      const bookingsToCancel = await BookingModel.find({
+        hotelId: hotelId,
+        status: { $in: ['pending', 'confirmed'] }
+      }).populate('userId', 'name email').populate('hotelId', 'name location');
+
+      console.log(`Found ${bookingsToCancel.length} bookings to cancel for suspended hotel: ${hotel.name}`);
+
+      for (const booking of bookingsToCancel) {
+        try {
+          // Update booking status to cancelled
+          await BookingModel.findByIdAndUpdate(booking._id, {
+            status: 'cancelled',
+            cancelledAt: new Date()
+          });
+
+          // Send cancellation email to customer
+          if (booking.userId && booking.userId.email) {
+            const customer = booking.userId;
+            const refundAmount = booking.status === 'confirmed' 
+              ? (booking.priceSnapshot?.totalPrice || booking.totalPrice || 0)
+              : null;
+
+            const emailTemplate = emailTemplates.cancellationEmail(
+              booking,
+              booking.hotelId || hotel,
+              { name: customer.name, email: customer.email },
+              refundAmount
+            );
+
+            await sendEmail(
+              customer.email,
+              emailTemplate.subject,
+              emailTemplate.html,
+              emailTemplate.text
+            );
+
+            console.log(`✅ Cancellation email sent to customer: ${customer.email} for booking ${booking._id}`);
+          }
+        } catch (bookingError) {
+          console.error(`❌ Error cancelling booking ${booking._id}:`, bookingError);
+          // Continue with other bookings even if one fails
+        }
+      }
+
+      console.log(`✅ Cancelled ${bookingsToCancel.length} bookings for suspended hotel: ${hotel.name}`);
+    } catch (bookingsError) {
+      console.error('❌ Error cancelling bookings for suspended hotel:', bookingsError);
+      // Don't fail the suspension if booking cancellation fails
+    }
 
     return hotel;
   }

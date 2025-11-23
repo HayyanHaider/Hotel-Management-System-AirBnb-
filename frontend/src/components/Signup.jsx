@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -35,25 +36,50 @@ const Signup = () => {
 
   const validateForm = () => {
     const newErrors = {};
+    let hasError = false;
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
+      if (!hasError) {
+        toast.error('Name is required');
+        hasError = true;
+      }
     }
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
+      if (!hasError) {
+        toast.error('Email is required');
+        hasError = true;
+      }
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
+      if (!hasError) {
+        toast.error('Please enter a valid email address');
+        hasError = true;
+      }
     }
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
+      if (!hasError) {
+        toast.error('Password is required');
+        hasError = true;
+      }
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+      if (!hasError) {
+        toast.error('Password must be at least 6 characters');
+        hasError = true;
+      }
     }
 
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+      if (!hasError) {
+        toast.error('Passwords do not match');
+        hasError = true;
+      }
     }
 
     setErrors(newErrors);
@@ -72,6 +98,13 @@ const Signup = () => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  const handlePasswordBlur = (e) => {
+    const { value } = e.target;
+    if (value.length > 0 && value.length < 6) {
+      toast.error('Password must be at least 6 characters', { autoClose: 3000 });
     }
   };
 
@@ -118,6 +151,8 @@ const Signup = () => {
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
         window.dispatchEvent(new Event('userStatusChanged'));
         
+        toast.success('Account created successfully! Welcome to Airbnb!');
+        
         // Redirect based on role
         if (response.data.user.role === 'customer') {
           navigate('/');
@@ -144,6 +179,7 @@ const Signup = () => {
         errorMessage = error.message;
       }
       
+      toast.error(errorMessage);
       console.log('Setting error message:', errorMessage);
       setErrors({
         submit: errorMessage
@@ -249,6 +285,7 @@ const Signup = () => {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
+                        onBlur={handlePasswordBlur}
                         className={`form-control ${errors.password ? 'is-invalid' : ''} pe-5`}
                         placeholder="Create a password"
                       />

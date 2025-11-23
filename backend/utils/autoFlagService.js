@@ -39,11 +39,20 @@ const autoFlagLowRatedHotels = async () => {
         // Log admin activity
         const admins = await require('../models/userModel').find({ role: 'admin' });
         if (admins.length > 0) {
-          AdminActivityLogger.logActivity(admins[0]._id, 'auto_flag_hotel', {
-            hotelId: hotel._id,
-            hotelName: hotel.name,
-            rating: hotel.ratingAvg || hotel.rating || 0,
-            reason: 'Low rating'
+          AdminActivityLogger.log(
+            admins[0]._id,
+            'auto_flag_hotel',
+            'hotel',
+            hotel._id.toString(),
+            `Auto-flagged hotel "${hotel.name}" for low rating (${(hotel.ratingAvg || hotel.rating || 0).toFixed(1)} stars)`,
+            {
+              hotelId: hotel._id,
+              hotelName: hotel.name,
+              rating: hotel.ratingAvg || hotel.rating || 0,
+              reason: 'Low rating'
+            }
+          ).catch(err => {
+            console.error('Error logging admin activity:', err);
           });
         }
 

@@ -74,12 +74,27 @@ const createReview = async (req, res) => {
 const listHotelReviews = async (req, res) => {
   try {
     const { hotelId } = req.params;
+    
+    // Check if hotel is suspended
+    const hotel = await HotelModel.findById(hotelId);
+    if (hotel && hotel.isSuspended) {
+      return res.json({ success: true, count: 0, reviews: [] });
+    }
+
     const reviews = await ReviewModel.find({ hotelId: hotelId })
+      .populate({
+        path: 'hotelId',
+        select: 'isSuspended',
+        match: { isSuspended: { $ne: true } } // Filter out suspended hotels
+      })
       .populate('userId', 'name')
       .sort({ createdAt: -1 })
       .lean();
 
-    const normalizedReviews = reviews.map((review) => {
+    // Filter out reviews where hotel is null (suspended hotels)
+    const filteredReviews = reviews.filter(review => review.hotelId !== null);
+
+    const normalizedReviews = filteredReviews.map((review) => {
       if (!review.reply && review.replyText) {
         review.reply = {
           by: review.reply?.by || null,
@@ -111,6 +126,15 @@ const replyToReview = async (req, res) => {
     const review = await ReviewModel.findById(reviewId);
     if (!review) {
       return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    // Check if hotel is suspended
+    const hotel = await HotelModel.findById(review.hotelId);
+    if (hotel && hotel.isSuspended) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot reply to reviews for a suspended hotel' 
+      });
     }
 
     // Allow admin or hotel (ownership check can be added if hotel ownership link exists)

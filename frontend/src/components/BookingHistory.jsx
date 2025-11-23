@@ -101,16 +101,49 @@ const BookingHistory = () => {
 
   return (
     <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h1>My Bookings</h1>
-            <p>View and manage your reservations</p>
+      <div className="dashboard-header" style={{ textAlign: 'left' }}>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div style={{ padding: 0, margin: 0, width: '100%' }}>
+            <h1 style={{ 
+              fontSize: '28px', 
+              fontWeight: '600', 
+              color: '#222', 
+              marginBottom: '8px',
+              marginTop: 0,
+              marginLeft: 0,
+              marginRight: 0,
+              padding: 0,
+              lineHeight: '1.2',
+              textAlign: 'left',
+              display: 'block'
+            }}>
+              My Bookings
+            </h1>
+            <p style={{ 
+              fontSize: '15px', 
+              color: '#717171', 
+              margin: 0,
+              padding: 0,
+              lineHeight: '1.4',
+              textAlign: 'left',
+              display: 'block'
+            }}>
+              View and manage your reservations
+            </p>
           </div>
           <button
             className="btn btn-outline-secondary"
             onClick={() => navigate('/browse-hotels')}
-            style={{ height: 'fit-content' }}
+            style={{ 
+              height: 'fit-content',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontWeight: '500',
+              borderWidth: '1.5px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              fontSize: '14px'
+            }}
           >
             ← Go Back
           </button>
@@ -119,87 +152,178 @@ const BookingHistory = () => {
 
       <div className="container">
         {bookings.length === 0 ? (
-          <div className="text-center">
-            <p>No bookings found</p>
-            <button className="btn btn-primary" onClick={() => navigate('/browse-hotels')}>
-              Browse Hotels
-            </button>
+          <div className="text-center py-5">
+            <div className="alert alert-info" style={{ maxWidth: '500px', margin: '0 auto' }}>
+              <h5>No bookings found</h5>
+              <p className="mb-3">You haven't made any reservations yet.</p>
+              <button className="btn btn-primary" onClick={() => navigate('/browse-hotels')}>
+                Browse Hotels
+              </button>
+            </div>
           </div>
         ) : (
           <div className="row g-4">
             {bookings.map((booking) => (
               <div key={booking._id || booking.id} className="col-12">
-                <div className="card">
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h5 className="card-title">
-                          {booking.hotelId?.name || booking.hotel?.name || 'Hotel'}
-                        </h5>
-                        <p className="text-muted">
-                          {booking.hotelId?.address || booking.hotel?.address || 'Address not available'}
-                        </p>
-                        <p>
-                          <strong>Check-in:</strong> {new Date(booking.checkIn).toLocaleDateString()}
-                        </p>
-                        <p>
-                          <strong>Check-out:</strong> {new Date(booking.checkOut).toLocaleDateString()}
-                        </p>
-                        <p>
-                          <strong>Nights:</strong> {booking.nights}
-                        </p>
-                        <p>
-                          <strong>Total:</strong> ${booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}
-                        </p>
-                        <p>
-                          <strong>Status:</strong> <span className={`badge bg-${getStatusColor(booking.status)}`}>
+                <div className="card shadow-sm" style={{ border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div className="card-body p-4">
+                    <div className="row">
+                      {/* Left Section - Hotel Info */}
+                      <div className="col-md-8">
+                        <div className="d-flex align-items-start mb-3">
+                          <div className="flex-grow-1">
+                            <h5 className="mb-2" style={{ fontSize: '20px', fontWeight: '600', color: '#222' }}>
+                              {booking.hotelId?.name || booking.hotel?.name || 'Hotel'}
+                            </h5>
+                            <p className="text-muted mb-3" style={{ fontSize: '14px' }}>
+                              {booking.hotelId?.location?.address || booking.hotel?.address || 'Address not available'}
+                            </p>
+                          </div>
+                          <span className={`badge bg-${getStatusColor(booking.status)}`} style={{ 
+                            fontSize: '12px', 
+                            padding: '6px 12px',
+                            textTransform: 'uppercase',
+                            fontWeight: '600'
+                          }}>
                             {booking.status}
                           </span>
-                        </p>
+                        </div>
+
+                        {/* Booking Details Grid */}
+                        <div className="row g-3 mb-3">
+                          <div className="col-sm-6 col-md-4">
+                            <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Check-in</div>
+                            <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
+                              {new Date(booking.checkIn).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              })}
+                            </div>
+                          </div>
+                          <div className="col-sm-6 col-md-4">
+                            <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Check-out</div>
+                            <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
+                              {new Date(booking.checkOut).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              })}
+                            </div>
+                          </div>
+                          <div className="col-sm-6 col-md-4">
+                            <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Nights</div>
+                            <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
+                              {booking.nights} {booking.nights === 1 ? 'night' : 'nights'}
+                            </div>
+                          </div>
+                          <div className="col-sm-6 col-md-4">
+                            <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Guests</div>
+                            <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
+                              {booking.guests || 1} {booking.guests === 1 ? 'guest' : 'guests'}
+                            </div>
+                          </div>
+                          <div className="col-sm-6 col-md-4">
+                            <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Total Price</div>
+                            <div style={{ fontSize: '16px', fontWeight: '600', color: '#222' }}>
+                              PKR {booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="d-flex flex-column gap-2">
-                        {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                          <>
-                            <button
-                              className="btn btn-outline-primary btn-sm"
-                              onClick={() => handleReschedule(booking._id || booking.id)}
-                            >
-                              Reschedule
-                            </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => handleCancel(booking._id || booking.id)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                        {booking.status === 'confirmed' && booking.invoicePath && (
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => handleDownloadInvoice(booking._id || booking.id)}
-                          >
-                            Download Invoice
-                          </button>
-                        )}
-                        {(booking.status === 'completed' || booking.status === 'checked-out') && (
-                          <>
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleReview(booking._id || booking.id)}
-                            >
-                              Leave Review
-                            </button>
-                            {booking.invoicePath && (
+
+                      {/* Right Section - Actions */}
+                      <div className="col-md-4 mt-3 mt-md-0">
+                        <div 
+                          className="d-flex flex-column gap-2 booking-actions"
+                          style={{ 
+                            borderLeft: '1px solid #e0e0e0',
+                            paddingLeft: '24px'
+                          }}
+                        >
+                          {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                            <>
                               <button
-                                className="btn btn-success btn-sm"
-                                onClick={() => handleDownloadInvoice(booking._id || booking.id)}
+                                className="btn btn-outline-primary"
+                                onClick={() => handleReschedule(booking._id || booking.id)}
+                                style={{ 
+                                  borderRadius: '8px',
+                                  fontWeight: '500',
+                                  padding: '10px 16px',
+                                  borderWidth: '1.5px'
+                                }}
                               >
-                                Download Invoice
+                                Reschedule
                               </button>
-                            )}
-                          </>
-                        )}
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleCancel(booking._id || booking.id)}
+                                style={{ 
+                                  borderRadius: '8px',
+                                  fontWeight: '500',
+                                  padding: '10px 16px'
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                          {booking.status === 'confirmed' && booking.invoicePath && (
+                            <button
+                              className="btn btn-success"
+                              onClick={() => handleDownloadInvoice(booking._id || booking.id)}
+                              style={{ 
+                                borderRadius: '8px',
+                                fontWeight: '500',
+                                padding: '10px 16px'
+                              }}
+                            >
+                              Download Invoice
+                            </button>
+                          )}
+                          {(booking.status === 'completed' || booking.status === 'checked-out') && (
+                            <>
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => handleReview(booking._id || booking.id)}
+                                style={{ 
+                                  borderRadius: '8px',
+                                  fontWeight: '500',
+                                  padding: '10px 16px'
+                                }}
+                              >
+                                Leave Review
+                              </button>
+                              {booking.invoicePath && (
+                                <button
+                                  className="btn btn-success"
+                                  onClick={() => handleDownloadInvoice(booking._id || booking.id)}
+                                  style={{ 
+                                    borderRadius: '8px',
+                                    fontWeight: '500',
+                                    padding: '10px 16px'
+                                  }}
+                                >
+                                  Download Invoice
+                                </button>
+                              )}
+                            </>
+                          )}
+                          {booking.status === 'cancelled' && booking.invoicePath && (
+                            <button
+                              className="btn btn-outline-secondary"
+                              onClick={() => handleDownloadInvoice(booking._id || booking.id)}
+                              style={{ 
+                                borderRadius: '8px',
+                                fontWeight: '500',
+                                padding: '10px 16px',
+                                borderWidth: '1.5px'
+                              }}
+                            >
+                              View Invoice
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

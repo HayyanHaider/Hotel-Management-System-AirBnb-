@@ -354,6 +354,67 @@ const HotelDetails = () => {
             <p className="description-text">{hotel.description}</p>
           </section>
 
+          {(hotel.capacity?.guests || hotel.capacity?.bedrooms || hotel.capacity?.bathrooms) && (
+            <section className="section-card">
+              <h3 className="section-title">Property Details</h3>
+              <div className="property-details-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '20px',
+                marginTop: '16px'
+              }}>
+                {hotel.capacity?.guests && (
+                  <div className="property-detail-item">
+                    <div className="property-detail-label" style={{
+                      fontSize: '14px',
+                      color: '#717171',
+                      marginBottom: '4px'
+                    }}>Guests</div>
+                    <div className="property-detail-value" style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#222'
+                    }}>
+                      {hotel.capacity.guests} {hotel.capacity.guests === 1 ? 'guest' : 'guests'}
+                    </div>
+                  </div>
+                )}
+                {hotel.capacity?.bedrooms && (
+                  <div className="property-detail-item">
+                    <div className="property-detail-label" style={{
+                      fontSize: '14px',
+                      color: '#717171',
+                      marginBottom: '4px'
+                    }}>Bedrooms</div>
+                    <div className="property-detail-value" style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#222'
+                    }}>
+                      {hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}
+                    </div>
+                  </div>
+                )}
+                {hotel.capacity?.bathrooms && (
+                  <div className="property-detail-item">
+                    <div className="property-detail-label" style={{
+                      fontSize: '14px',
+                      color: '#717171',
+                      marginBottom: '4px'
+                    }}>Bathrooms</div>
+                    <div className="property-detail-value" style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#222'
+                    }}>
+                      {hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bathroom' : 'bathrooms'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {hotel.amenities && hotel.amenities.length > 0 && (
             <section className="section-card">
               <h3 className="section-title">What this place offers</h3>

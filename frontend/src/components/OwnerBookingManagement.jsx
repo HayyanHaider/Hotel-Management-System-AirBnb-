@@ -174,10 +174,15 @@ const OwnerBookingManagement = () => {
                         <p><strong>Nights:</strong> {booking.nights}</p>
                         <p><strong>Total:</strong> PKR {booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}</p>
                         <p>
-                          <strong>Status:</strong> <span className={`badge bg-${getStatusColor(booking.status)}`}>
-                            {booking.status}
+                          <strong>Status:</strong> <span className={`badge bg-${getStatusColor(booking.status)}`} style={{ textTransform: 'uppercase' }}>
+                            {booking.status === 'cancelled' ? 'CANCELLED' : booking.status}
                           </span>
                         </p>
+                        {booking.status === 'cancelled' && booking.cancelledAt && (
+                          <p className="text-muted small">
+                            <strong>Cancelled on:</strong> {new Date(booking.cancelledAt).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       <div className="d-flex flex-column gap-2">
                         {booking.status === 'pending' && (
@@ -211,6 +216,11 @@ const OwnerBookingManagement = () => {
                           >
                             Check Out
                           </button>
+                        )}
+                        {booking.status === 'cancelled' && (
+                          <div className="text-muted small text-center" style={{ padding: '8px', fontStyle: 'italic' }}>
+                            This booking was cancelled
+                          </div>
                         )}
                       </div>
                     </div>

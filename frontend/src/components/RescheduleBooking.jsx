@@ -47,6 +47,13 @@ const RescheduleBooking = () => {
     }
   };
 
+  // Helper function to get today's date at midnight (for date-only comparison)
+  const getTodayDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -56,14 +63,17 @@ const RescheduleBooking = () => {
     }
 
     const checkInDate = new Date(checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
     const checkOutDate = new Date(checkOut);
+    checkOutDate.setHours(0, 0, 0, 0);
+    const today = getTodayDate();
     
     if (checkInDate >= checkOutDate) {
       toast.warning('Check-out date must be after check-in date');
       return;
     }
     
-    if (checkInDate < new Date()) {
+    if (checkInDate < today) {
       toast.warning('Check-in date cannot be in the past');
       return;
     }
@@ -153,14 +163,20 @@ const RescheduleBooking = () => {
                     />
                   </div>
 
-                  {checkIn && checkOut && (
-                    <div className="alert alert-info">
-                      <p><strong>New Stay Duration:</strong> {
-                        Math.max(1, Math.floor((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)) - 1)
-                      } {Math.max(1, Math.floor((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)) - 1) === 1 ? 'night' : 'nights'}</p>
-                      <p className="mb-0"><strong>Note:</strong> Price will be recalculated based on the new dates. Any applicable discounts will be preserved.</p>
-                    </div>
-                  )}
+                  {checkIn && checkOut && (() => {
+                    const checkInDate = new Date(checkIn);
+                    const checkOutDate = new Date(checkOut);
+                    checkInDate.setHours(0, 0, 0, 0);
+                    checkOutDate.setHours(0, 0, 0, 0);
+                    const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
+                    const nights = Math.max(1, Math.floor(daysDiff));
+                    return (
+                      <div className="alert alert-info">
+                        <p><strong>New Stay Duration:</strong> {nights} {nights === 1 ? 'night' : 'nights'}</p>
+                        <p className="mb-0"><strong>Note:</strong> Price will be recalculated based on the new dates. Any applicable discounts will be preserved.</p>
+                      </div>
+                    );
+                  })()}
 
                   <div className="d-flex gap-2 mt-4">
                     <button

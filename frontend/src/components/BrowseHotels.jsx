@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -9,6 +9,10 @@ const BrowseHotels = () => {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeDateInput, setActiveDateInput] = useState('checkIn'); // 'checkIn' or 'checkOut'
+  const checkInInputRef = useRef(null);
+  const checkOutInputRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({
     location: searchParams.get('location') || '',
@@ -241,6 +245,44 @@ const BrowseHotels = () => {
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                onClick={(e) => {
+                  // Don't trigger if clicking the clear button
+                  if (e.target.closest('.clear-dates-btn')) {
+                    return;
+                  }
+                  // Determine which input to trigger
+                  if (!filters.checkIn) {
+                    // No check-in date, trigger check-in picker
+                    setActiveDateInput('checkIn');
+                    setTimeout(() => {
+                      if (checkInInputRef.current) {
+                        checkInInputRef.current.showPicker?.();
+                        checkInInputRef.current.focus();
+                        checkInInputRef.current.click();
+                      }
+                    }, 10);
+                  } else if (filters.checkIn && !filters.checkOut) {
+                    // Check-in set, trigger check-out picker
+                    setActiveDateInput('checkOut');
+                    setTimeout(() => {
+                      if (checkOutInputRef.current) {
+                        checkOutInputRef.current.showPicker?.();
+                        checkOutInputRef.current.focus();
+                        checkOutInputRef.current.click();
+                      }
+                    }, 10);
+                  } else {
+                    // Both set, reset to check-in
+                    setActiveDateInput('checkIn');
+                    setTimeout(() => {
+                      if (checkInInputRef.current) {
+                        checkInInputRef.current.showPicker?.();
+                        checkInInputRef.current.focus();
+                        checkInInputRef.current.click();
+                      }
+                    }, 10);
+                  }
+                }}
               >
                 <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
                   When
@@ -249,17 +291,80 @@ const BrowseHotels = () => {
                   style={{ 
                     fontSize: '14px',
                     color: filters.checkIn ? '#000' : '#717171',
-                    cursor: 'pointer',
                     padding: 0,
-                    margin: 0
+                    margin: 0,
+                    pointerEvents: 'none',
+                    position: 'relative',
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  {getDateDisplay()}
+                  <span>{getDateDisplay()}</span>
+                  {(filters.checkIn || filters.checkOut) && (
+                    <button
+                      className="clear-dates-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFilterChange('checkIn', '');
+                        handleFilterChange('checkOut', '');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'auto',
+                        borderRadius: '50%',
+                        transition: 'background-color 0.2s',
+                        width: '20px',
+                        height: '20px',
+                        flexShrink: 0
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e0e0e0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                      title="Clear dates"
+                    >
+                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                      </svg>
+                    </button>
+                  )}
                 </div>
+                {/* Check-in Date Input */}
                 <input
+                  ref={checkInInputRef}
                   type="date"
-                  value={filters.checkIn}
-                  onChange={(e) => handleFilterChange('checkIn', e.target.value)}
+                  data-date-type="checkIn"
+                  value={filters.checkIn || ''}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const checkInDate = e.target.value;
+                    handleFilterChange('checkIn', checkInDate);
+                    // If check-out is before new check-in, clear it
+                    if (filters.checkOut && checkInDate && filters.checkOut < checkInDate) {
+                      handleFilterChange('checkOut', '');
+                    }
+                    // Auto-advance to check-out
+                    if (checkInDate && !filters.checkOut) {
+                      setTimeout(() => {
+                        setActiveDateInput('checkOut');
+                        if (checkOutInputRef.current) {
+                          checkOutInputRef.current.showPicker?.();
+                          checkOutInputRef.current.focus();
+                          checkOutInputRef.current.click();
+                        }
+                      }, 100);
+                    }
+                  }}
                   min={new Date().toISOString().split('T')[0]}
                   style={{ 
                     position: 'absolute',
@@ -268,26 +373,37 @@ const BrowseHotels = () => {
                     width: '100%',
                     height: '100%',
                     opacity: 0,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    zIndex: activeDateInput === 'checkIn' ? 20 : 2,
+                    margin: 0,
+                    padding: 0
                   }}
                 />
-                {filters.checkIn && (
-                  <input
-                    type="date"
-                    value={filters.checkOut}
-                    onChange={(e) => handleFilterChange('checkOut', e.target.value)}
-                    min={filters.checkIn || new Date().toISOString().split('T')[0]}
-                    style={{ 
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      opacity: 0,
-                      cursor: 'pointer'
-                    }}
-                  />
-                )}
+                {/* Check-out Date Input */}
+                <input
+                  ref={checkOutInputRef}
+                  type="date"
+                  data-date-type="checkOut"
+                  value={filters.checkOut || ''}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleFilterChange('checkOut', e.target.value);
+                  }}
+                  min={filters.checkIn || new Date().toISOString().split('T')[0]}
+                  disabled={!filters.checkIn}
+                  style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: filters.checkIn ? 'pointer' : 'not-allowed',
+                    zIndex: activeDateInput === 'checkOut' ? 20 : 2,
+                    margin: 0,
+                    padding: 0
+                  }}
+                />
               </div>
 
               {/* Who Input */}

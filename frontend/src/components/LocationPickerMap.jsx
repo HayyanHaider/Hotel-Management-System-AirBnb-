@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -34,21 +34,110 @@ function MapClickHandler({ onLocationSelect }) {
   return null;
 }
 
-const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = null, height = '400px' }) => {
-  const [markerPosition, setMarkerPosition] = useState(null);
-  const markerRef = useRef(null);
+// Component to update map view when coordinates change
+function MapViewUpdater({ center, zoom, forceUpdate }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1] && !isNaN(center[0]) && !isNaN(center[1])) {
+      map.setView([center[0], center[1]], zoom || 15, {
+        animate: true,
+        duration: 0.5
+      });
+    }
+  }, [center, zoom, map, forceUpdate]);
+  return null;
+}
 
-  // Initialize marker position from props
+const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = null, height = '400px', addressToGeocode = null }) => {
+  const [markerPosition, setMarkerPosition] = useState(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [mapUpdateKey, setMapUpdateKey] = useState(0);
+  const markerRef = useRef(null);
+  const lastGeocodedAddress = useRef('');
+
+  // Initialize marker position from props (only on mount or when explicitly changed)
   useEffect(() => {
     if (initialLat !== null && initialLng !== null && !isNaN(initialLat) && !isNaN(initialLng)) {
-      setMarkerPosition([initialLat, initialLng]);
+      // Only set if we don't have a marker position or if it's significantly different
+      if (!markerPosition || 
+          Math.abs(markerPosition[0] - initialLat) > 0.0001 || 
+          Math.abs(markerPosition[1] - initialLng) > 0.0001) {
+        setMarkerPosition([initialLat, initialLng]);
+      }
     }
   }, [initialLat, initialLng]);
 
-  // Handle location selection
+  // Geocode address when addressToGeocode changes
+  useEffect(() => {
+    // Only geocode if we have a meaningful address (at least 3 characters)
+    if (addressToGeocode && addressToGeocode.trim().length >= 3) {
+      const trimmedAddress = addressToGeocode.trim();
+      const lastAddress = lastGeocodedAddress.current.trim();
+      
+      // Check if address has changed (compare normalized strings)
+      const addressChanged = trimmedAddress !== lastAddress && trimmedAddress.length > 0;
+      
+      if (addressChanged) {
+        setIsGeocoding(true);
+        const geocodeAddress = async () => {
+          try {
+            console.log('Geocoding address:', trimmedAddress);
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmedAddress)}&limit=1`,
+              {
+                headers: {
+                  'User-Agent': 'HotelManagementApp/1.0'
+                }
+              }
+            );
+            const data = await response.json();
+            if (data && data.length > 0) {
+              const lat = parseFloat(data[0].lat);
+              const lng = parseFloat(data[0].lon);
+              const position = [lat, lng];
+              
+              console.log('Geocoding result:', { lat, lng, address: data[0].display_name });
+              
+              // Always update marker position when geocoding succeeds (overrides manual selection)
+              setMarkerPosition(position);
+              lastGeocodedAddress.current = trimmedAddress;
+              
+              // Force map view update
+              setMapUpdateKey(prev => prev + 1);
+              
+              if (onLocationSelect) {
+                onLocationSelect(lat, lng);
+              }
+            } else {
+              console.warn('No geocoding results found for:', trimmedAddress);
+              // Don't update lastGeocodedAddress if geocoding failed, so it will retry
+            }
+          } catch (error) {
+            console.error('Geocoding error:', error);
+          } finally {
+            setIsGeocoding(false);
+          }
+        };
+        
+        // Reduced debounce time for better responsiveness (400ms)
+        const timeoutId = setTimeout(geocodeAddress, 400);
+        return () => {
+          clearTimeout(timeoutId);
+          setIsGeocoding(false);
+        };
+      }
+    } else if (!addressToGeocode || addressToGeocode.trim().length === 0) {
+      // Reset last geocoded address when address is cleared
+      lastGeocodedAddress.current = '';
+    }
+  }, [addressToGeocode, onLocationSelect]);
+
+  // Handle location selection (manual click/drag)
   const handleLocationSelect = (lat, lng) => {
     const position = [lat, lng];
     setMarkerPosition(position);
+    // Update last geocoded address to prevent re-geocoding immediately after manual selection
+    // But allow geocoding to override if address changes
     if (onLocationSelect) {
       onLocationSelect(lat, lng);
     }
@@ -91,6 +180,7 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <MapViewUpdater center={markerPosition || mapCenter} zoom={markerPosition ? 15 : mapZoom} forceUpdate={mapUpdateKey} />
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           {markerPosition && (
             <Marker
@@ -112,10 +202,16 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
       <div className="mt-2 p-2 bg-light rounded" style={{ fontSize: '0.875rem' }}>
         <strong>📍 Instructions:</strong>
         <ul className="mb-0 mt-2" style={{ paddingLeft: '20px' }}>
+          <li>Fill in address fields above - map will automatically update</li>
           <li>Click anywhere on the map to place the red marker</li>
           <li>You can also drag the marker to adjust its position</li>
           <li>The coordinates will be automatically saved</li>
         </ul>
+        {isGeocoding && (
+          <div className="mt-2 text-info">
+            <small>🔄 Geocoding address...</small>
+          </div>
+        )}
         {markerPosition && (
           <div className="mt-2">
             <strong>Selected Location:</strong>

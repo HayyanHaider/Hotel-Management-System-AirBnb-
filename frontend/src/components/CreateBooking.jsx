@@ -297,7 +297,12 @@ const CreateBooking = () => {
                     {(() => {
                       const checkInDate = new Date(checkIn);
                       const checkOutDate = new Date(checkOut);
-                      const nights = Math.max(1, Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)) - 1);
+                      // Normalize to midnight to avoid timezone issues
+                      checkInDate.setHours(0, 0, 0, 0);
+                      checkOutDate.setHours(0, 0, 0, 0);
+                      // Calculate nights: check-out date minus check-in date gives the number of nights
+                      const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
+                      const nights = Math.max(1, Math.floor(daysDiff));
                       const basePrice = hotel.pricing?.basePrice || 0;
                       const cleaningFee = hotel.pricing?.cleaningFee || 0;
                       const serviceFee = hotel.pricing?.serviceFee || 0;

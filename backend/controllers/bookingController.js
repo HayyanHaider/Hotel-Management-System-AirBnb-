@@ -3,9 +3,13 @@ const HotelModel = require('../models/hotelModel');
 const CustomerModel = require('../models/customerModel');
 const CouponModel = require('../models/couponModel');
 const UserModel = require('../models/userModel');
+const PaymentModel = require('../models/paymentModel');
 const Coupon = require('../classes/Coupon');
 const Booking = require('../classes/Booking');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
+const { generateInvoicePDF } = require('../utils/pdfService');
+const path = require('path');
+const fs = require('fs');
 
 // Create Booking Controller
 const createBooking = async (req, res) => {
@@ -77,32 +81,35 @@ const createBooking = async (req, res) => {
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
     
+    // Normalize dates to midnight to avoid timezone issues
+    const checkInDateNormalized = new Date(checkIn);
+    const checkOutDateNormalized = new Date(checkOut);
+    checkInDateNormalized.setHours(0, 0, 0, 0);
+    checkOutDateNormalized.setHours(0, 0, 0, 0);
+    
     // Set time to midnight for date-only comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const checkInDateOnly = new Date(checkIn);
-    checkInDateOnly.setHours(0, 0, 0, 0);
     
     // Validate dates
-    if (checkIn >= checkOut) {
+    if (checkInDateNormalized >= checkOutDateNormalized) {
       return res.status(400).json({ success: false, message: 'Check-out date must be after check-in date' });
     }
-    if (checkInDateOnly < today) {
+    if (checkInDateNormalized < today) {
       return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
     }
 
-    // Calculate nights: For hotel bookings, nights = days difference - 1
-    // Check-in Nov 10, check-out Nov 11: 1 day difference = 1 night (Nov 10 night)
-    // Check-in Nov 10, check-out Nov 12: 2 days difference = 1 night (Nov 10 night)
-    // Check-in Nov 10, check-out Nov 13: 3 days difference = 2 nights (Nov 10 + Nov 11 nights)
-    const daysDiff = (checkOut - checkIn) / (1000 * 60 * 60 * 24);
-    const nights = Math.max(1, Math.floor(daysDiff) - 1);
+    // Calculate nights: check-out date minus check-in date gives the number of nights
+    // Check-in Nov 22, check-out Nov 24: 2 days = 2 nights
+    const daysDiff = (checkOutDateNormalized - checkInDateNormalized) / (1000 * 60 * 60 * 24);
+    const nights = Math.max(1, Math.floor(daysDiff));
 
     // Check room availability - count overlapping bookings for each day
+    // Only count confirmed/active bookings (exclude pending bookings since payment wasn't made)
     const totalRooms = hotel.totalRooms || 1;
     const overlappingBookings = await BookingModel.find({
       hotelId: hotelId,
-      status: { $in: ['pending', 'confirmed', 'active'] },
+      status: { $in: ['confirmed', 'active', 'checked-in'] }, // Exclude 'pending' - only count paid bookings
       $or: [
         { checkIn: { $lt: checkOut }, checkOut: { $gt: checkIn } }
       ]
@@ -192,7 +199,13 @@ const createBooking = async (req, res) => {
         };
         couponId = couponDoc._id;
         
-        // Note: Coupon usage count will be incremented only when payment is processed
+        // Reserve the coupon by incrementing usage count when booking is created
+        // This ensures the coupon is reserved even if payment isn't completed yet
+        // If booking is cancelled, the usage will be decremented to release it
+        await CouponModel.findByIdAndUpdate(couponDoc._id, {
+          $inc: { currentUses: 1 }
+        });
+        console.log(`Coupon usage incremented for coupon ${couponDoc._id} when booking was created (reserved)`);
         // This ensures the coupon is only "used" when payment is confirmed
         
         console.log(`Applied coupon ${couponDoc.code} (${couponDoc.discountPercentage}% off) - Discount: $${discounts.toFixed(2)}`);
@@ -273,15 +286,29 @@ const getUserBookings = async (req, res) => {
     const { status, page = 1, limit = 10 } = req.query;
 
     const query = { userId: customerId };
-    if (status) query.status = status;
+    if (status) {
+      query.status = status;
+    } else {
+      // By default, exclude pending bookings (only show bookings after payment)
+      query.status = { $ne: 'pending' };
+    }
 
     const dbBookings = await BookingModel.find(query)
-      .populate('hotelId', 'name location')
+      .populate({
+        path: 'hotelId',
+        select: 'name location isSuspended',
+        match: { isSuspended: { $ne: true } } // Filter out suspended hotels
+      })
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
 
-    return res.json({ success: true, count: dbBookings.length, bookings: dbBookings });
+    // Filter out bookings where hotel is null (suspended hotels) and pending bookings
+    const filteredBookings = dbBookings.filter(booking => 
+      booking.hotelId !== null && booking.status !== 'pending'
+    );
+
+    return res.json({ success: true, count: filteredBookings.length, bookings: filteredBookings });
   } catch (error) {
     console.error('Get user bookings error:', error);
     return res.status(500).json({ success: false, message: 'Server error while fetching bookings' });
@@ -313,13 +340,16 @@ const cancelBooking = async (req, res) => {
 
         // Allow pending bookings to be cancelled without restrictions
         if (dbBooking.status === 'pending') {
-          // Note: No need to decrement coupon usage for pending bookings
-          // because coupon usage is only incremented when payment is processed
+          // Decrement coupon usage if coupon was applied (to release the reserved coupon)
+          if (dbBooking.couponId) {
+            await CouponModel.findByIdAndUpdate(dbBooking.couponId, {
+              $inc: { currentUses: -1 }
+            });
+            console.log(`Coupon usage decremented for coupon ${dbBooking.couponId} after pending booking cancellation (released)`);
+          }
           
-          await BookingModel.findByIdAndUpdate(bookingId, {
-            status: 'cancelled',
-            cancelledAt: new Date()
-          });
+          // Delete the pending booking since payment wasn't made
+          await BookingModel.findByIdAndDelete(bookingId);
 
           // Send cancellation email for pending bookings too
           try {
@@ -359,7 +389,7 @@ const cancelBooking = async (req, res) => {
             console.error('Error sending cancellation email:', emailError);
           }
 
-          return res.json({ success: true, message: 'Booking cancelled successfully' });
+          return res.json({ success: true, message: 'Pending booking removed successfully' });
         }
 
     // For confirmed bookings, check 24-hour rule
@@ -380,7 +410,7 @@ const cancelBooking = async (req, res) => {
     }
 
     // Decrement coupon usage if coupon was applied and payment was made
-    // Only decrement if booking was confirmed (payment was processed)
+    // This applies to confirmed bookings where payment was processed and coupon usage was incremented
     if (dbBooking.couponId && dbBooking.status === 'confirmed') {
       await CouponModel.findByIdAndUpdate(dbBooking.couponId, {
         $inc: { currentUses: -1 }
@@ -473,11 +503,20 @@ const getBookingDetails = async (req, res) => {
     const customerId = customerDoc._id;
 
         const dbBooking = await BookingModel.findOne({ _id: bookingId, userId: customerId })
-          .populate('hotelId', 'name location contactInfo')
+          .populate({
+            path: 'hotelId',
+            select: 'name location contactInfo isSuspended',
+            match: { isSuspended: { $ne: true } } // Filter out suspended hotels
+          })
           .populate('couponId', 'code discountPercentage');
 
     if (!dbBooking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // If hotel is null (suspended), return 404
+    if (!dbBooking.hotelId) {
+      return res.status(404).json({ success: false, message: 'Booking not found or hotel is suspended' });
     }
 
     return res.json({ success: true, booking: dbBooking });
@@ -535,8 +574,10 @@ const rescheduleBooking = async (req, res) => {
     today.setHours(0, 0, 0, 0);
     const newCheckInDateOnly = new Date(newCheckIn);
     newCheckInDateOnly.setHours(0, 0, 0, 0);
+    const newCheckOutDateOnly = new Date(newCheckOut);
+    newCheckOutDateOnly.setHours(0, 0, 0, 0);
     
-    if (newCheckIn >= newCheckOut) {
+    if (newCheckInDateOnly >= newCheckOutDateOnly) {
       return res.status(400).json({ 
         success: false, 
         message: 'Check-out date must be after check-in date' 
@@ -551,16 +592,18 @@ const rescheduleBooking = async (req, res) => {
     }
 
     // Calculate new nights
-    const daysDiff = (newCheckOut - newCheckIn) / (1000 * 60 * 60 * 24);
-    const newNights = Math.max(1, Math.floor(daysDiff) - 1);
+    // Use the date-only versions for accurate day calculation
+    const daysDiff = (newCheckOutDateOnly - newCheckInDateOnly) / (1000 * 60 * 60 * 24);
+    const newNights = Math.max(1, Math.floor(daysDiff));
 
     // Check availability for new dates
+    // Only count confirmed/active bookings (exclude pending bookings since payment wasn't made)
     const hotel = dbBooking.hotelId;
     const totalRooms = hotel.totalRooms || 1;
     const overlappingBookings = await BookingModel.find({
       hotelId: hotel._id,
       _id: { $ne: bookingId }, // Exclude current booking
-      status: { $in: ['pending', 'confirmed', 'active'] },
+      status: { $in: ['confirmed', 'active', 'checked-in'] }, // Exclude 'pending' - only count paid bookings
       $or: [
         { checkIn: { $lt: newCheckOut }, checkOut: { $gt: newCheckIn } }
       ]
@@ -619,10 +662,115 @@ const rescheduleBooking = async (req, res) => {
       'priceSnapshot.totalPrice': newTotalPrice
     });
 
-
     const updatedBooking = await BookingModel.findById(bookingId)
       .populate('hotelId', 'name location')
       .populate('couponId', 'code discountPercentage');
+
+    // Send reschedule email to customer
+    try {
+      const user = await UserModel.findById(userId);
+      if (user && updatedBooking && updatedBooking.hotelId) {
+        console.log('📧 Sending reschedule email for booking:', bookingId);
+        
+        // Store old dates for email
+        const oldCheckIn = dbBooking.checkIn;
+        const oldCheckOut = dbBooking.checkOut;
+        const oldNights = dbBooking.nights || 1;
+        
+        const emailTemplate = emailTemplates.rescheduleEmail(
+          updatedBooking,
+          updatedBooking.hotelId,
+          { name: user.name, email: user.email },
+          oldCheckIn,
+          oldCheckOut,
+          oldNights
+        );
+        
+        await sendEmail(
+          user.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text,
+          {
+            userId: userId,
+            useUserGmail: true // Try to use user's Gmail account
+          }
+        );
+        
+        console.log(`✅ Reschedule email sent to customer: ${user.email}`);
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending reschedule email:', emailError);
+      // Don't fail the reschedule if email fails
+    }
+
+    // Regenerate invoice if payment was already made
+    if (dbBooking.invoicePath) {
+      try {
+        // Get user information
+        const user = await UserModel.findById(userId);
+        if (!user) {
+          console.error('User not found for invoice generation');
+        } else {
+          // Get payment information if available
+          const payment = await PaymentModel.findOne({ bookingId: bookingId, status: 'completed' })
+            .sort({ createdAt: -1 });
+
+          // Create invoice directory if it doesn't exist
+          const invoiceDir = path.join(__dirname, '../invoices');
+          if (!fs.existsSync(invoiceDir)) {
+            fs.mkdirSync(invoiceDir, { recursive: true });
+          }
+
+          const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;
+          const invoicePath = path.join(invoiceDir, invoiceFileName);
+
+          // Prepare invoice data
+          const invoiceData = {
+            invoiceNumber: `INV-${bookingId}-${Date.now()}`,
+            date: new Date(),
+            bookingId: bookingId,
+            customer: {
+              name: user.name || 'Customer',
+              email: user.email || '',
+              phone: user.phone || ''
+            },
+            hotel: {
+              name: updatedBooking.hotelId?.name || 'Hotel',
+              address: updatedBooking.hotelId?.location?.address || ''
+            },
+            checkIn: newCheckIn,
+            checkOut: newCheckOut,
+            nights: newNights,
+            guests: updatedBooking.guests || 1,
+            basePrice: basePrice * newNights,
+            cleaningFee: cleaningFee,
+            serviceFee: serviceFee,
+            discount: discounts,
+            couponCode: updatedBooking.couponId?.code || dbBooking.priceSnapshot?.couponCode,
+            total: newTotalPrice,
+            payment: payment ? {
+              method: payment.paymentMethod || 'N/A',
+              transactionId: payment.transactionId || 'N/A',
+              date: payment.createdAt || new Date()
+            } : undefined
+          };
+
+          // Generate new invoice PDF
+          await generateInvoicePDF(invoiceData, invoicePath);
+
+          // Update booking with new invoice path
+          await BookingModel.findByIdAndUpdate(bookingId, {
+            invoicePath: invoiceFileName
+          });
+
+          console.log('Invoice regenerated for rescheduled booking:', invoiceFileName);
+        }
+      } catch (invoiceError) {
+        console.error('Error regenerating invoice after reschedule:', invoiceError);
+        // Don't fail the reschedule if invoice generation fails
+      }
+    }
 
     return res.json({ 
       success: true, 

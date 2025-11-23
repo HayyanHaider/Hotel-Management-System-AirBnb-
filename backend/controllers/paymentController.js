@@ -158,13 +158,9 @@ const processPayment = async (req, res) => {
       confirmedAt: new Date()
     });
 
-    // Increment coupon usage count only after payment is confirmed
-    if (dbBooking.couponId) {
-      await CouponModel.findByIdAndUpdate(dbBooking.couponId, {
-        $inc: { currentUses: 1 }
-      });
-      console.log(`Coupon usage incremented for coupon ${dbBooking.couponId} after payment confirmation`);
-    }
+    // Note: Coupon usage was already incremented when booking was created (to reserve it)
+    // So we don't need to increment again here when payment is processed
+    // The coupon remains reserved/used after payment confirmation
 
     // Generate PDF invoice and send invoice email to customer (async)
     try {
