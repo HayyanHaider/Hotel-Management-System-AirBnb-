@@ -1,6 +1,8 @@
-class Hotel {
-  constructor(hotelData) {
-    this.id = hotelData.id;
+const BaseEntity = require('./BaseEntity');
+
+class Hotel extends BaseEntity {
+  constructor(hotelData = {}) {
+    super(hotelData);
     this.name = hotelData.name;
     this.description = hotelData.description || '';
     this.amenities = hotelData.amenities || [];
@@ -23,8 +25,6 @@ class Hotel {
     this.capacity = hotelData.capacity || {};
     this.totalRooms = hotelData.totalRooms || 1;
     this.commissionRate = hotelData.commissionRate || 0.10;
-    this.createdAt = hotelData.createdAt;
-    this.updatedAt = hotelData.updatedAt;
   }
 
   // Encapsulation: Private method to validate hotel data

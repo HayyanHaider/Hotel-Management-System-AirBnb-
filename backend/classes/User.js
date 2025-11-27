@@ -1,9 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const BaseEntity = require('./BaseEntity');
+const { getBaseUserPermissions } = require('./utils/RolePermissions');
 
-class User {
-  constructor(userData) {
-    this.id = userData.id;
+class User extends BaseEntity {
+  constructor(userData = {}) {
+    super(userData);
     this.name = userData.name;
     this.email = userData.email;
     this.passwordHash = userData.passwordHash;
@@ -124,9 +126,7 @@ class User {
 
   // Method to check if user has permission
   hasPermission(permission) {
-    // Base permissions for all users
-    const basePermissions = ['view_profile', 'update_profile'];
-    return basePermissions.includes(permission);
+    return getBaseUserPermissions().includes(permission);
   }
 }
 

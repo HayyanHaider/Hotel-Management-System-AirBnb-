@@ -1,6 +1,8 @@
-class Room {
-  constructor(roomData) {
-    this.id = roomData.id;
+const BaseEntity = require('./BaseEntity');
+
+class Room extends BaseEntity {
+  constructor(roomData = {}) {
+    super(roomData);
     this.hotelId = roomData.hotelId;
     this.name = roomData.name;
     this.type = roomData.type;
@@ -13,8 +15,6 @@ class Room {
     this.images = roomData.images || [];
     this.isAvailable = roomData.isAvailable !== undefined ? roomData.isAvailable : true;
     this.isActive = roomData.isActive !== undefined ? roomData.isActive : true;
-    this.createdAt = roomData.createdAt;
-    this.updatedAt = roomData.updatedAt;
   }
 
   // Encapsulation: Private method to validate room data

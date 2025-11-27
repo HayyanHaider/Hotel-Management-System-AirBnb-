@@ -1,6 +1,8 @@
-class Coupon {
-  constructor(couponData) {
-    this.id = couponData.id;
+const BaseEntity = require('./BaseEntity');
+
+class Coupon extends BaseEntity {
+  constructor(couponData = {}) {
+    super(couponData);
     this.hotelId = couponData.hotelId;
     this.code = couponData.code;
     this.discountPercentage = couponData.discountPercentage;
@@ -9,8 +11,6 @@ class Coupon {
     this.isActive = couponData.isActive !== undefined ? couponData.isActive : true;
     this.maxUses = couponData.maxUses || null;
     this.currentUses = couponData.currentUses || 0;
-    this.createdAt = couponData.createdAt;
-    this.updatedAt = couponData.updatedAt;
   }
 
   // Encapsulation: Private method to validate coupon data

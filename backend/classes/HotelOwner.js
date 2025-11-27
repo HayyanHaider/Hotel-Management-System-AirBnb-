@@ -1,4 +1,5 @@
 const User = require('./User');
+const { getHotelOwnerPermissions } = require('./utils/RolePermissions');
 
 class HotelOwner extends User {
   constructor(userData) {
@@ -38,17 +39,7 @@ class HotelOwner extends User {
     }
     
     // Hotel-specific permissions
-    const hotelPermissions = [
-      'manage_hotels',
-      'add_hotels',
-      'update_hotel_info',
-      'manage_rooms',
-      'view_bookings',
-      'respond_to_reviews',
-      'view_earnings',
-      'manage_availability'
-    ];
-    return hotelPermissions.includes(permission);
+    return getHotelOwnerPermissions().includes(permission);
   }
 
   // Method to add hotel to owned hotels

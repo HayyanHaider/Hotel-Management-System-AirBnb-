@@ -1,4 +1,5 @@
 const User = require('./User');
+const { getAdminPermissionsByLevel } = require('./utils/RolePermissions');
 
 class Admin extends User {
   constructor(userData) {
@@ -10,63 +11,12 @@ class Admin extends User {
     this.managedUsers = userData.managedUsers || [];
     this.reportsGenerated = userData.reportsGenerated || [];
     // Initialize permissions after adminLevel is set
-    this.permissions = userData.permissions || this.#getDefaultPermissionsForLevel(this.adminLevel);
-  }
-
-  // Private method to get default permissions based on admin level
-  #getDefaultPermissionsForLevel(level) {
-    const basePermissions = [
-      'view_users', 'suspend_users', 'verify_users',
-      'view_hotels', 'approve_hotels', 'suspend_hotels',
-      'view_bookings', 'cancel_bookings', 'refund_bookings',
-      'view_reports', 'generate_reports'
-    ];
-
-    const seniorPermissions = [
-      ...basePermissions,
-      'delete_users', 'delete_hotels', 'manage_admins',
-      'view_financials', 'manage_commissions'
-    ];
-
-    const superPermissions = [
-      ...seniorPermissions,
-      'system_settings', 'backup_data', 'restore_data',
-      'manage_permissions', 'view_audit_logs'
-    ];
-
-    switch (level) {
-      case 'senior': return seniorPermissions;
-      case 'super': return superPermissions;
-      default: return basePermissions;
-    }
+    this.permissions = userData.permissions || getAdminPermissionsByLevel(this.adminLevel);
   }
 
   // Method to get default permissions based on admin level
   getDefaultPermissions() {
-    const basePermissions = [
-      'view_users', 'suspend_users', 'verify_users',
-      'view_hotels', 'approve_hotels', 'suspend_hotels',
-      'view_bookings', 'cancel_bookings', 'refund_bookings',
-      'view_reports', 'generate_reports'
-    ];
-
-    const seniorPermissions = [
-      ...basePermissions,
-      'delete_users', 'delete_hotels', 'manage_admins',
-      'view_financials', 'manage_commissions'
-    ];
-
-    const superPermissions = [
-      ...seniorPermissions,
-      'system_settings', 'backup_data', 'restore_data',
-      'manage_permissions', 'view_audit_logs'
-    ];
-
-    switch (this.adminLevel) {
-      case 'senior': return seniorPermissions;
-      case 'super': return superPermissions;
-      default: return basePermissions;
-    }
+    return getAdminPermissionsByLevel(this.adminLevel);
   }
 
   // Inheritance: Override parent method

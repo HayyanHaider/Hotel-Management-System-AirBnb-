@@ -128,13 +128,37 @@ const sendEmail = async (to, subject, html, text = '', options = {}) => {
 // Email templates
 const emailTemplates = {
   // Invoice email sent to customer after booking payment is processed
-  invoiceEmail: (payment, booking, hotel, customer, invoiceFileName = null) => {
+  invoiceEmail: (
+    payment,
+    booking,
+    hotel,
+    customer,
+    invoiceFileName = null,
+    invoiceDownloadUrl = null,
+    invoiceDataUri = null
+  ) => {
     const checkIn = new Date(booking.checkIn).toLocaleDateString();
     const checkOut = new Date(booking.checkOut).toLocaleDateString();
     const nights = booking.nights || 1;
-    const invoiceUrl = invoiceFileName 
-      ? `http://localhost:5000/api/payments/invoice/${booking.id || booking._id}`
-      : null;
+    const fallbackBaseUrl =
+      process.env.BACKEND_BASE_URL ||
+      process.env.API_BASE_URL ||
+      process.env.SERVER_URL ||
+      process.env.APP_URL ||
+      process.env.BASE_URL ||
+      'http://localhost:5000';
+    const normalizedBaseUrl = fallbackBaseUrl.replace(/\/$/, '');
+    const invoiceUrl =
+      invoiceDownloadUrl ||
+      (invoiceFileName && normalizedBaseUrl
+        ? `${normalizedBaseUrl}/api/payments/invoice/${booking.id || booking._id}`
+        : null);
+    const downloadLink = invoiceDataUri || invoiceUrl;
+    const downloadCtaLabel = invoiceDataUri ? 'Open Attached Invoice' : 'Download PDF Invoice';
+    const currency = 'PKR';
+    const formatCurrency = (amount) => `${currency} ${(Number(amount || 0)).toFixed(2)}`;
+    const paymentMethodLabel = payment.method || payment.paymentMethod;
+    const paypalEmail = payment.paypalEmail;
     
     return {
       subject: `Booking Confirmation & Invoice - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
@@ -199,36 +223,42 @@ const emailTemplates = {
                 <div class="price-breakdown">
                   <div class="price-item">
                     <span>Base Price (${nights} nights):</span>
-                    <span>$${(booking.priceSnapshot?.basePriceTotal || 0).toFixed(2)}</span>
+                    <span>${formatCurrency(booking.priceSnapshot?.basePriceTotal)}</span>
                   </div>
                   ${booking.priceSnapshot?.cleaningFee ? `
                   <div class="price-item">
                     <span>Cleaning Fee:</span>
-                    <span>$${(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}</span>
+                    <span>${formatCurrency(booking.priceSnapshot.cleaningFee)}</span>
                   </div>
                   ` : ''}
                   ${booking.priceSnapshot?.serviceFee ? `
                   <div class="price-item">
                     <span>Service Fee:</span>
-                    <span>$${(booking.priceSnapshot.serviceFee || 0).toFixed(2)}</span>
+                    <span>${formatCurrency(booking.priceSnapshot.serviceFee)}</span>
                   </div>
                   ` : ''}
                   ${booking.priceSnapshot?.discounts > 0 ? `
                   <div class="price-item" style="color: #28a745;">
                     <span>Discount (${booking.priceSnapshot.couponCode || 'Coupon'}):</span>
-                    <span>-$${(booking.priceSnapshot.discounts || 0).toFixed(2)}</span>
+                    <span>- ${formatCurrency(booking.priceSnapshot.discounts)}</span>
                   </div>
                   ` : ''}
                   <div class="price-item total">
                     <span>Total:</span>
-                    <span>$${payment.amount?.toFixed(2) || '0.00'}</span>
+                    <span>${formatCurrency(payment.amount)}</span>
                   </div>
                 </div>
                 
                 <div class="detail-row" style="margin-top: 15px;">
                   <strong>Payment Method:</strong>
-                  <span>${payment.method || payment.paymentMethod}</span>
+                  <span>${paymentMethodLabel}</span>
                 </div>
+                ${paypalEmail ? `
+                <div class="detail-row">
+                  <strong>PayPal Email:</strong>
+                  <span>${paypalEmail}</span>
+                </div>
+                ` : ''}
                 <div class="detail-row">
                   <strong>Transaction ID:</strong>
                   <span>${payment.transactionId || 'N/A'}</span>
@@ -241,9 +271,9 @@ const emailTemplates = {
               
               <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
               
-              ${invoiceUrl ? `
+              ${downloadLink ? `
               <p style="text-align: center; margin: 20px 0;">
-                <a href="${invoiceUrl}" class="button">Download PDF Invoice</a>
+                <a href="${downloadLink}" class="button">${downloadCtaLabel}</a>
               </p>
               ` : ''}
               
@@ -273,19 +303,20 @@ Booking Information:
 - Guests: ${booking.guests || 1}
 
 Price Breakdown:
-- Base Price: $${(booking.priceSnapshot?.basePriceTotal || 0).toFixed(2)}
-${booking.priceSnapshot?.cleaningFee ? `- Cleaning Fee: $${(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}\n` : ''}
-${booking.priceSnapshot?.serviceFee ? `- Service Fee: $${(booking.priceSnapshot.serviceFee || 0).toFixed(2)}\n` : ''}
-${booking.priceSnapshot?.discounts > 0 ? `- Discount: -$${(booking.priceSnapshot.discounts || 0).toFixed(2)}\n` : ''}
-- Total: $${payment.amount?.toFixed(2) || '0.00'}
+- Base Price: ${formatCurrency(booking.priceSnapshot?.basePriceTotal)}
+${booking.priceSnapshot?.cleaningFee ? `- Cleaning Fee: ${formatCurrency(booking.priceSnapshot.cleaningFee)}\n` : ''}
+${booking.priceSnapshot?.serviceFee ? `- Service Fee: ${formatCurrency(booking.priceSnapshot.serviceFee)}\n` : ''}
+${booking.priceSnapshot?.discounts > 0 ? `- Discount: -${formatCurrency(booking.priceSnapshot.discounts)}\n` : ''}
+- Total: ${formatCurrency(payment.amount)}
 
-Payment Method: ${payment.method || payment.paymentMethod}
+Payment Method: ${paymentMethodLabel}
+${paypalEmail ? `PayPal Email: ${paypalEmail}\n` : ''}
 Transaction ID: ${payment.transactionId || 'N/A'}
 Payment Date: ${new Date(payment.processedAt || Date.now()).toLocaleDateString()}
 
 Hotel Address: ${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}
 
-${invoiceUrl ? `Download PDF Invoice: ${invoiceUrl}` : ''}
+${downloadLink ? `${downloadCtaLabel}: ${downloadLink}` : ''}
 
 We look forward to hosting you!
 
@@ -300,6 +331,8 @@ The Airbnb Team`
     const checkOut = new Date(booking.checkOut).toLocaleDateString();
     const nights = booking.nights || 1;
     const cancelledAt = booking.cancelledAt ? new Date(booking.cancelledAt).toLocaleDateString() : new Date().toLocaleDateString();
+    const currency = 'PKR';
+    const formatCurrency = (amount) => `${currency} ${(Number(amount || 0)).toFixed(2)}`;
     
     return {
       subject: `Booking Cancelled - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
@@ -372,7 +405,7 @@ The Airbnb Team`
               <div class="refund-box">
                 <h3 style="margin-top: 0; color: #155724;">Refund Information</h3>
                 <p>Your refund has been processed:</p>
-                <div class="refund-amount">$${refundAmount.toFixed(2)}</div>
+                <div class="refund-amount">${formatCurrency(refundAmount)}</div>
                 <p style="margin-bottom: 0; font-size: 14px; color: #666;">
                   The refund will be processed to your original payment method within 3-5 business days.
                 </p>
@@ -411,7 +444,7 @@ Booking Information:
 ${booking.cancellationPolicyApplied ? `- Cancellation Policy: ${booking.cancellationPolicyApplied}\n` : ''}
 
 ${refundAmount !== null && refundAmount > 0 ? `Refund Information:
-Your refund of $${refundAmount.toFixed(2)} has been processed and will be credited to your original payment method within 3-5 business days.
+Your refund of ${formatCurrency(refundAmount)} has been processed and will be credited to your original payment method within 3-5 business days.
 
 ` : ''}Hotel Address: ${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}
 

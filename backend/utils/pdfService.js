@@ -19,6 +19,9 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       const stream = fs.createWriteStream(outputPath);
       doc.pipe(stream);
       
+      const currency = invoiceData.currency || invoiceData.payment?.currency || 'PKR';
+      const formatCurrency = (value) => `${currency} ${(Number(value || 0)).toFixed(2)}`;
+
       // Header
       doc.fontSize(20).text('INVOICE', { align: 'center' });
       doc.moveDown();
@@ -80,8 +83,8 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       if (invoiceData.basePrice) {
         doc.text(`Room (${invoiceData.nights || 1} nights)`, 50, currentY);
         doc.text(`${invoiceData.nights || 1}`, 250, currentY);
-        doc.text(`$${(invoiceData.basePrice / (invoiceData.nights || 1)).toFixed(2)}`, 320, currentY, { width: 100, align: 'right' });
-        doc.text(`$${invoiceData.basePrice.toFixed(2)}`, 420, currentY, { width: 100, align: 'right' });
+        doc.text(formatCurrency(invoiceData.basePrice / (invoiceData.nights || 1)), 320, currentY, { width: 100, align: 'right' });
+        doc.text(formatCurrency(invoiceData.basePrice), 420, currentY, { width: 100, align: 'right' });
         currentY += 20;
       }
       
@@ -90,7 +93,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
         doc.text('Cleaning Fee', 50, currentY);
         doc.text('1', 250, currentY);
         doc.text('-', 320, currentY, { width: 100, align: 'right' });
-        doc.text(`$${invoiceData.cleaningFee.toFixed(2)}`, 420, currentY, { width: 100, align: 'right' });
+        doc.text(formatCurrency(invoiceData.cleaningFee), 420, currentY, { width: 100, align: 'right' });
         currentY += 20;
       }
       
@@ -99,7 +102,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
         doc.text('Service Fee', 50, currentY);
         doc.text('1', 250, currentY);
         doc.text('-', 320, currentY, { width: 100, align: 'right' });
-        doc.text(`$${invoiceData.serviceFee.toFixed(2)}`, 420, currentY, { width: 100, align: 'right' });
+        doc.text(formatCurrency(invoiceData.serviceFee), 420, currentY, { width: 100, align: 'right' });
         currentY += 20;
       }
       
@@ -108,7 +111,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
         doc.text(`Discount (${invoiceData.couponCode || 'Applied'})`, 50, currentY);
         doc.text('1', 250, currentY);
         doc.text('-', 320, currentY, { width: 100, align: 'right' });
-        doc.text(`-$${invoiceData.discount.toFixed(2)}`, 420, currentY, { width: 100, align: 'right' });
+        doc.text(`-${formatCurrency(invoiceData.discount)}`, 420, currentY, { width: 100, align: 'right' });
         currentY += 20;
       }
       
@@ -119,7 +122,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       // Total
       doc.fontSize(12).font('Helvetica-Bold');
       doc.text('Total:', 320, currentY, { width: 100, align: 'right' });
-      doc.text(`$${invoiceData.total.toFixed(2)}`, 420, currentY, { width: 100, align: 'right' });
+      doc.text(formatCurrency(invoiceData.total), 420, currentY, { width: 100, align: 'right' });
       doc.font('Helvetica');
       
       doc.moveDown(2);
@@ -129,8 +132,11 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
         doc.fontSize(14).text('Payment Information:', { underline: true });
         doc.fontSize(12);
         doc.text(`Payment Method: ${invoiceData.payment.method || 'N/A'}`);
+        if (invoiceData.payment.paypalEmail) {
+          doc.text(`PayPal Email: ${invoiceData.payment.paypalEmail}`);
+        }
         doc.text(`Transaction ID: ${invoiceData.payment.transactionId || 'N/A'}`);
-        doc.text(`Payment Date: ${new Date(invoiceData.payment.date || Date.now()).toLocaleDateString()}`);
+        doc.text(`Payment Date: ${new Date(invoiceData.payment.processedAt || invoiceData.payment.date || Date.now()).toLocaleDateString()}`);
         doc.moveDown();
       }
       

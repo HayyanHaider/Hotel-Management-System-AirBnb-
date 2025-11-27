@@ -1,6 +1,8 @@
-class Review {
-  constructor(reviewData) {
-    this.id = reviewData.id;
+const BaseEntity = require('./BaseEntity');
+
+class Review extends BaseEntity {
+  constructor(reviewData = {}) {
+    super(reviewData);
     this.bookingId = reviewData.bookingId;
     this.hotelId = reviewData.hotelId;
     this.userId = reviewData.userId;
@@ -8,8 +10,6 @@ class Review {
     this.comment = reviewData.comment || '';
     this.replyText = reviewData.replyText || '';
     this.repliedAt = reviewData.repliedAt || null;
-    this.createdAt = reviewData.createdAt;
-    this.updatedAt = reviewData.updatedAt;
   }
 
   // Encapsulation: Private method to validate review data

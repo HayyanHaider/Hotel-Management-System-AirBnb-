@@ -1,6 +1,9 @@
-class Payment {
-  constructor(paymentData) {
-    this.id = paymentData.id;
+const BaseEntity = require('./BaseEntity');
+const PaymentStrategyFactory = require('../services/payments/PaymentStrategyFactory');
+
+class Payment extends BaseEntity {
+  constructor(paymentData = {}) {
+    super(paymentData);
     this.bookingId = paymentData.bookingId;
     this.customerId = paymentData.customerId;
     this.amount = paymentData.amount;
@@ -15,8 +18,7 @@ class Payment {
     this.refundedAt = paymentData.refundedAt || null;
     this.refundReason = paymentData.refundReason || null;
     this.originalPaymentId = paymentData.originalPaymentId || null;
-    this.createdAt = paymentData.createdAt || new Date();
-    this.updatedAt = paymentData.updatedAt || new Date();
+    this.lastPaymentContext = paymentData.lastPaymentContext || null;
   }
 
   // Encapsulation: Private method to validate payment data
@@ -69,7 +71,7 @@ class Payment {
   }
 
   // Method to process payment
-  async processPayment(cardDetails = null, walletBalance = null, userId = null) {
+  async processPayment(paymentContext = {}) {
     // Allow processing if status is pending or not set
     if (this.status && this.status !== 'pending') {
       throw new Error('Only pending payments can be processed');
@@ -77,56 +79,11 @@ class Payment {
     
     this.status = 'processing';
     this.updatedAt = new Date();
+    this.lastPaymentContext = paymentContext;
     
     try {
-      // Handle wallet payments
-      if (this.paymentMethod === 'wallet') {
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required for wallet payments',
-            transactionId: null
-          };
-        }
-        
-        if (walletBalance === null || walletBalance === undefined) {
-          return {
-            success: false,
-            error: 'Wallet balance is required',
-            transactionId: null
-          };
-        }
-        
-        if (walletBalance < this.amount) {
-          return {
-            success: false,
-            error: `Insufficient wallet balance. You have $${walletBalance.toFixed(2)}, but need $${this.amount.toFixed(2)}`,
-            transactionId: null
-          };
-        }
-        
-        // Wallet payment - no processing fee
-        this.processingFee = 0;
-        this.netAmount = this.amount;
-        
-        // Deduct from wallet (this will be done in the controller)
-        this.status = 'completed';
-        this.transactionId = `wallet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        this.processedAt = new Date();
-        
-        return {
-          success: true,
-          transactionId: this.transactionId,
-          message: 'Payment processed successfully from wallet',
-          requiresWalletDeduction: true
-        };
-      }
-      
-      // Calculate processing fee for other payment methods
-      this.calculateProcessingFee();
-      
-      // Simulate payment gateway processing
-      const result = await this.#callPaymentGateway();
+      const strategy = PaymentStrategyFactory.create(this.paymentMethod);
+      const result = await strategy.process(this, paymentContext);
       
       if (result.success) {
         this.status = 'completed';
@@ -139,20 +96,13 @@ class Payment {
       
       this.updatedAt = new Date();
       
-      // Return result object with success, error, and transactionId
-      if (result.success) {
-        return {
-          success: true,
-          transactionId: result.transactionId,
-          message: result.message || 'Payment processed successfully'
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || 'Payment processing failed',
-          transactionId: result.transactionId || null
-        };
-      }
+      return {
+        success: result.success,
+        transactionId: result.transactionId || null,
+        message: result.message || (result.success ? 'Payment processed successfully' : undefined),
+        error: result.error,
+        requiresWalletDeduction: result.requiresWalletDeduction
+      };
       
     } catch (error) {
       this.status = 'failed';
@@ -162,29 +112,6 @@ class Payment {
         success: false,
         error: error.message,
         transactionId: null
-      };
-    }
-  }
-
-  // Encapsulation: Private method to simulate payment gateway call
-  async #callPaymentGateway() {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simulate payment processing (90% success rate)
-    const success = Math.random() > 0.1;
-    
-    if (success) {
-      return {
-        success: true,
-        transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        message: 'Payment processed successfully'
-      };
-    } else {
-      return {
-        success: false,
-        error: 'Payment declined by bank',
-        code: 'CARD_DECLINED'
       };
     }
   }
@@ -260,7 +187,7 @@ class Payment {
     this.updatedAt = new Date();
     
     // Process payment again
-    return await this.processPayment();
+    return await this.processPayment(this.lastPaymentContext || {});
   }
 
   // Method to check if payment is successful

@@ -749,10 +749,11 @@ const rescheduleBooking = async (req, res) => {
             discount: discounts,
             couponCode: updatedBooking.couponId?.code || dbBooking.priceSnapshot?.couponCode,
             total: newTotalPrice,
+            currency: 'PKR',
             payment: payment ? {
-              method: payment.paymentMethod || 'N/A',
+              method: payment.method || payment.paymentMethod || 'N/A',
               transactionId: payment.transactionId || 'N/A',
-              date: payment.createdAt || new Date()
+              date: payment.createdAt || payment.processedAt || new Date()
             } : undefined
           };
 
@@ -765,6 +766,73 @@ const rescheduleBooking = async (req, res) => {
           });
 
           console.log('Invoice regenerated for rescheduled booking:', invoiceFileName);
+
+          if (payment) {
+            const paymentMethodLabelMap = {
+              card: 'Credit/Debit Card',
+              paypal: 'PayPal',
+              wallet: 'Wallet',
+              bank_transfer: 'Bank Transfer',
+            };
+            const paymentMethodLabel = paymentMethodLabelMap[payment.method] || payment.method || 'N/A';
+            const invoiceBaseUrl =
+              process.env.BACKEND_BASE_URL ||
+              process.env.API_BASE_URL ||
+              process.env.SERVER_URL ||
+              process.env.APP_URL ||
+              process.env.BASE_URL ||
+              `${req.protocol}://${req.get('host')}`;
+            const normalizedInvoiceBaseUrl = invoiceBaseUrl.replace(/\/$/, '');
+            const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+            let invoiceDataUri = null;
+            try {
+              const fileBuffer = fs.readFileSync(invoicePath);
+              if (fileBuffer?.length) {
+                invoiceDataUri = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+              }
+            } catch (dataUriErr) {
+              console.error('Error creating invoice data URI after reschedule:', dataUriErr);
+            }
+            const paymentDetailsForInvoice = {
+              id: payment._id,
+              amount: newTotalPrice,
+              method: paymentMethodLabel,
+              transactionId: payment.transactionId || 'N/A',
+              processedAt: payment.processedAt || payment.createdAt || new Date(),
+              currency: 'PKR'
+            };
+
+            const invoiceEmailTemplate = emailTemplates.invoiceEmail(
+              paymentDetailsForInvoice,
+              updatedBooking,
+              updatedBooking.hotelId || {},
+              { name: user.name, email: user.email },
+              invoiceFileName,
+              invoicePublicUrl,
+              invoiceDataUri
+            );
+
+            const attachments = [];
+            if (fs.existsSync(invoicePath)) {
+              attachments.push({
+                filename: `invoice-${bookingId}.pdf`,
+                path: invoicePath
+              });
+            }
+
+            await sendEmail(
+              user.email,
+              `Updated Invoice - ${invoiceEmailTemplate.subject}`,
+              invoiceEmailTemplate.html,
+              invoiceEmailTemplate.text,
+              {
+                userId,
+                useUserGmail: true,
+                attachments
+              }
+            );
+            console.log(`✅ Updated invoice email sent to customer: ${user.email}`);
+          }
         }
       } catch (invoiceError) {
         console.error('Error regenerating invoice after reschedule:', invoiceError);

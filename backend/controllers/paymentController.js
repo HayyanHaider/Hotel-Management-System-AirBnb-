@@ -14,7 +14,7 @@ const fs = require('fs');
 // Process Payment Controller
 const processPayment = async (req, res) => {
   try {
-    const { bookingId, paymentMethod, cardDetails, walletBalance } = req.body;
+    const { bookingId, paymentMethod, cardDetails, walletBalance, paypalDetails } = req.body;
     const userId = req.user?.userId;
     
     if (!userId) {
@@ -42,6 +42,13 @@ const processPayment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Booking ID and payment method are required'
+      });
+    }
+
+    if (paymentMethod === 'paypal' && (!paypalDetails?.email || !paypalDetails?.password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PayPal email and password are required'
       });
     }
 
@@ -77,6 +84,15 @@ const processPayment = async (req, res) => {
     };
 
     const paymentInstance = new Payment(paymentData);
+    const paymentMethodLabelMap = {
+      card: 'Credit/Debit Card',
+      paypal: 'PayPal',
+      wallet: 'Wallet',
+      bank_transfer: 'Bank Transfer',
+    };
+    const paymentMethodLabel = paymentMethodLabelMap[paymentMethod] || paymentMethod;
+    const sanitizedPaypalEmail =
+      paymentMethod === 'paypal' ? (paypalDetails?.email || '').trim() : '';
 
     // Validate payment using OOP method
     const validationErrors = paymentInstance.validate();
@@ -88,11 +104,12 @@ const processPayment = async (req, res) => {
     }
 
     // Process payment using OOP method
-    const paymentResult = await paymentInstance.processPayment(
-      cardDetails, 
-      walletBalance, 
-      userId
-    );
+    const paymentResult = await paymentInstance.processPayment({
+      cardDetails,
+      walletBalance,
+      userId,
+      paypalDetails
+    });
 
     if (!paymentResult.success) {
       // Save failed payment attempt
@@ -150,6 +167,15 @@ const processPayment = async (req, res) => {
 
     await successfulPayment.save();
     paymentInstance.id = successfulPayment._id;
+    const paymentDetailsForInvoice = {
+      id: successfulPayment._id,
+      amount: paymentInstance.amount,
+      method: paymentMethodLabel,
+      transactionId: paymentResult.transactionId,
+      processedAt: paymentInstance.processedAt || new Date(),
+      paypalEmail: sanitizedPaypalEmail || null,
+      currency: 'PKR'
+    };
 
     // Update booking with payment information
     await BookingModel.findByIdAndUpdate(bookingId, {
@@ -187,6 +213,27 @@ const processPayment = async (req, res) => {
         
         const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;
         const invoicePath = path.join(invoiceDir, invoiceFileName);
+        const fallbackBaseUrl = `${req.protocol}://${req.get('host')}`;
+        const invoiceBaseUrl =
+          process.env.BACKEND_BASE_URL ||
+          process.env.API_BASE_URL ||
+          process.env.SERVER_URL ||
+          process.env.APP_URL ||
+          process.env.BASE_URL ||
+          fallbackBaseUrl;
+        const normalizedInvoiceBaseUrl = invoiceBaseUrl.replace(/\/$/, '');
+        const buildInvoiceDataUri = (filePath) => {
+          try {
+            const fileBuffer = fs.readFileSync(filePath);
+            if (!fileBuffer || !fileBuffer.length) {
+              return null;
+            }
+            return `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+          } catch (err) {
+            console.error('Error generating invoice data URI:', err);
+            return null;
+          }
+        };
         const invoiceData = {
           invoiceNumber: `INV-${bookingId}-${Date.now()}`,
           date: new Date(),
@@ -210,11 +257,8 @@ const processPayment = async (req, res) => {
           discount: updatedBooking.priceSnapshot?.discounts || 0,
           couponCode: updatedBooking.priceSnapshot?.couponCode,
           total: paymentInstance.amount,
-          payment: {
-            method: paymentMethod,
-            transactionId: paymentResult.transactionId,
-            date: new Date()
-          }
+          currency: 'PKR',
+          payment: paymentDetailsForInvoice
         };
         
         // Generate PDF invoice and send invoice email to customer
@@ -228,12 +272,16 @@ const processPayment = async (req, res) => {
             
             // Send invoice email to customer
             // Try to send from user's Gmail account if authorized, otherwise use system email
+            const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+            const invoiceDataUri = buildInvoiceDataUri(invoicePath);
             const emailTemplate = emailTemplates.invoiceEmail(
-              successfulPayment,
+              paymentDetailsForInvoice,
               updatedBooking,
               updatedBooking.hotelId || {},
               { name: user.name, email: user.email },
-              invoiceFileName
+              invoiceFileName,
+              invoicePublicUrl,
+              invoiceDataUri
             );
             
             // Attach PDF invoice if available
@@ -272,10 +320,12 @@ const processPayment = async (req, res) => {
             console.error('Error generating PDF invoice:', err);
             // Still send email even if PDF generation fails
             const emailTemplate = emailTemplates.invoiceEmail(
-              successfulPayment,
+              paymentDetailsForInvoice,
               updatedBooking,
               updatedBooking.hotelId || {},
               { name: user.name, email: user.email },
+              null,
+              null,
               null
             );
             sendEmail(

@@ -1,6 +1,8 @@
-class Booking {
-  constructor(bookingData) {
-    this.id = bookingData.id;
+const BaseEntity = require('./BaseEntity');
+
+class Booking extends BaseEntity {
+  constructor(bookingData = {}) {
+    super(bookingData);
     this.hotelId = bookingData.hotelId;
     this.userId = bookingData.userId;
     this.paymentId = bookingData.paymentId || null;
@@ -18,8 +20,6 @@ class Booking {
     this.priceSnapshot = bookingData.priceSnapshot || {};
     this.invoicePath = bookingData.invoicePath || '';
     this.autoConfirmedAt = bookingData.autoConfirmedAt || null;
-    this.createdAt = bookingData.createdAt;
-    this.updatedAt = bookingData.updatedAt;
   }
 
   // Encapsulation: Private method to validate booking data

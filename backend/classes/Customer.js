@@ -1,4 +1,5 @@
 const User = require('./User');
+const { getCustomerPermissions } = require('./utils/RolePermissions');
 
 class Customer extends User {
   constructor(userData) {
@@ -28,14 +29,7 @@ class Customer extends User {
     }
     
     // Customer-specific permissions
-    const customerPermissions = [
-      'book_rooms',
-      'cancel_bookings',
-      'write_reviews',
-      'add_favorites',
-      'view_booking_history'
-    ];
-    return customerPermissions.includes(permission);
+    return getCustomerPermissions().includes(permission);
   }
 
   // Method to add hotel to favorites
