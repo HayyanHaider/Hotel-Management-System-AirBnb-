@@ -1,6 +1,40 @@
 const HotelModel = require('../models/hotelModel');
+const BookingModel = require('../models/bookingModel');
 const Hotel = require('../classes/Hotel');
 const Room = require('../classes/Room');
+
+const normalizeDate = (date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const isHotelAvailableForRange = (bookings, totalRooms, checkInDate, checkOutDate) => {
+  if (!bookings || bookings.length === 0) {
+    return true;
+  }
+
+  const start = normalizeDate(checkInDate);
+  const end = normalizeDate(checkOutDate);
+
+  for (let day = new Date(start); day < end; day.setDate(day.getDate() + 1)) {
+    const currentDay = normalizeDate(day);
+    const roomsBooked = bookings.reduce((count, booking) => {
+      const bookingCheckIn = normalizeDate(booking.checkIn);
+      const bookingCheckOut = normalizeDate(booking.checkOut);
+      if (currentDay >= bookingCheckIn && currentDay < bookingCheckOut) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+
+    if (roomsBooked >= totalRooms) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 // Create Hotel Controller
 const createHotel = async (req, res) => {
@@ -165,6 +199,7 @@ const getHotels = async (req, res) => {
         contactInfo: dbHotel.contactInfo || {},
         pricing: dbHotel.pricing || {},
         capacity: dbHotel.capacity || {},
+        totalRooms: dbHotel.totalRooms || 1,
         ownerId: dbHotel.ownerId,
         rating: dbHotel.rating || 0,
         totalReviews: dbHotel.totalReviews || 0,
@@ -179,10 +214,49 @@ const getHotels = async (req, res) => {
     // Apply search filters using OOP methods
     let filteredHotels = hotelInstances;
 
-    if (checkIn && checkOut && guests) {
-      filteredHotels = filteredHotels.filter(hotel => 
-        hotel.hasAvailableRooms(new Date(checkIn), new Date(checkOut), parseInt(guests))
+    const requestedGuests = guests ? parseInt(guests, 10) : null;
+    const parsedCheckIn = checkIn ? new Date(checkIn) : null;
+    const parsedCheckOut = checkOut ? new Date(checkOut) : null;
+
+    if (requestedGuests) {
+      filteredHotels = filteredHotels.filter(hotel =>
+        hotel.hasAvailableCapacity(requestedGuests)
       );
+    }
+
+    if (parsedCheckIn && parsedCheckOut) {
+      const hotelIds = filteredHotels.map(hotel => hotel.id).filter(Boolean);
+      let bookingsByHotel = {};
+
+      if (hotelIds.length > 0) {
+        const overlappingBookings = await BookingModel.find({
+          hotelId: { $in: hotelIds },
+          status: { $in: ['confirmed', 'active', 'checked-in'] },
+          checkIn: { $lt: parsedCheckOut },
+          checkOut: { $gt: parsedCheckIn }
+        });
+
+        bookingsByHotel = overlappingBookings.reduce((acc, booking) => {
+          const id = booking.hotelId?.toString();
+          if (!id) return acc;
+          if (!acc[id]) {
+            acc[id] = [];
+          }
+          acc[id].push(booking);
+          return acc;
+        }, {});
+      }
+
+      filteredHotels = filteredHotels.filter(hotel => {
+        if (!hotel.hasAvailableRooms(parsedCheckIn, parsedCheckOut, requestedGuests || 1)) {
+          return false;
+        }
+
+        const hotelId = hotel.id?.toString();
+        const bookings = hotelId ? bookingsByHotel[hotelId] : [];
+        const totalRooms = hotel.totalRooms || 1;
+        return isHotelAvailableForRange(bookings, totalRooms, parsedCheckIn, parsedCheckOut);
+      });
     }
 
     if (minPrice || maxPrice) {
@@ -267,6 +341,7 @@ const getHotelDetails = async (req, res) => {
       contactInfo: dbHotel.contactInfo || {},
       pricing: dbHotel.pricing || {},
       capacity: dbHotel.capacity || {},
+      totalRooms: dbHotel.totalRooms || 1,
       ownerId: dbHotel.ownerId,
       rating: dbHotel.rating || 0,
       totalReviews: dbHotel.totalReviews || 0,

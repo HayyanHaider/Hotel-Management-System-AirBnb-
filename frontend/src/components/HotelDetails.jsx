@@ -375,7 +375,7 @@ const HotelDetails = () => {
             <p className="description-text">{hotel.description}</p>
           </section>
 
-          {(hotel.capacity?.guests || hotel.capacity?.bedrooms || hotel.capacity?.bathrooms) && (
+          {(hotel.capacity?.guests || hotel.capacity?.bedrooms || hotel.capacity?.bathrooms || hotel.totalRooms) && (
             <section className="section-card">
               <h3 className="section-title">Property Details</h3>
               <div className="property-details-grid" style={{
@@ -429,6 +429,22 @@ const HotelDetails = () => {
                       color: '#222'
                     }}>
                       Up to {hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bathroom' : 'bathrooms'}
+                    </div>
+                  </div>
+                )}
+                {hotel.totalRooms && (
+                  <div className="property-detail-item">
+                    <div className="property-detail-label" style={{
+                      fontSize: '14px',
+                      color: '#717171',
+                      marginBottom: '4px'
+                    }}>Total rooms</div>
+                    <div className="property-detail-value" style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#222'
+                    }}>
+                      {hotel.totalRooms} {hotel.totalRooms === 1 ? 'room' : 'rooms'}
                     </div>
                   </div>
                 )}
