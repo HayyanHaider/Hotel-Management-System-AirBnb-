@@ -470,6 +470,8 @@ const ManageHotelProfile = () => {
     });
   };
 
+
+
   if (loading) {
     return <div className="dashboard-container text-center">Loading...</div>;
   }
@@ -492,10 +494,10 @@ const ManageHotelProfile = () => {
         </div>
       </div>
 
-      <div className="container">
+      <div className="container-fluid">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h3>Your Hotels</h3>
-          {!showCreateForm && !editingHotel && (
+          {hotels.length > 0 && !showCreateForm && !editingHotel && (
             <button className="btn btn-primary" onClick={handleCreateNew}>
               + Create New Hotel
             </button>

@@ -271,7 +271,7 @@ const Signup = () => {
                         className="form-select"
                       >
                         <option value="customer">Customer</option>
-                        <option value="hotel">Hotel</option>
+                        <option value="hotel">Hotel Owner</option>
                       </select>
                     </div>
                   )}

@@ -181,7 +181,7 @@ const BrowseHotels = () => {
   };
 
   return (
-    <div className="home-container" style={{ minHeight: '100vh' }}>
+    <div className="home-container" style={{ minHeight: '91vh' }}>
       {/* Modern Search Bar */}
       <div className="sticky-top bg-white border-bottom shadow-sm" style={{ top: '72px', zIndex: 100 }}>
         <div className="d-flex justify-content-center" style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}>
@@ -547,10 +547,10 @@ const BrowseHotels = () => {
           </div>
         </div>
       ) : hotels.length === 0 ? (
-        <div className="container py-5">
-          <div className="text-center">
-            <h3 className="mb-3">No places found</h3>
-            <p className="text-muted">Try adjusting your search or filters</p>
+        <div className="no-results-full">
+          <div className="no-results-card text-center">
+            <h3 className="mb-2">No places found</h3>
+            <p className="text-muted mb-0">Try adjusting your search or filters</p>
           </div>
         </div>
       ) : (

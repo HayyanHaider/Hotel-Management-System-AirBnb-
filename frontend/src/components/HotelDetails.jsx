@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -36,6 +36,8 @@ const HotelDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const guestSelectRef = useRef(null);
+  const mapSectionRef = useRef(null);
 
   // Get today's date in YYYY-MM-DD format - recalculate on each render to ensure it's current
   const todayDate = useMemo(() => {
@@ -251,6 +253,12 @@ const HotelDetails = () => {
     );
   }
 
+  const scrollToMapSection = () => {
+    if (mapSectionRef.current) {
+      mapSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="hotel-container">
       <div className="hotel-header">
@@ -267,7 +275,20 @@ const HotelDetails = () => {
                 <span className="reviews-count">({hotel.totalReviews || 0} reviews)</span>
               </div>
               <span className="divider">·</span>
-              <span className="location-text">{hotel.location?.city}, {hotel.location?.country}</span>
+              <span
+                className="location-text"
+                role="button"
+                tabIndex={0}
+                onClick={scrollToMapSection}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    scrollToMapSection();
+                  }
+                }}
+              >
+                {hotel.location?.city}, {hotel.location?.country}
+              </span>
             </div>
           </div>
           {isLoggedIn && (
@@ -369,13 +390,13 @@ const HotelDetails = () => {
                       fontSize: '14px',
                       color: '#717171',
                       marginBottom: '4px'
-                    }}>Guests</div>
+                    }}>Max guests</div>
                     <div className="property-detail-value" style={{
                       fontSize: '16px',
                       fontWeight: '600',
                       color: '#222'
                     }}>
-                      {hotel.capacity.guests} {hotel.capacity.guests === 1 ? 'guest' : 'guests'}
+                      Up to {hotel.capacity.guests} {hotel.capacity.guests === 1 ? 'guest' : 'guests'}
                     </div>
                   </div>
                 )}
@@ -385,13 +406,13 @@ const HotelDetails = () => {
                       fontSize: '14px',
                       color: '#717171',
                       marginBottom: '4px'
-                    }}>Bedrooms</div>
+                    }}>Max bedrooms</div>
                     <div className="property-detail-value" style={{
                       fontSize: '16px',
                       fontWeight: '600',
                       color: '#222'
                     }}>
-                      {hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}
+                      Up to {hotel.capacity.bedrooms} {hotel.capacity.bedrooms === 1 ? 'bedroom' : 'bedrooms'}
                     </div>
                   </div>
                 )}
@@ -401,13 +422,13 @@ const HotelDetails = () => {
                       fontSize: '14px',
                       color: '#717171',
                       marginBottom: '4px'
-                    }}>Bathrooms</div>
+                    }}>Max bathrooms</div>
                     <div className="property-detail-value" style={{
                       fontSize: '16px',
                       fontWeight: '600',
                       color: '#222'
                     }}>
-                      {hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bathroom' : 'bathrooms'}
+                      Up to {hotel.capacity.bathrooms} {hotel.capacity.bathrooms === 1 ? 'bathroom' : 'bathrooms'}
                     </div>
                   </div>
                 )}
@@ -467,7 +488,7 @@ const HotelDetails = () => {
           </section>
 
           {hotel.location?.coordinates?.lat != null && hotel.location?.coordinates?.lng != null && (
-            <section className="section-card">
+            <section className="section-card" ref={mapSectionRef}>
               <h3 className="section-title">Where you'll be</h3>
               <div className="map-wrapper">
                 <MapContainer
@@ -526,8 +547,14 @@ const HotelDetails = () => {
             <div className="guests-select">
               <label>GUESTS</label>
               <select
+                ref={guestSelectRef}
                 value={guests}
-                onChange={(e) => setGuests(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const selectedGuests = parseInt(e.target.value, 10);
+                  setGuests(selectedGuests);
+                  guestSelectRef.current?.blur();
+                }}
+                style={{ paddingRight: '36px' }}
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                   <option key={num} value={num}>{num} {num === 1 ? 'guest' : 'guests'}</option>
