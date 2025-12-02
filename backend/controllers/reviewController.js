@@ -1,155 +1,140 @@
-const ReviewModel = require('../models/reviewsModel');
-const BookingModel = require('../models/bookingModel');
-const HotelModel = require('../models/hotelModel');
+const BaseController = require('./BaseController');
+const ReviewService = require('../services/ReviewService');
 
-// Create review (customer, one per booking)
-const createReview = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const CustomerModel = require('../models/customerModel');
-    
-    // Find or create customer document
-    let customerDoc = await CustomerModel.findOne({ user: userId });
-    if (!customerDoc) {
-      customerDoc = await CustomerModel.create({
-        user: userId,
-        loyaltyPoints: 0,
-        bookingHistory: [],
-        reviewsGiven: [],
-      });
-    }
-    const customerId = customerDoc._id;
-    
-    const { bookingId, rating, comment = '' } = req.body;
-
-    if (!bookingId || !rating) {
-      return res.status(400).json({ success: false, message: 'bookingId and rating are required' });
-    }
-
-    // Find booking using Customer ID (not User ID)
-    const booking = await BookingModel.findOne({ _id: bookingId, userId: customerId });
-    if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' });
-    }
-
-    if (booking.status !== 'completed' && booking.status !== 'checked-out') {
-      return res.status(400).json({ success: false, message: 'You can review only after stay is completed' });
-    }
-
-    const existing = await ReviewModel.findOne({ bookingId: bookingId });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'Review already exists for this booking' });
-    }
-
-    const review = await ReviewModel.create({
-      bookingId: booking._id,
-      hotelId: booking.hotelId || booking.hotel,
-      userId: userId,
-      rating,
-      comment
-    });
-
-    // Recompute hotel rating aggregation
-    const hotelIdForUpdate = booking.hotelId || booking.hotel;
-    const agg = await ReviewModel.aggregate([
-      { $match: { hotelId: hotelIdForUpdate } },
-      { $group: { _id: '$hotelId', avg: { $avg: '$rating' }, count: { $sum: 1 } } }
-    ]);
-
-    if (agg.length > 0) {
-      await HotelModel.findByIdAndUpdate(hotelIdForUpdate, {
-        rating: agg[0].avg,
-        totalReviews: agg[0].count
-      });
-    }
-
-    return res.status(201).json({ success: true, review });
-  } catch (error) {
-    console.error('createReview error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while creating review' });
+/**
+ * ReviewController - Handles review endpoints
+ * Follows Single Responsibility Principle - only handles HTTP requests/responses
+ * Follows Dependency Inversion Principle - depends on service abstractions
+ */
+class ReviewController extends BaseController {
+  constructor() {
+    super();
+    this.reviewService = ReviewService;
   }
-};
 
-// List reviews for a hotel
-const listHotelReviews = async (req, res) => {
-  try {
-    const { hotelId } = req.params;
-    
-    // Check if hotel is suspended
-    const hotel = await HotelModel.findById(hotelId);
-    if (hotel && hotel.isSuspended) {
-      return res.json({ success: true, count: 0, reviews: [] });
-    }
+  /**
+   * Create Review
+   * Delegates business logic to ReviewService
+   */
+  createReview = async (req, res) => {
+    try {
+      const { bookingId, rating, comment } = req.body;
+      const userId = req.user.userId;
 
-    const reviews = await ReviewModel.find({ hotelId: hotelId })
-      .populate({
-        path: 'hotelId',
-        select: 'isSuspended',
-        match: { isSuspended: { $ne: true } } // Filter out suspended hotels
-      })
-      .populate('userId', 'name')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Filter out reviews where hotel is null (suspended hotels)
-    const filteredReviews = reviews.filter(review => review.hotelId !== null);
-
-    const normalizedReviews = filteredReviews.map((review) => {
-      if (!review.reply && review.replyText) {
-        review.reply = {
-          by: review.reply?.by || null,
-          text: review.replyText,
-          repliedAt: review.repliedAt
-        };
+      if (!bookingId || !rating) {
+        return this.fail(res, 400, 'bookingId and rating are required');
       }
-      return review;
-    });
 
-    return res.json({ success: true, count: normalizedReviews.length, reviews: normalizedReviews });
-  } catch (error) {
-    console.error('listHotelReviews error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while listing reviews' });
-  }
-};
+      const review = await this.reviewService.createReview({
+        bookingId,
+        rating,
+        comment
+      }, userId);
 
-// Reply to a review (hotel or admin)
-const replyToReview = async (req, res) => {
-  try {
-    const user = req.user;
-    const { reviewId } = req.params;
-    const { text } = req.body;
-
-    if (!text) {
-      return res.status(400).json({ success: false, message: 'Reply text is required' });
-    }
-
-    const review = await ReviewModel.findById(reviewId);
-    if (!review) {
-      return res.status(404).json({ success: false, message: 'Review not found' });
-    }
-
-    // Check if hotel is suspended
-    const hotel = await HotelModel.findById(review.hotelId);
-    if (hotel && hotel.isSuspended) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Cannot reply to reviews for a suspended hotel' 
+      return this.created(res, {
+        review
       });
+    } catch (error) {
+      console.error('createReview error:', error);
+      const status = error.message.includes('not found') ? 404 :
+                     error.message.includes('already exists') || 
+                     error.message.includes('only after') ? 400 : 500;
+      return this.fail(res, status, error.message || 'Server error while creating review');
     }
+  };
 
-    // Allow admin or hotel (ownership check can be added if hotel ownership link exists)
-    const repliedAt = new Date();
-    review.reply = { by: user.userId, text, repliedAt };
-    review.replyText = text;
-    review.repliedAt = repliedAt;
-    await review.save();
-    return res.json({ success: true, review });
-  } catch (error) {
-    console.error('replyToReview error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while replying to review' });
-  }
+  /**
+   * List Hotel Reviews
+   */
+  listHotelReviews = async (req, res) => {
+    try {
+      const { hotelId } = req.params;
+
+      const reviews = await this.reviewService.getHotelReviews(hotelId, {
+        populate: 'userId'
+      });
+
+      // Normalize reviews for response format
+      const normalizedReviews = reviews.map((review) => {
+        const reviewObj = typeof review === 'object' && review.toJSON ? review.toJSON() : review;
+        if (!reviewObj.reply && reviewObj.replyText) {
+          reviewObj.reply = {
+            by: reviewObj.reply?.by || null,
+            text: reviewObj.replyText,
+            repliedAt: reviewObj.repliedAt
+          };
+        }
+        return reviewObj;
+      });
+
+      return this.ok(res, {
+        count: normalizedReviews.length,
+        reviews: normalizedReviews
+      });
+    } catch (error) {
+      console.error('listHotelReviews error:', error);
+      return this.fail(res, 500, error.message || 'Server error while listing reviews');
+    }
+  };
+
+  /**
+   * Reply to Review
+   */
+  replyToReview = async (req, res) => {
+    try {
+      const { reviewId } = req.params;
+      const { text } = req.body;
+      const userId = req.user.userId;
+
+      if (!text) {
+        return this.fail(res, 400, 'Reply text is required');
+      }
+
+      const reviewData = await this.reviewService.reviewRepository.findById(reviewId);
+      if (!reviewData) {
+        return this.fail(res, 404, 'Review not found');
+      }
+
+      // Check if hotel is suspended
+      const hotel = await this.reviewService.hotelRepository.findById(reviewData.hotelId);
+      if (hotel && hotel.isSuspended) {
+        return this.fail(res, 403, 'Cannot reply to reviews for a suspended hotel');
+      }
+
+      // Update review with reply
+      const Review = require('../classes/Review');
+      const reviewInstance = new Review(reviewData);
+      reviewInstance.addOwnerResponse(text);
+
+      const updatedReview = await this.reviewService.reviewRepository.updateById(reviewId, {
+        replyText: reviewInstance.replyText,
+        repliedAt: reviewInstance.repliedAt,
+        reply: {
+          by: userId,
+          text: text,
+          repliedAt: reviewInstance.repliedAt
+        }
+      });
+
+      return this.ok(res, {
+        review: updatedReview
+      });
+    } catch (error) {
+      console.error('replyToReview error:', error);
+      const status = error.message.includes('not found') ? 404 :
+                     error.message.includes('suspended') ? 403 : 500;
+      return this.fail(res, status, error.message || 'Server error while replying to review');
+    }
+  };
+}
+
+// Export singleton instance
+const reviewController = new ReviewController();
+
+module.exports = {
+  createReview: reviewController.createReview,
+  listHotelReviews: reviewController.listHotelReviews,
+  replyToReview: reviewController.replyToReview
 };
-
-module.exports = { createReview, listHotelReviews, replyToReview };
 
 

@@ -12,7 +12,7 @@ const PaymentModel = require('../models/paymentModel');
  */
 class AdminController {
   // ========== DASHBOARD ==========
-  
+
   /**
    * Get dashboard statistics
    */
@@ -22,9 +22,9 @@ class AdminController {
       res.json({ success: true, stats });
     } catch (error) {
       console.error('getDashboardStats error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching dashboard stats' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching dashboard stats'
       });
     }
   }
@@ -37,13 +37,13 @@ class AdminController {
   async getHotels(req, res) {
     try {
       const { status, search, page, limit } = req.query;
-      const result = await AdminHotelService.getHotels({ 
-        status, 
-        search, 
-        page, 
-        limit 
+      const result = await AdminHotelService.getHotels({
+        status,
+        search,
+        page,
+        limit
       });
-      
+
       res.json({
         success: true,
         hotels: result.hotels,
@@ -51,9 +51,9 @@ class AdminController {
       });
     } catch (error) {
       console.error('getHotels error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching hotels' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching hotels'
       });
     }
   }
@@ -62,17 +62,17 @@ class AdminController {
    * Approve a hotel
    */
   async approveHotel(req, res) {
-  try {
-    const { hotelId } = req.params;
+    try {
+      const { hotelId } = req.params;
       const adminId = req.user.userId;
-      
+
       const hotel = await AdminHotelService.approveHotel(hotelId, adminId);
       res.json({ success: true, hotel });
-  } catch (error) {
-    console.error('approveHotel error:', error);
-      res.status(error.message === 'Hotel not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+    } catch (error) {
+      console.error('approveHotel error:', error);
+      res.status(error.message === 'Hotel not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -85,14 +85,14 @@ class AdminController {
       const { hotelId } = req.params;
       const { reason = '' } = req.body;
       const adminId = req.user.userId;
-      
+
       const hotel = await AdminHotelService.rejectHotel(hotelId, adminId, reason);
       res.json({ success: true, hotel });
     } catch (error) {
       console.error('rejectHotel error:', error);
-      res.status(error.message === 'Hotel not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+      res.status(error.message === 'Hotel not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -101,18 +101,18 @@ class AdminController {
    * Suspend a hotel
    */
   async suspendHotel(req, res) {
-  try {
-    const { hotelId } = req.params;
-    const { reason = '' } = req.body;
+    try {
+      const { hotelId } = req.params;
+      const { reason = '' } = req.body;
       const adminId = req.user.userId;
-      
+
       const hotel = await AdminHotelService.suspendHotel(hotelId, adminId, reason);
       res.json({ success: true, hotel });
-  } catch (error) {
-    console.error('suspendHotel error:', error);
-      res.status(error.message === 'Hotel not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+    } catch (error) {
+      console.error('suspendHotel error:', error);
+      res.status(error.message === 'Hotel not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -124,14 +124,14 @@ class AdminController {
     try {
       const { hotelId } = req.params;
       const adminId = req.user.userId;
-      
+
       const hotel = await AdminHotelService.unsuspendHotel(hotelId, adminId);
       res.json({ success: true, hotel });
     } catch (error) {
       console.error('unsuspendHotel error:', error);
-      res.status(error.message === 'Hotel not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+      res.status(error.message === 'Hotel not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -144,14 +144,14 @@ class AdminController {
   async getUsers(req, res) {
     try {
       const { role, status, search, page, limit } = req.query;
-      const result = await AdminUserService.getUsers({ 
-        role, 
-        status, 
-        search, 
-        page, 
-        limit 
+      const result = await AdminUserService.getUsers({
+        role,
+        status,
+        search,
+        page,
+        limit
       });
-      
+
       res.json({
         success: true,
         users: result.users,
@@ -159,9 +159,9 @@ class AdminController {
       });
     } catch (error) {
       console.error('getUsers error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching users' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching users'
       });
     }
   }
@@ -170,18 +170,18 @@ class AdminController {
    * Suspend a user
    */
   async suspendUser(req, res) {
-  try {
-    const { userId } = req.params;
-    const { reason = '' } = req.body;
+    try {
+      const { userId } = req.params;
+      const { reason = '' } = req.body;
       const adminId = req.user.userId;
-      
+
       const user = await AdminUserService.suspendUser(userId, adminId, reason);
       res.json({ success: true, user });
-  } catch (error) {
-    console.error('suspendUser error:', error);
-      res.status(error.message === 'User not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+    } catch (error) {
+      console.error('suspendUser error:', error);
+      res.status(error.message === 'User not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -193,14 +193,14 @@ class AdminController {
     try {
       const { userId } = req.params;
       const adminId = req.user.userId;
-      
+
       const user = await AdminUserService.unsuspendUser(userId, adminId);
       res.json({ success: true, user });
     } catch (error) {
       console.error('unsuspendUser error:', error);
-      res.status(error.message === 'User not found' ? 404 : 500).json({ 
-        success: false, 
-        message: error.message 
+      res.status(error.message === 'User not found' ? 404 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -214,7 +214,7 @@ class AdminController {
     try {
       const { page, limit } = req.query;
       const result = await AdminHotelService.getLowRatedHotels({ page, limit });
-      
+
       res.json({
         success: true,
         hotels: result.hotels,
@@ -222,9 +222,9 @@ class AdminController {
       });
     } catch (error) {
       console.error('getLowRatedHotels error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching low-rated hotels' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching low-rated hotels'
       });
     }
   }
@@ -264,9 +264,9 @@ class AdminController {
       });
     } catch (error) {
       console.error('getRefundRequests error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching refund requests' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching refund requests'
       });
     }
   }
@@ -321,11 +321,11 @@ class AdminController {
       res.json({ success: true, refund });
     } catch (error) {
       console.error('processRefund error:', error);
-      const status = error.message.includes('not found') ? 404 : 
-                    error.message.includes('Invalid') ? 400 : 500;
-      res.status(status).json({ 
-        success: false, 
-        message: error.message 
+      const status = error.message.includes('not found') ? 404 :
+        error.message.includes('Invalid') ? 400 : 500;
+      res.status(status).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -339,20 +339,20 @@ class AdminController {
     try {
       const { type, startDate, endDate } = req.query;
       const adminId = req.user.userId;
-      
+
       const report = await AdminReportService.generateReport(
-        type, 
-        adminId, 
+        type,
+        adminId,
         { startDate, endDate }
       );
-      
+
       res.json({ success: true, report });
     } catch (error) {
       console.error('getReports error:', error);
       const status = error.message === 'Invalid report type' ? 400 : 500;
-      res.status(status).json({ 
-        success: false, 
-        message: error.message 
+      res.status(status).json({
+        success: false,
+        message: error.message
       });
     }
   }
@@ -365,13 +365,13 @@ class AdminController {
   async getActivityLog(req, res) {
     try {
       const { action, targetType, page, limit } = req.query;
-      const result = await AdminActivityLogger.getActivities({ 
-        action, 
-        targetType, 
-        page, 
-        limit 
+      const result = await AdminActivityLogger.getActivities({
+        action,
+        targetType,
+        page,
+        limit
       });
-      
+
       res.json({
         success: true,
         activities: result.activities,
@@ -379,9 +379,9 @@ class AdminController {
       });
     } catch (error) {
       console.error('getActivityLog error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Server error while fetching activity log' 
+      res.status(500).json({
+        success: false,
+        message: 'Server error while fetching activity log'
       });
     }
   }
@@ -392,30 +392,30 @@ const controller = new AdminController();
 
 module.exports = {
   // Dashboard
-  getDashboardStats: controller.getDashboardStats.bind(controller),
-  
+  getDashboardStats: (req, res) => controller.getDashboardStats(req, res),
+
   // Hotel Management
-  getHotels: controller.getHotels.bind(controller),
-  approveHotel: controller.approveHotel.bind(controller),
-  rejectHotel: controller.rejectHotel.bind(controller),
-  suspendHotel: controller.suspendHotel.bind(controller),
-  unsuspendHotel: controller.unsuspendHotel.bind(controller),
-  
+  getHotels: (req, res) => controller.getHotels(req, res),
+  approveHotel: (req, res) => controller.approveHotel(req, res),
+  rejectHotel: (req, res) => controller.rejectHotel(req, res),
+  suspendHotel: (req, res) => controller.suspendHotel(req, res),
+  unsuspendHotel: (req, res) => controller.unsuspendHotel(req, res),
+
   // User Management
-  getUsers: controller.getUsers.bind(controller),
-  suspendUser: controller.suspendUser.bind(controller),
-  unsuspendUser: controller.unsuspendUser.bind(controller),
-  
+  getUsers: (req, res) => controller.getUsers(req, res),
+  suspendUser: (req, res) => controller.suspendUser(req, res),
+  unsuspendUser: (req, res) => controller.unsuspendUser(req, res),
+
   // Monitoring
-  getLowRatedHotels: controller.getLowRatedHotels.bind(controller),
-  
+  getLowRatedHotels: (req, res) => controller.getLowRatedHotels(req, res),
+
   // Refunds
-  getRefundRequests: controller.getRefundRequests.bind(controller),
-  processRefund: controller.processRefund.bind(controller),
-  
+  getRefundRequests: (req, res) => controller.getRefundRequests(req, res),
+  processRefund: (req, res) => controller.processRefund(req, res),
+
   // Reports
-  getReports: controller.getReports.bind(controller),
-  
+  getReports: (req, res) => controller.getReports(req, res),
+
   // Activity Log
-  getActivityLog: controller.getActivityLog.bind(controller)
+  getActivityLog: (req, res) => controller.getActivityLog(req, res)
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import HotelApiService from '../services/api/HotelApiService';
 import ManageHotelProfile from './ManageHotelProfile';
 import ManageCoupons from './ManageCoupons';
 import OwnerBookingManagement from './OwnerBookingManagement';
@@ -51,7 +52,7 @@ const HotelDashboard = () => {
     }
 
     setUser(parsedUser);
-    fetchDashboardStats(token);
+    fetchDashboardStats();
 
     // Listen for logo click to reset to home
     const handleResetDashboard = () => {
@@ -71,13 +72,19 @@ const HotelDashboard = () => {
     }
   }, [activeSection]);
 
-  const fetchDashboardStats = async (token) => {
+  const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      // Fetch owner's hotels
-      const hotelsResponse = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      
+      // Get token for axios calls
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      // Fetch owner's hotels using service
+      const hotelsResponse = await HotelApiService.getOwnerHotels();
 
       // Fetch owner's bookings
       const bookingsResponse = await axios.get('http://localhost:5000/api/owner/bookings', {
@@ -102,8 +109,8 @@ const HotelDashboard = () => {
         // Continue with default values if earnings fetch fails
       }
 
-      if (hotelsResponse.data.success && bookingsResponse.data.success) {
-        const hotels = hotelsResponse.data.hotels || [];
+      if (hotelsResponse.success && bookingsResponse.data.success) {
+        const hotels = hotelsResponse.hotels || [];
         const bookings = bookingsResponse.data.bookings || [];
         
         const activeHotels = hotels.filter(h => h.isApproved && !h.isSuspended);
@@ -127,7 +134,13 @@ const HotelDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      toast.error('Failed to load dashboard statistics');
+      if (error.message.includes('Token') || error.message.includes('401')) {
+        toast.error('Session expired. Please login again.');
+        sessionStorage.clear();
+        navigate('/login');
+      } else {
+        toast.error('Failed to load dashboard statistics');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,19 +1,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useHotels } from '../hooks/useHotels';
+import { useAuth } from '../hooks/useAuth';
+import UserApiService from '../services/api/UserApiService';
 import './Home.css';
 
+/**
+ * BrowseHotels - Component for browsing hotels
+ * Follows Single Responsibility Principle - only handles UI and user interactions
+ * Follows Dependency Inversion Principle - depends on hooks and services abstractions
+ */
 const BrowseHotels = () => {
-  const [hotels, setHotels] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [activeDateInput, setActiveDateInput] = useState('checkIn'); // 'checkIn' or 'checkOut'
+  const [activeDateInput, setActiveDateInput] = useState('checkIn');
   const checkInInputRef = useRef(null);
   const checkOutInputRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // Use custom hooks for data fetching (Separation of Concerns)
+  const { isAuthenticated } = useAuth();
+  
   const [filters, setFilters] = useState({
     location: searchParams.get('location') || '',
     checkIn: searchParams.get('checkIn') || '',
@@ -24,108 +33,62 @@ const BrowseHotels = () => {
     minRating: searchParams.get('minRating') || '',
     amenities: searchParams.get('amenities') ? searchParams.get('amenities').split(',') : [],
     sortBy: searchParams.get('sortBy') || 'popularity',
-    order: searchParams.get('order') || 'desc'
+    order: searchParams.get('order') || 'desc',
+    limit: 50
   });
-  const navigate = useNavigate();
 
-  const fetchHotels = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = sessionStorage.getItem('token');
-      const params = new URLSearchParams();
-      
-      Object.keys(filters).forEach(key => {
-        if (filters[key] && key !== 'amenities') {
-          params.append(key, filters[key]);
-        }
-      });
-      
-      if (filters.amenities && filters.amenities.length > 0) {
-        params.append('amenities', filters.amenities.join(','));
-      }
+  // Use custom hook for hotels data
+  const { hotels, loading, error, refetch } = useHotels(filters);
 
-      // Add limit parameter to fetch more hotels (default 50)
-      if (!params.has('limit')) {
-        params.append('limit', '50');
-      }
-      
-      const response = await axios.get(`http://localhost:5000/api/hotels?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-
-      if (response.data.success) {
-        setHotels(response.data.hotels || []);
-      }
-    } catch (error) {
-      console.error('Error fetching hotels:', error);
-    } finally {
-      setLoading(false);
+  const fetchFavorites = useCallback(async () => {
+    if (!isAuthenticated) {
+      setFavorites([]);
+      return;
     }
-  }, [filters]);
 
-  const fetchFavorites = async () => {
     try {
-      const token = sessionStorage.getItem('token');
-      if (!token) {
-        setIsLoggedIn(false);
-        return;
-      }
-
-      setIsLoggedIn(true);
-      const response = await axios.get('http://localhost:5000/api/users/favorites', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        const favoriteIds = (response.data.favorites || []).map(f => String(f._id || f.id));
+      const response = await UserApiService.getFavorites();
+      if (response.success) {
+        const favoriteIds = (response.favorites || []).map(f => String(f._id || f.id));
         setFavorites(favoriteIds);
       }
     } catch (error) {
       console.error('Error fetching favorites:', error);
-      setIsLoggedIn(false);
+      setFavorites([]);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    // Check login status on mount and when hotels are fetched
-    const token = sessionStorage.getItem('token');
-    setIsLoggedIn(!!token);
-    
-    fetchHotels();
-    if (token) {
-      fetchFavorites();
-    }
-  }, [fetchHotels]);
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  useEffect(() => {
+    refetch();
+  }, [filters, refetch]);
 
   const toggleFavorite = async (hotelId, e) => {
     e.stopPropagation();
     
-    try {
-      const token = sessionStorage.getItem('token');
-      if (!token) {
-        // This shouldn't happen since button is hidden when not logged in, but just in case
-        return;
-      }
+    if (!isAuthenticated) {
+      return;
+    }
 
+    try {
       const hotelIdStr = String(hotelId);
       const isFavorite = favorites.includes(hotelIdStr);
 
       if (isFavorite) {
-        await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await UserApiService.removeFavorite(hotelId);
         setFavorites(prev => prev.filter(id => id !== hotelIdStr));
         toast.info('Removed from favorites');
       } else {
-        await axios.post('http://localhost:5000/api/users/favorites', { hotelId }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await UserApiService.addFavorite(hotelId);
         setFavorites(prev => [...prev, hotelIdStr]);
         toast.success('Added to favorites');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      toast.error(error.response?.data?.message || 'Error updating favorite. Please try again.');
+      toast.error(error.message || 'Error updating favorite. Please try again.');
     }
   };
 
@@ -502,7 +465,7 @@ const BrowseHotels = () => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
-                onClick={() => fetchHotels()}
+                onClick={() => refetch()}
               >
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.397h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
@@ -626,7 +589,7 @@ const BrowseHotels = () => {
                   >
                     <span className="text-muted">Preview unavailable</span>
                   </div>
-                  {isLoggedIn && (
+                  {isAuthenticated && (
                     <button
                       className="position-absolute top-0 end-0 m-3 border-0"
                       style={{ 

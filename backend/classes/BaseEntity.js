@@ -1,6 +1,10 @@
 class BaseEntity {
   constructor(entityData = {}) {
-    this.id = entityData.id || entityData._id || null;
+    // Store the raw MongoDB _id without converting to string
+    // The conversion to string should only happen when generating tokens or sending to frontend
+    const rawId = entityData._id || entityData.id;
+    this._id = rawId;
+    this.id = rawId;
     this.createdAt = entityData.createdAt || new Date();
     this.updatedAt = entityData.updatedAt || new Date();
   }
@@ -26,4 +30,3 @@ class BaseEntity {
 }
 
 module.exports = BaseEntity;
-

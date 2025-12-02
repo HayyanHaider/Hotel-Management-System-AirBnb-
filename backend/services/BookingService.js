@@ -1,0 +1,769 @@
+const BaseService = require('./BaseService');
+const IBookingService = require('./interfaces/IBookingService');
+const BookingRepository = require('../repositories/BookingRepository');
+const HotelRepository = require('../repositories/HotelRepository');
+const CustomerRepository = require('../repositories/CustomerRepository');
+const CouponRepository = require('../repositories/CouponRepository');
+const UserRepository = require('../repositories/UserRepository');
+const Coupon = require('../classes/Coupon');
+const { sendEmail, emailTemplates } = require('../utils/emailService');
+const { generateInvoicePDF } = require('../utils/pdfService');
+const path = require('path');
+const fs = require('fs');
+
+/**
+ * BookingService - Handles booking business logic
+ * Follows Single Responsibility Principle - only handles booking operations
+ * Follows Dependency Inversion Principle - depends on repository abstractions
+ * Implements IBookingService interface
+ */
+class BookingService extends BaseService {
+  constructor(dependencies = {}) {
+    super(dependencies);
+    this.bookingRepository = dependencies.bookingRepository || BookingRepository;
+    this.hotelRepository = dependencies.hotelRepository || HotelRepository;
+    this.customerRepository = dependencies.customerRepository || CustomerRepository;
+    this.couponRepository = dependencies.couponRepository || CouponRepository;
+    this.userRepository = dependencies.userRepository || UserRepository;
+  }
+
+  /**
+   * Normalize date to start of day
+   * @private
+   */
+  #normalizeDate(date) {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  /**
+   * Check room availability for date range
+   * @private
+   */
+  async #checkRoomAvailability(hotelId, totalRooms, checkIn, checkOut, excludeBookingId = null) {
+    const overlappingBookings = await this.bookingRepository.findOverlapping(
+      hotelId,
+      checkIn,
+      checkOut,
+      ['cancelled', 'pending']
+    );
+
+    // Filter out the booking being rescheduled if provided
+    const bookingsToCheck = excludeBookingId
+      ? overlappingBookings.filter(b => String(b._id) !== String(excludeBookingId))
+      : overlappingBookings;
+
+    const checkInTime = this.#normalizeDate(checkIn);
+    const checkOutTime = this.#normalizeDate(checkOut);
+
+    for (let date = new Date(checkInTime); date < checkOutTime; date.setDate(date.getDate() + 1)) {
+      const currentDate = this.#normalizeDate(date);
+      
+      const bookingsOnThisDay = bookingsToCheck.filter(booking => {
+        const bookingCheckIn = this.#normalizeDate(booking.checkIn);
+        const bookingCheckOut = this.#normalizeDate(booking.checkOut);
+        return currentDate >= bookingCheckIn && currentDate < bookingCheckOut;
+      });
+      
+      const roomsBookedOnThisDay = bookingsOnThisDay.length;
+      
+      if (roomsBookedOnThisDay >= totalRooms) {
+        return {
+          available: false,
+          date: currentDate.toLocaleDateString()
+        };
+      }
+    }
+
+    return { available: true };
+  }
+
+  /**
+   * Calculate booking price
+   * @private
+   */
+  #calculatePrice(hotel, nights, appliedCoupon = null) {
+    const basePrice = hotel.pricing?.basePrice || 0;
+    const cleaningFee = hotel.pricing?.cleaningFee || 0;
+    const serviceFee = hotel.pricing?.serviceFee || 0;
+    const subtotal = (basePrice * nights) + cleaningFee + serviceFee;
+    const taxes = 0; // No taxes
+    
+    let discounts = 0;
+    if (appliedCoupon) {
+      const couponInstance = new Coupon(appliedCoupon);
+      if (couponInstance.isValid()) {
+        discounts = couponInstance.calculateDiscount(subtotal);
+      }
+    }
+    
+    const totalPrice = subtotal + taxes - discounts;
+
+    return {
+      basePrice,
+      cleaningFee,
+      serviceFee,
+      subtotal,
+      taxes,
+      discounts,
+      totalPrice
+    };
+  }
+
+  /**
+   * Find and apply available coupon
+   * @private
+   */
+  async #findAndApplyCoupon(hotelId) {
+    const now = new Date();
+    const availableCoupons = await this.couponRepository.findActive(
+      { hotelId },
+      { sort: { createdAt: 1 } } // First-come-first-serve
+    );
+
+    if (availableCoupons.length === 0) {
+      return null;
+    }
+
+    const couponDoc = availableCoupons[0];
+    
+    // Check if coupon has remaining uses
+    if (couponDoc.maxUses && couponDoc.currentUses >= couponDoc.maxUses) {
+      return null;
+    }
+
+    const couponData = {
+      id: couponDoc._id,
+      hotelId: couponDoc.hotelId,
+      code: couponDoc.code,
+      discountPercentage: couponDoc.discountPercentage,
+      validFrom: couponDoc.validFrom,
+      validTo: couponDoc.validTo,
+      maxUses: couponDoc.maxUses
+    };
+
+    const couponInstance = new Coupon(couponData);
+    if (!couponInstance.isValid()) {
+      return null;
+    }
+
+    // Reserve coupon by incrementing usage
+    await this.couponRepository.incrementUsage(couponDoc._id);
+
+    return {
+      id: couponDoc._id,
+      code: couponDoc.code,
+      discountPercentage: couponDoc.discountPercentage,
+      discountAmount: 0 // Will be calculated later
+    };
+  }
+
+  /**
+   * Create a new booking
+   */
+  async createBooking(bookingData, userId) {
+    try {
+      this.validateRequired(bookingData, ['hotelId', 'checkInDate', 'checkOutDate', 'guests']);
+
+      // Get or create customer document
+      const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
+      const customerId = customerDoc._id;
+
+      // Get hotel
+      const hotel = await this.hotelRepository.findById(bookingData.hotelId);
+      if (!hotel) {
+        throw new Error('Hotel not found');
+      }
+
+      // Validate hotel status
+      if (!hotel.isApproved) {
+        throw new Error('Hotel is not approved yet');
+      }
+      if (hotel.isSuspended) {
+        throw new Error('Hotel is currently suspended');
+      }
+
+      // Validate guests
+      const maxGuests = hotel.capacity?.guests || 1;
+      if (parseInt(bookingData.guests) > maxGuests) {
+        throw new Error(`Hotel can only accommodate ${maxGuests} guests`);
+      }
+
+      // Validate dates
+      const checkIn = this.#normalizeDate(new Date(bookingData.checkInDate));
+      const checkOut = this.#normalizeDate(new Date(bookingData.checkOutDate));
+      const today = this.#normalizeDate(new Date());
+
+      if (checkIn >= checkOut) {
+        throw new Error('Check-out date must be after check-in date');
+      }
+      if (checkIn < today) {
+        throw new Error('Check-in date cannot be in the past');
+      }
+
+      // Calculate nights
+      const daysDiff = (checkOut - checkIn) / (1000 * 60 * 60 * 24);
+      const nights = Math.max(1, Math.floor(daysDiff));
+
+      // Check availability
+      const totalRooms = hotel.totalRooms || 1;
+      const availability = await this.#checkRoomAvailability(
+        bookingData.hotelId,
+        totalRooms,
+        checkIn,
+        checkOut
+      );
+
+      if (!availability.available) {
+        throw new Error(`Hotel is fully booked on ${availability.date}. Only ${totalRooms} room(s) available.`);
+      }
+
+      // Find and apply coupon
+      const appliedCoupon = await this.#findAndApplyCoupon(bookingData.hotelId);
+      
+      // Calculate price
+      const priceData = this.#calculatePrice(hotel, nights, appliedCoupon);
+      
+      if (appliedCoupon) {
+        appliedCoupon.discountAmount = priceData.discounts;
+      }
+
+      // Create booking
+      const bookingDoc = await this.bookingRepository.create({
+        userId: customerId,
+        hotelId: bookingData.hotelId,
+        couponId: appliedCoupon?.id || null,
+        checkIn,
+        checkOut,
+        nights,
+        guests: parseInt(bookingData.guests),
+        taxes: priceData.taxes,
+        discounts: priceData.discounts,
+        totalPrice: priceData.totalPrice,
+        status: 'pending',
+        priceSnapshot: {
+          basePricePerDay: priceData.basePrice,
+          nights: nights,
+          basePriceTotal: priceData.basePrice * nights,
+          cleaningFee: priceData.cleaningFee,
+          serviceFee: priceData.serviceFee,
+          subtotal: priceData.subtotal,
+          taxes: priceData.taxes,
+          discounts: priceData.discounts,
+          totalPrice: priceData.totalPrice,
+          couponCode: appliedCoupon?.code || null,
+          couponDiscountPercentage: appliedCoupon?.discountPercentage || null
+        }
+      });
+
+      // Populate and return
+      const booking = await this.bookingRepository.findById(bookingDoc._id, {
+        populate: [
+          { path: 'hotelId', select: 'name location' },
+          { path: 'couponId', select: 'code discountPercentage' }
+        ]
+      });
+
+      return {
+        booking,
+        appliedCoupon: appliedCoupon ? {
+          code: appliedCoupon.code,
+          discountPercentage: appliedCoupon.discountPercentage,
+          discountAmount: appliedCoupon.discountAmount
+        } : null
+      };
+    } catch (error) {
+      this.handleError(error, 'Create booking');
+    }
+  }
+
+  /**
+   * Get user bookings
+   */
+  async getUserBookings(userId, filters = {}) {
+    try {
+      const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
+      const customerId = customerDoc._id;
+
+      const query = { userId: customerId };
+      
+      if (filters.status) {
+        query.status = filters.status;
+      } else {
+        // By default, exclude pending bookings
+        query.status = { $ne: 'pending' };
+      }
+
+      const options = {
+        populate: [
+          {
+            path: 'hotelId',
+            select: 'name location isSuspended',
+            match: { isSuspended: { $ne: true } }
+          }
+        ],
+        sort: { createdAt: -1 },
+        limit: parseInt(filters.limit) || 10,
+        skip: ((parseInt(filters.page) || 1) - 1) * (parseInt(filters.limit) || 10)
+      };
+
+      const bookings = await this.bookingRepository.find(query, options);
+
+      // Filter out bookings where hotel is null (suspended hotels) and pending bookings
+      const filteredBookings = bookings.filter(booking => 
+        booking.hotelId !== null && booking.status !== 'pending'
+      );
+
+      return {
+        count: filteredBookings.length,
+        bookings: filteredBookings
+      };
+    } catch (error) {
+      this.handleError(error, 'Get user bookings');
+    }
+  }
+
+  /**
+   * Get booking by ID
+   */
+  async getBookingById(bookingId, userId) {
+    try {
+      const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
+      const customerId = customerDoc._id;
+
+      const booking = await this.bookingRepository.findOne(
+        { _id: bookingId, userId: customerId },
+        {
+          populate: [
+            {
+              path: 'hotelId',
+              select: 'name location contactInfo isSuspended',
+              match: { isSuspended: { $ne: true } }
+            },
+            { path: 'couponId', select: 'code discountPercentage' }
+          ]
+        }
+      );
+
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      if (!booking.hotelId) {
+        throw new Error('Booking not found or hotel is suspended');
+      }
+
+      return booking;
+    } catch (error) {
+      this.handleError(error, 'Get booking by ID');
+    }
+  }
+
+  /**
+   * Cancel booking
+   */
+  async cancelBooking(bookingId, userId, reason = '') {
+    try {
+      const customerDoc = await this.customerRepository.findByUser(userId);
+      if (!customerDoc) {
+        throw new Error('Customer profile not found');
+      }
+      const customerId = customerDoc._id;
+
+      const booking = await this.bookingRepository.findOne({ _id: bookingId, userId: customerId });
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      // Handle pending bookings
+      if (booking.status === 'pending') {
+        // Decrement coupon usage if coupon was applied
+        if (booking.couponId) {
+          await this.couponRepository.decrementUsage(booking.couponId);
+        }
+
+        // Delete the pending booking
+        await this.bookingRepository.deleteById(bookingId);
+
+        // Send cancellation email (async)
+        this.#sendCancellationEmail(bookingId, userId, null).catch(err => 
+          console.error('Error sending cancellation email:', err)
+        );
+
+        return { message: 'Pending booking removed successfully' };
+      }
+
+      // For confirmed bookings, check 24-hour rule
+      if (booking.status === 'confirmed') {
+        const hoursUntilCheckIn = (new Date(booking.checkIn) - new Date()) / (1000 * 60 * 60);
+        if (hoursUntilCheckIn <= 24) {
+          throw new Error('Cannot cancel within 24 hours of check-in');
+        }
+      }
+
+      // Validate status
+      if (booking.status === 'cancelled') {
+        throw new Error('Booking is already cancelled');
+      }
+
+      if (booking.status === 'completed' || booking.status === 'checked-out') {
+        throw new Error('Cannot cancel a completed booking');
+      }
+
+      // Decrement coupon usage if coupon was applied
+      if (booking.couponId && booking.status === 'confirmed') {
+        await this.couponRepository.decrementUsage(booking.couponId);
+      }
+
+      const refundAmount = booking.priceSnapshot?.totalPrice || booking.totalPrice;
+
+      // Update booking status
+      await this.bookingRepository.updateById(bookingId, {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancellationPolicyApplied: '24h-before-check-in',
+        cancellationFee: 0,
+        refundAmount: refundAmount
+      });
+
+      // Send cancellation email (async)
+      this.#sendCancellationEmail(bookingId, userId, refundAmount).catch(err => 
+        console.error('Error sending cancellation email:', err)
+      );
+
+      return { message: 'Booking cancelled successfully' };
+    } catch (error) {
+      this.handleError(error, 'Cancel booking');
+    }
+  }
+
+  /**
+   * Reschedule booking
+   */
+  async rescheduleBooking(bookingId, userId, newDates) {
+    try {
+      this.validateRequired(newDates, ['checkInDate', 'checkOutDate']);
+
+      const customerDoc = await this.customerRepository.findByUser(userId);
+      if (!customerDoc) {
+        throw new Error('Customer profile not found');
+      }
+      const customerId = customerDoc._id;
+
+      const booking = await this.bookingRepository.findOne(
+        { _id: bookingId, userId: customerId },
+        { populate: [{ path: 'hotelId' }] }
+      );
+
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      // Only allow rescheduling for pending or confirmed bookings
+      if (booking.status !== 'pending' && booking.status !== 'confirmed') {
+        throw new Error('Can only reschedule pending or confirmed bookings');
+      }
+
+      // Validate new dates
+      const newCheckIn = this.#normalizeDate(new Date(newDates.checkInDate));
+      const newCheckOut = this.#normalizeDate(new Date(newDates.checkOutDate));
+      const today = this.#normalizeDate(new Date());
+
+      if (newCheckIn >= newCheckOut) {
+        throw new Error('Check-out date must be after check-in date');
+      }
+      if (newCheckIn < today) {
+        throw new Error('Check-in date cannot be in the past');
+      }
+
+      // Calculate new nights
+      const daysDiff = (newCheckOut - newCheckIn) / (1000 * 60 * 60 * 24);
+      const newNights = Math.max(1, Math.floor(daysDiff));
+
+      // Check availability for new dates
+      const hotel = booking.hotelId;
+      const totalRooms = hotel.totalRooms || 1;
+      const availability = await this.#checkRoomAvailability(
+        hotel._id,
+        totalRooms,
+        newCheckIn,
+        newCheckOut,
+        bookingId
+      );
+
+      if (!availability.available) {
+        throw new Error(`Hotel is fully booked on ${availability.date}. Please choose different dates.`);
+      }
+
+      // Recalculate price using original pricing
+      const basePrice = booking.priceSnapshot?.basePricePerDay || hotel.pricing?.basePrice || 0;
+      const cleaningFee = booking.priceSnapshot?.cleaningFee || hotel.pricing?.cleaningFee || 0;
+      const serviceFee = booking.priceSnapshot?.serviceFee || hotel.pricing?.serviceFee || 0;
+      const subtotal = (basePrice * newNights) + cleaningFee + serviceFee;
+      
+      // Apply same discount if coupon was used
+      let discounts = 0;
+      if (booking.couponId && booking.priceSnapshot?.couponDiscountPercentage) {
+        discounts = subtotal * (booking.priceSnapshot.couponDiscountPercentage / 100);
+      }
+      
+      const newTotalPrice = subtotal - discounts;
+
+      // Update booking
+      await this.bookingRepository.updateById(bookingId, {
+        checkIn: newCheckIn,
+        checkOut: newCheckOut,
+        nights: newNights,
+        totalPrice: newTotalPrice,
+        discounts: discounts,
+        'priceSnapshot.nights': newNights,
+        'priceSnapshot.basePriceTotal': basePrice * newNights,
+        'priceSnapshot.subtotal': subtotal,
+        'priceSnapshot.discounts': discounts,
+        'priceSnapshot.totalPrice': newTotalPrice
+      });
+
+      const updatedBooking = await this.bookingRepository.findById(bookingId, {
+        populate: [
+          { path: 'hotelId', select: 'name location' },
+          { path: 'couponId', select: 'code discountPercentage' }
+        ]
+      });
+
+      // Send reschedule email (async)
+      this.#sendRescheduleEmail(bookingId, userId, booking, updatedBooking).catch(err =>
+        console.error('Error sending reschedule email:', err)
+      );
+
+      // Regenerate invoice if payment was made (async)
+      if (booking.invoicePath) {
+        this.#regenerateInvoice(bookingId, userId, updatedBooking, newCheckIn, newCheckOut, newNights)
+          .catch(err => console.error('Error regenerating invoice:', err));
+      }
+
+      return {
+        message: 'Booking rescheduled successfully',
+        booking: updatedBooking
+      };
+    } catch (error) {
+      this.handleError(error, 'Reschedule booking');
+    }
+  }
+
+  /**
+   * Send cancellation email
+   * @private
+   */
+  async #sendCancellationEmail(bookingId, userId, refundAmount) {
+    try {
+      const booking = await this.bookingRepository.findById(bookingId, {
+        populate: [
+          { path: 'hotelId', select: 'name location address' },
+          { path: 'couponId', select: 'code discountPercentage' }
+        ]
+      });
+
+      const user = await this.userRepository.findById(userId);
+
+      if (user && booking && booking.hotelId) {
+        const emailTemplate = emailTemplates.cancellationEmail(
+          booking,
+          booking.hotelId,
+          { name: user.name, email: user.email },
+          refundAmount
+        );
+
+        await sendEmail(
+          user.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text,
+          {
+            userId: userId,
+            useUserGmail: true
+          }
+        );
+
+        console.log(`✅ Cancellation email sent to customer: ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Error sending cancellation email:', error);
+    }
+  }
+
+  /**
+   * Send reschedule email
+   * @private
+   */
+  async #sendRescheduleEmail(bookingId, userId, oldBooking, newBooking) {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (user && newBooking && newBooking.hotelId) {
+        const emailTemplate = emailTemplates.rescheduleEmail(
+          newBooking,
+          newBooking.hotelId,
+          { name: user.name, email: user.email },
+          oldBooking.checkIn,
+          oldBooking.checkOut,
+          oldBooking.nights || 1
+        );
+
+        await sendEmail(
+          user.email,
+          emailTemplate.subject,
+          emailTemplate.html,
+          emailTemplate.text,
+          {
+            userId: userId,
+            useUserGmail: true
+          }
+        );
+
+        console.log(`✅ Reschedule email sent to customer: ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Error sending reschedule email:', error);
+    }
+  }
+
+  /**
+   * Regenerate invoice after reschedule
+   * @private
+   */
+  async #regenerateInvoice(bookingId, userId, booking, checkIn, checkOut, nights) {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        return;
+      }
+
+      const PaymentModel = require('../models/paymentModel');
+      const payment = await PaymentModel.findOne({ bookingId: bookingId, status: 'completed' })
+        .sort({ createdAt: -1 });
+
+      const invoiceDir = path.join(__dirname, '../invoices');
+      if (!fs.existsSync(invoiceDir)) {
+        fs.mkdirSync(invoiceDir, { recursive: true });
+      }
+
+      const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;
+      const invoicePath = path.join(invoiceDir, invoiceFileName);
+
+      const invoiceData = {
+        invoiceNumber: `INV-${bookingId}-${Date.now()}`,
+        date: new Date(),
+        bookingId: bookingId,
+        customer: {
+          name: user.name || 'Customer',
+          email: user.email || '',
+          phone: user.phone || ''
+        },
+        hotel: {
+          name: booking.hotelId?.name || 'Hotel',
+          address: booking.hotelId?.location?.address || ''
+        },
+        checkIn,
+        checkOut,
+        nights,
+        guests: booking.guests || 1,
+        basePrice: booking.priceSnapshot?.basePriceTotal || 0,
+        cleaningFee: booking.priceSnapshot?.cleaningFee || 0,
+        serviceFee: booking.priceSnapshot?.serviceFee || 0,
+        discount: booking.priceSnapshot?.discounts || 0,
+        couponCode: booking.couponId?.code || booking.priceSnapshot?.couponCode,
+        total: booking.priceSnapshot?.totalPrice || booking.totalPrice,
+        currency: 'PKR',
+        payment: payment ? {
+          method: payment.method || payment.paymentMethod || 'N/A',
+          transactionId: payment.transactionId || 'N/A',
+          date: payment.createdAt || payment.processedAt || new Date()
+        } : undefined
+      };
+
+      await generateInvoicePDF(invoiceData, invoicePath);
+
+      await this.bookingRepository.updateById(bookingId, {
+        invoicePath: invoiceFileName
+      });
+
+      console.log('Invoice regenerated for rescheduled booking:', invoiceFileName);
+
+      if (payment) {
+        const paymentMethodLabelMap = {
+          card: 'Credit/Debit Card',
+          paypal: 'PayPal',
+          wallet: 'Wallet',
+          bank_transfer: 'Bank Transfer',
+        };
+        const paymentMethodLabel = paymentMethodLabelMap[payment.method] || payment.method || 'N/A';
+
+        const invoiceBaseUrl =
+          process.env.BACKEND_BASE_URL ||
+          process.env.API_BASE_URL ||
+          process.env.SERVER_URL ||
+          process.env.APP_URL ||
+          process.env.BASE_URL ||
+          'http://localhost:5000';
+        const normalizedInvoiceBaseUrl = invoiceBaseUrl.replace(/\/$/, '');
+        const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+
+        let invoiceDataUri = null;
+        try {
+          const fileBuffer = fs.readFileSync(invoicePath);
+          if (fileBuffer?.length) {
+            invoiceDataUri = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+          }
+        } catch (dataUriErr) {
+          console.error('Error creating invoice data URI:', dataUriErr);
+        }
+
+        const paymentDetailsForInvoice = {
+          id: payment._id,
+          amount: booking.priceSnapshot?.totalPrice || booking.totalPrice,
+          method: paymentMethodLabel,
+          transactionId: payment.transactionId || 'N/A',
+          processedAt: payment.processedAt || payment.createdAt || new Date(),
+          currency: 'PKR'
+        };
+
+        const invoiceEmailTemplate = emailTemplates.invoiceEmail(
+          paymentDetailsForInvoice,
+          booking,
+          booking.hotelId || {},
+          { name: user.name, email: user.email },
+          invoiceFileName,
+          invoicePublicUrl,
+          invoiceDataUri
+        );
+
+        const attachments = [];
+        if (fs.existsSync(invoicePath)) {
+          attachments.push({
+            filename: `invoice-${bookingId}.pdf`,
+            path: invoicePath
+          });
+        }
+
+        await sendEmail(
+          user.email,
+          `Updated Invoice - ${invoiceEmailTemplate.subject}`,
+          invoiceEmailTemplate.html,
+          invoiceEmailTemplate.text,
+          {
+            userId,
+            useUserGmail: true,
+            attachments
+          }
+        );
+
+        console.log(`✅ Updated invoice email sent to customer: ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Error regenerating invoice:', error);
+    }
+  }
+}
+
+module.exports = new BookingService();
+
