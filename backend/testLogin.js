@@ -5,7 +5,7 @@ async function testAdminLogin() {
         console.log('🔐 Testing admin login...\n');
 
         // Step 1: Login
-        const loginResponse = await axios.post('http://localhost:5000/api/auth/login', {
+        const loginResponse = await axios.post('http://`localhost:5000`/api/auth/login', {
             email: 'admin@hotelmanagement.com',
             password: 'admin123'
         });

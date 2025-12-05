@@ -190,7 +190,11 @@ class Hotel extends BaseEntity {
 
   // Method to check if hotel is bookable
   isBookable() {
-    return this.isApproved && !this.isSuspended && !this.isFlagged;
+    const bookable = this.isApproved && !this.isSuspended && !this.isFlagged;
+    if (!bookable) {
+      console.log(`[Hotel.isBookable] Hotel "${this.name}" not bookable - isApproved: ${this.isApproved}, isSuspended: ${this.isSuspended}, isFlagged: ${this.isFlagged}`);
+    }
+    return bookable;
   }
 
   // Method to get hotel statistics
@@ -272,8 +276,10 @@ class Hotel extends BaseEntity {
 
   // Method to get public hotel information
   getPublicInfo() {
+    // Convert ObjectId to string for proper JSON serialization
+    const idString = this.id ? (this.id.toString ? this.id.toString() : String(this.id)) : null;
     return {
-      id: this.id,
+      id: idString,
       name: this.name,
       description: this.description,
       location: this.location || {},
@@ -291,9 +297,11 @@ class Hotel extends BaseEntity {
 
   // Method to get detailed information (for owner/admin)
   getDetailedInfo() {
+    // Convert ownerId ObjectId to string if it exists
+    const ownerIdString = this.ownerId ? (this.ownerId.toString ? this.ownerId.toString() : (this.ownerId._id ? this.ownerId._id.toString() : String(this.ownerId))) : null;
     return {
       ...this.getPublicInfo(),
-      ownerId: this.ownerId,
+      ownerId: ownerIdString,
       policies: this.policies,
       isFlagged: this.isFlagged,
       flaggedReason: this.flaggedReason,
@@ -316,7 +324,11 @@ class Hotel extends BaseEntity {
 
     // Check capacity
     if (this.capacity && this.capacity.guests) {
-      return this.capacity.guests >= guests;
+      const hasCapacity = this.capacity.guests >= guests;
+      if (!hasCapacity) {
+        console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" capacity insufficient - capacity.guests: ${this.capacity.guests}, requested: ${guests}`);
+      }
+      return hasCapacity;
     }
 
     // If no capacity info, assume available if hotel is approved
@@ -371,25 +383,53 @@ class Hotel extends BaseEntity {
 
   // Method to get search result format (for hotel listings)
   getSearchResult() {
-    return {
-      id: this.id,
-      _id: this.id, // For compatibility
-      name: this.name,
-      description: this.description,
-      location: this.location || {},
-      images: this.images || [],
-      amenities: this.amenities || [],
-      rating: this.ratingAvg || this.rating || 0,
-      ratingAvg: this.ratingAvg || this.rating || 0,
-      totalReviews: this.totalReviews || 0,
-      pricing: this.pricing || {},
-      capacity: this.capacity || {},
-      totalRooms: this.totalRooms || 1,
-      isApproved: this.isApproved,
-      isSuspended: this.isSuspended,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt
-    };
+    try {
+      // Convert ObjectId to string for proper JSON serialization
+      let idString = null;
+      if (this.id) {
+        if (typeof this.id === 'object' && this.id.toString) {
+          idString = this.id.toString();
+        } else if (this._id && typeof this._id === 'object' && this._id.toString) {
+          idString = this._id.toString();
+        } else {
+          idString = String(this.id || this._id || '');
+        }
+      } else if (this._id) {
+        if (typeof this._id === 'object' && this._id.toString) {
+          idString = this._id.toString();
+        } else {
+          idString = String(this._id);
+        }
+      }
+
+      return {
+        id: idString,
+        _id: idString, // For compatibility
+        name: this.name || '',
+        description: this.description || '',
+        location: this.location || {},
+        images: Array.isArray(this.images) ? this.images : [],
+        amenities: Array.isArray(this.amenities) ? this.amenities : [],
+        rating: this.ratingAvg || this.rating || 0,
+        ratingAvg: this.ratingAvg || this.rating || 0,
+        totalReviews: this.totalReviews || 0,
+        pricing: this.pricing || {},
+        capacity: this.capacity || {},
+        totalRooms: this.totalRooms || 1,
+        isApproved: this.isApproved || false,
+        isSuspended: this.isSuspended || false,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt
+      };
+    } catch (error) {
+      console.error('[Hotel.getSearchResult] Error:', error);
+      console.error('[Hotel.getSearchResult] Hotel data:', {
+        id: this.id,
+        _id: this._id,
+        name: this.name
+      });
+      throw error;
+    }
   }
 
   // Method to get basic info (alias for getPublicInfo for backward compatibility)

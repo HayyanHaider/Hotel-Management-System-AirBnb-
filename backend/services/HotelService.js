@@ -110,10 +110,17 @@ class HotelService extends BaseService {
    */
   async getHotels(filters = {}, options = {}) {
     try {
+      // Base criteria: show only approved hotels and hide suspended ones
+      // (including older documents where isSuspended may be missing).
       const searchCriteria = {
         isApproved: true,
-        isSuspended: false
+        isSuspended: { $ne: true }
       };
+
+      // Debug: Check total hotels in database
+      const totalHotelsInDb = await this.hotelRepository.count({});
+      const approvedHotelsInDb = await this.hotelRepository.count({ isApproved: true });
+      console.log(`[HotelService] Database stats - Total: ${totalHotelsInDb}, Approved: ${approvedHotelsInDb}`);
 
       // Apply location filter
       if (filters.location) {
@@ -147,35 +154,69 @@ class HotelService extends BaseService {
         sortOptions.createdAt = -1;
       }
 
+      // Pagination defaults
+      const pageNum = options.page ? Number(options.page) : 1;
+      const limitNum = options.limit ? Number(options.limit) : 50;
+      const skipNum = (pageNum - 1) * limitNum;
+
       // Fetch hotels
       const dbHotels = await this.hotelRepository.find(searchCriteria, {
         sort: sortOptions,
-        limit: options.limit || 50,
-        skip: (options.page - 1) * (options.limit || 50)
+        limit: limitNum,
+        skip: skipNum
       });
 
+      console.log(`[HotelService] Found ${dbHotels.length} hotels from database`);
+
       // Convert to OOP instances
-      const hotelInstances = dbHotels.map(dbHotel => new Hotel(dbHotel));
+      const hotelInstances = dbHotels.map(dbHotel => {
+        try {
+          return new Hotel(dbHotel);
+        } catch (error) {
+          console.error('[HotelService] Error creating Hotel instance:', error);
+          console.error('[HotelService] Hotel data:', JSON.stringify(dbHotel, null, 2));
+          throw error;
+        }
+      });
 
       // Apply additional filters
       let filteredHotels = hotelInstances;
+      console.log(`[HotelService] After creating instances: ${filteredHotels.length} hotels`);
 
-      // Filter by guests capacity
-      if (filters.guests) {
-        filteredHotels = filteredHotels.filter(hotel =>
-          hotel.hasAvailableCapacity(parseInt(filters.guests))
-        );
+      // Filter by guests capacity (only if guests > 1, since 1 is the default)
+      if (filters.guests && parseInt(filters.guests) > 1) {
+        const beforeGuestFilter = filteredHotels.length;
+        filteredHotels = filteredHotels.filter(hotel => {
+          const hasCapacity = hotel.hasAvailableCapacity(parseInt(filters.guests));
+          if (!hasCapacity) {
+            console.log(`[HotelService] Hotel "${hotel.name}" filtered out by guest capacity. isBookable: ${hotel.isBookable()}, capacity: ${JSON.stringify(hotel.capacity)}, guests: ${filters.guests}`);
+          }
+          return hasCapacity;
+        });
+        console.log(`[HotelService] After guest filter (${filters.guests} guests): ${beforeGuestFilter} -> ${filteredHotels.length} hotels`);
+      } else {
+        console.log(`[HotelService] Skipping guest filter (guests: ${filters.guests}, parsed: ${parseInt(filters.guests)})`);
       }
 
       // Filter by date availability
       if (filters.checkIn && filters.checkOut) {
         const checkInDate = new Date(filters.checkIn);
         const checkOutDate = new Date(filters.checkOut);
-        const hotelIds = filteredHotels.map(h => h.id).filter(Boolean);
+        // Convert IDs to strings for proper comparison
+        const hotelIds = filteredHotels
+          .map(h => {
+            const id = h.id;
+            return id ? (id.toString ? id.toString() : String(id)) : null;
+          })
+          .filter(Boolean);
 
         const availabilityChecks = await Promise.all(
           hotelIds.map(async (hotelId) => {
-            const hotel = filteredHotels.find(h => h.id === hotelId);
+            // Convert hotel ID to string for comparison
+            const hotel = filteredHotels.find(h => {
+              const hId = h.id ? (h.id.toString ? h.id.toString() : String(h.id)) : null;
+              return hId === hotelId;
+            });
             if (!hotel) return false;
 
             const isAvailable = await this.#isHotelAvailableForRange(
@@ -213,7 +254,21 @@ class HotelService extends BaseService {
         );
       }
 
-      const hotelsData = filteredHotels.map(hotel => hotel.getSearchResult());
+      const hotelsData = [];
+      for (const hotel of filteredHotels) {
+        try {
+          const hotelData = hotel.getSearchResult();
+          hotelsData.push(hotelData);
+        } catch (error) {
+          console.error('[HotelService] Error calling getSearchResult for hotel:', error);
+          console.error('[HotelService] Hotel ID:', hotel.id || hotel._id);
+          console.error('[HotelService] Hotel name:', hotel.name);
+          // Continue processing other hotels instead of failing completely
+          // Only skip this hotel
+        }
+      }
+
+      console.log(`[HotelService] Returning ${hotelsData.length} hotels after filtering`);
 
       // Get total count for pagination
       const totalCount = await this.hotelRepository.count(searchCriteria);
@@ -223,14 +278,16 @@ class HotelService extends BaseService {
         count: hotelsData.length,
         total: totalCount,
         pagination: {
-          page: options.page || 1,
-          limit: options.limit || 50,
+          page: pageNum,
+          limit: limitNum,
           total: totalCount,
-          pages: Math.ceil(totalCount / (options.limit || 50))
+          pages: Math.ceil(totalCount / limitNum)
         }
       };
     } catch (error) {
-      this.handleError(error, 'Failed to fetch hotels');
+      console.error('[HotelService] Error in getHotels:', error);
+      console.error('[HotelService] Error stack:', error.stack);
+      throw this.handleError(error, 'Failed to fetch hotels');
     }
   }
 

@@ -17,7 +17,8 @@ router.post('/gmail/revoke', verifyToken, revokeGmailAuth);
 // Protected routes
 router.get('/profile', verifyToken, getProfile);
 router.put('/profile', verifyToken, updateProfile);
-router.get('/verify-token', verifyToken, verifyTokenController);
+router.get('/verify', verifyToken, verifyTokenController);
+router.get('/verify-token', verifyToken, verifyTokenController); // Keep for backward compatibility
 
 // Role-specific routes for testing
 router.get('/customer-dashboard', verifyToken, authorize('customer'), (req, res) => {

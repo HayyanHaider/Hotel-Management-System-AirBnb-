@@ -76,7 +76,16 @@ class HotelController extends BaseController {
         limit: parseInt(limit) || 50
       };
 
+      console.log('[HotelController] getHotels called with filters:', JSON.stringify(filters, null, 2));
+      console.log('[HotelController] getHotels called with options:', JSON.stringify(options, null, 2));
+
       const result = await this.hotelService.getHotels(filters, options);
+
+      console.log('[HotelController] getHotels result:', {
+        hotelsCount: result.hotels?.length || 0,
+        total: result.total,
+        count: result.count
+      });
 
       return this.ok(res, {
         count: result.count,
@@ -86,7 +95,8 @@ class HotelController extends BaseController {
       });
 
     } catch (error) {
-      console.error('Get hotels error:', error);
+      console.error('[HotelController] Get hotels error:', error);
+      console.error('[HotelController] Error stack:', error.stack);
       return this.fail(res, 500, error.message || 'Server error while fetching hotels');
     }
   };
