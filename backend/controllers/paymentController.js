@@ -85,6 +85,49 @@ class PaymentController extends BaseController {
       return this.fail(res, statusCode, error.message || 'Server error while fetching payment');
     }
   };
+
+  /**
+   * Download Invoice
+   * Delegates business logic to PaymentService
+   */
+  downloadInvoice = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      const { bookingId } = req.params;
+
+      if (!userId) {
+        return this.fail(res, 401, 'User not authenticated');
+      }
+
+      const fs = require('fs');
+      const path = require('path');
+
+      // Get invoice path from service
+      const invoicePath = await this.paymentService.getInvoicePath(bookingId, userId);
+
+      // Check if file exists
+      if (!fs.existsSync(invoicePath)) {
+        return this.fail(res, 404, 'Invoice file not found');
+      }
+
+      // Get filename for download
+      const filename = path.basename(invoicePath);
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      // Stream the file
+      const fileStream = fs.createReadStream(invoicePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Download invoice error:', error);
+      const statusCode = error.message.includes('not found') || 
+                        error.message.includes('Not authorized') ? 
+                        (error.message.includes('Not authorized') ? 403 : 404) : 500;
+      return this.fail(res, statusCode, error.message || 'Server error while downloading invoice');
+    }
+  };
 }
 
 module.exports = new PaymentController();

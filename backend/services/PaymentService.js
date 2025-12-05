@@ -89,16 +89,22 @@ class PaymentService extends BaseService {
 
       if (!paymentResult.success) {
         // Save failed payment attempt
-        await this.paymentRepository.create({
+        const failedPaymentData = {
           bookingId: paymentInstance.bookingId,
           customerId: paymentInstance.customerId,
           amount: paymentInstance.amount,
           method: paymentData.paymentMethod,
           type: paymentInstance.type,
           status: 'failed',
-          failureReason: paymentResult.error,
-          transactionId: paymentResult.transactionId
-        });
+          failureReason: paymentResult.error
+        };
+        
+        // Only include transactionId if it's not null/undefined to avoid unique index violation
+        if (paymentResult.transactionId) {
+          failedPaymentData.transactionId = paymentResult.transactionId;
+        }
+        
+        await this.paymentRepository.create(failedPaymentData);
 
         throw new Error(paymentResult.error);
       }
@@ -121,16 +127,22 @@ class PaymentService extends BaseService {
       }
 
       // Save successful payment
-      const successfulPayment = await this.paymentRepository.create({
+      const successfulPaymentData = {
         bookingId: paymentInstance.bookingId,
         customerId: paymentInstance.customerId,
         amount: paymentInstance.amount,
         method: paymentData.paymentMethod,
         type: paymentInstance.type,
         status: 'completed',
-        transactionId: paymentResult.transactionId,
         processedAt: new Date()
-      });
+      };
+      
+      // Only include transactionId if it's not null/undefined to avoid unique index violation
+      if (paymentResult.transactionId) {
+        successfulPaymentData.transactionId = paymentResult.transactionId;
+      }
+      
+      const successfulPayment = await this.paymentRepository.create(successfulPaymentData);
 
       paymentInstance.id = successfulPayment._id;
 
@@ -246,6 +258,52 @@ class PaymentService extends BaseService {
       };
     } catch (error) {
       this.handleError(error, 'Get user payments');
+    }
+  }
+
+  /**
+   * Get invoice file path for a booking
+   * @param {string} bookingId - Booking ID
+   * @param {string} userId - User ID (for authorization)
+   * @returns {Promise<string>} Invoice file path
+   */
+  async getInvoicePath(bookingId, userId) {
+    try {
+      this.validateRequired({ bookingId, userId }, ['bookingId', 'userId']);
+
+      // Get or create customer document (bookings store customerId in userId field)
+      const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
+      const customerId = customerDoc._id;
+
+      // Get booking to verify ownership and get invoice path
+      const booking = await this.bookingRepository.findById(bookingId, {
+        populate: [{ path: 'hotelId', select: 'name' }]
+      });
+
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      // Verify the booking belongs to the user (booking.userId is actually customerId)
+      if (String(booking.userId) !== String(customerId)) {
+        throw new Error('Not authorized to access this invoice');
+      }
+
+      // Check if invoice exists
+      if (!booking.invoicePath) {
+        throw new Error('Invoice not found for this booking');
+      }
+
+      const invoicePath = path.join(__dirname, '../invoices', booking.invoicePath);
+
+      // Check if file exists
+      if (!fs.existsSync(invoicePath)) {
+        throw new Error('Invoice file not found');
+      }
+
+      return invoicePath;
+    } catch (error) {
+      this.handleError(error, 'Failed to get invoice path');
     }
   }
 

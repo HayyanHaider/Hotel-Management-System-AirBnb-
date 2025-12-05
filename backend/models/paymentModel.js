@@ -18,4 +18,8 @@ const PaymentSchema = new Schema({
   originalPaymentId: { type: Schema.Types.ObjectId, ref: 'Payment', default: null }
 }, { timestamps: true });
 
+// Create sparse unique index on transactionId to allow multiple null values
+// Sparse index only indexes documents where transactionId is not null
+PaymentSchema.index({ transactionId: 1 }, { unique: true, sparse: true });
+
 module.exports = mongoose.model('Payment', PaymentSchema);

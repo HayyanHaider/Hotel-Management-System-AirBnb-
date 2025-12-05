@@ -191,7 +191,7 @@ const HotelDetails = () => {
 
   const processImages = (imgs = []) => {
     if (!imgs || !Array.isArray(imgs)) return [];
-    return imgs.map(img => {
+    return imgs.map((img, index) => {
       if (!img) return null;
       let url = '';
       if (typeof img === 'string') {

@@ -44,6 +44,12 @@ const BookingHistory = () => {
 
     try {
       const token = sessionStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to cancel bookings');
+        navigate('/login');
+        return;
+      }
+
       const response = await axios.put(
         `http://localhost:5000/api/bookings/${bookingId}/cancel`,
         { reason: 'Customer cancellation' },
@@ -58,7 +64,12 @@ const BookingHistory = () => {
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      toast.error(error.response?.data?.message || 'Error cancelling booking');
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        toast.error('Cannot connect to server. Please make sure the backend server is running.');
+      } else {
+        toast.error(error.response?.data?.message || 'Error cancelling booking');
+      }
     }
   };
 
@@ -81,6 +92,16 @@ const BookingHistory = () => {
         }
       );
 
+      // Check if response is actually a PDF (success) or an error JSON
+      const contentType = response.headers['content-type'];
+      if (contentType && contentType.includes('application/json')) {
+        // Response is JSON error, not PDF
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        toast.error(errorData.message || 'Error downloading invoice');
+        return;
+      }
+
       // Create blob link to download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -89,9 +110,22 @@ const BookingHistory = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      toast.error(error.response?.data?.message || 'Error downloading invoice');
+      
+      // Handle blob error responses
+      if (error.response && error.response.data instanceof Blob) {
+        try {
+          const errorText = await error.response.data.text();
+          const errorData = JSON.parse(errorText);
+          toast.error(errorData.message || 'Error downloading invoice');
+        } catch (parseError) {
+          toast.error('Error downloading invoice');
+        }
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Error downloading invoice');
+      }
     }
   };
 
