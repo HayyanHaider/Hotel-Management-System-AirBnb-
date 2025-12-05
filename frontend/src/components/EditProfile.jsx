@@ -46,7 +46,17 @@ const EditProfile = () => {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast.error('Error loading profile');
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        toast.error('Cannot connect to server. Please make sure the backend server is running.');
+      } else if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        navigate('/login');
+      } else {
+        toast.error(error.response?.data?.message || 'Error loading profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,7 +127,17 @@ const EditProfile = () => {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Error updating profile');
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        toast.error('Cannot connect to server. Please make sure the backend server is running.');
+      } else if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        navigate('/login');
+      } else {
+        toast.error(error.response?.data?.message || 'Error updating profile');
+      }
     } finally {
       setSubmitting(false);
     }
