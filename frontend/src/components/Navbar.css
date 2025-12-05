@@ -8,7 +8,27 @@
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1030; /* Higher z-index to ensure it stays on top */
+  background: linear-gradient(90deg, #90949b 0%, #ccd3dc 50%, #e2e6ef 100%) !important;
+  backdrop-filter: blur(10px); /* Add blur effect for better visibility */
+  -webkit-backdrop-filter: blur(10px); /* Safari support */
+}
+
+/* Ensure navbar stays on top on mobile */
+@media (max-width: 768px) {
+  .navbar {
+    z-index: 1050 !important; /* Even higher on mobile - use !important to override any conflicts */
+    position: sticky; /* Keep sticky for better UX */
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Add shadow for better separation */
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    z-index: 1050 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* Ensure proper navbar alignment */

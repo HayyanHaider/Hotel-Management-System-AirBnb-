@@ -204,7 +204,37 @@ const Navbar = () => {
                   
                   {(user.role === 'hotel' || user.role === 'hotel_owner') && (
                     <>
-                      
+                      <li>
+                        <Link className="dropdown-item py-2" to="/hotel-dashboard">
+                          <span className="me-2">🏠</span> Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/manage-hotel-profile">
+                          <span className="me-2">🏨</span> Manage Hotel
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/manage-coupons">
+                          <span className="me-2">🎫</span> Coupons
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/owner-bookings">
+                          <span className="me-2">📋</span> Reservations
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/reply-reviews">
+                          <span className="me-2">⭐</span> Reviews
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item py-2" to="/earnings-dashboard">
+                          <span className="me-2">💰</span> Earnings
+                        </Link>
+                      </li>
+                      <li><hr className="dropdown-divider" /></li>
                     </>
                   )}
                   
@@ -328,13 +358,18 @@ const Navbar = () => {
                       </Link>
                     </li>
                     <li>
-                      <Link className="dropdown-item py-2" to="/manage-rooms">
-                        <span className="me-2">🛏️</span> Manage Rooms
+                      <Link className="dropdown-item py-2" to="/manage-coupons">
+                        <span className="me-2">🎫</span> Coupons
                       </Link>
                     </li>
                     <li>
                       <Link className="dropdown-item py-2" to="/owner-bookings">
                         <span className="me-2">📋</span> Reservations
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item py-2" to="/reply-reviews">
+                        <span className="me-2">⭐</span> Reviews
                       </Link>
                     </li>
                     <li>
