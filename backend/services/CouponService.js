@@ -53,8 +53,7 @@ class CouponService extends BaseService {
         validFrom: couponData.validFrom,
         validTo: couponData.validTo,
         maxUses: couponData.maxUses || null,
-        currentUses: 0,
-        isActive: true
+        currentUses: 0
       });
 
       // Validate coupon
@@ -62,6 +61,9 @@ class CouponService extends BaseService {
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(', '));
       }
+
+      // Calculate active status based on dates and usage
+      const calculatedIsActive = couponInstance.calculateActiveStatus();
 
       // Save coupon
       const savedCoupon = await this.couponRepository.create({
@@ -72,7 +74,7 @@ class CouponService extends BaseService {
         validTo: couponInstance.validTo,
         maxUses: couponInstance.maxUses,
         currentUses: couponInstance.currentUses,
-        isActive: couponInstance.isActive
+        isActive: calculatedIsActive // Set based on calculated status
       });
 
       couponInstance.id = savedCoupon._id || savedCoupon.id;
@@ -158,7 +160,7 @@ class CouponService extends BaseService {
         throw new Error('Not authorized to update this coupon');
       }
 
-      const allowedFields = ['discountPercentage', 'validFrom', 'validTo', 'maxUses', 'isActive'];
+      const allowedFields = ['discountPercentage', 'validFrom', 'validTo', 'maxUses'];
       const updateData = {};
 
       allowedFields.forEach(field => {
@@ -166,6 +168,18 @@ class CouponService extends BaseService {
           updateData[field] = updates[field];
         }
       });
+
+      // Create a temporary instance to calculate active status
+      // Convert coupon to plain object if it's a Mongoose document
+      const couponPlain = coupon.toObject ? coupon.toObject() : coupon;
+      const tempCouponData = {
+        ...couponPlain,
+        ...updateData
+      };
+      const tempCouponInstance = new Coupon(tempCouponData);
+      
+      // Recalculate active status based on updated dates and usage
+      updateData.isActive = tempCouponInstance.calculateActiveStatus();
 
       const updatedCoupon = await this.couponRepository.updateById(couponId, updateData);
       const couponInstance = new Coupon(updatedCoupon);

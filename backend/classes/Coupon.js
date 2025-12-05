@@ -47,10 +47,6 @@ class Coupon extends BaseEntity {
 
   // Method to check if coupon is currently valid
   isValid() {
-    if (!this.isActive) {
-      return false;
-    }
-    
     // Check if max uses reached
     if (this.maxUses !== null && this.currentUses >= this.maxUses) {
       return false;
@@ -60,6 +56,7 @@ class Coupon extends BaseEntity {
     const validFrom = new Date(this.validFrom);
     const validTo = new Date(this.validTo);
     
+    // Coupon is valid if current date is within valid date range
     return now >= validFrom && now <= validTo;
   }
 
@@ -123,6 +120,50 @@ class Coupon extends BaseEntity {
       maxUses: this.maxUses,
       currentUses: this.currentUses,
       remainingUses: this.maxUses !== null ? this.maxUses - this.currentUses : null
+    };
+  }
+
+  // Method to calculate if coupon should be active based on current state
+  calculateActiveStatus() {
+    // Check if max uses reached
+    if (this.maxUses !== null && this.currentUses >= this.maxUses) {
+      return false;
+    }
+    
+    // Check if current date is within valid date range
+    const now = new Date();
+    const validFrom = new Date(this.validFrom);
+    const validTo = new Date(this.validTo);
+    
+    // Coupon is active if current date is between validFrom and validTo
+    return now >= validFrom && now <= validTo;
+  }
+
+  // Method to get public coupon information (for API responses)
+  getPublicInfo() {
+    // Convert ObjectId to string for proper JSON serialization
+    const idString = this.id ? (this.id.toString ? this.id.toString() : String(this.id)) : null;
+    const hotelIdString = this.hotelId ? (this.hotelId.toString ? this.hotelId.toString() : String(this.hotelId)) : null;
+    
+    // Calculate active status dynamically based on dates and usage
+    const calculatedIsActive = this.calculateActiveStatus();
+    
+    return {
+      id: idString,
+      hotelId: hotelIdString,
+      code: this.code,
+      discountPercentage: this.discountPercentage,
+      validFrom: this.validFrom,
+      validTo: this.validTo,
+      isActive: calculatedIsActive, // Use calculated status instead of stored value
+      isValid: this.isValid(),
+      isExpired: this.isExpired(),
+      isNotYetActive: this.isNotYetActive(),
+      maxUses: this.maxUses,
+      currentUses: this.currentUses,
+      remainingUses: this.maxUses !== null ? this.maxUses - this.currentUses : null,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
     };
   }
 
