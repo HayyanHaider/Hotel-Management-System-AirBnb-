@@ -15,23 +15,27 @@ const HotelDashboard = () => {
   const [stats, setStats] = useState(null);
   const [activeSection, setActiveSection] = useState('home');
   const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Sync activeSection with current route
   useEffect(() => {
     const path = location.pathname;
-    if (path === '/hotel-dashboard' || path === '/') {
+    // Handle both with and without trailing slash
+    const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
+    
+    if (normalizedPath === '/hotel-dashboard' || normalizedPath === '/') {
       setActiveSection('home');
-    } else if (path === '/manage-hotel-profile') {
+    } else if (normalizedPath === '/manage-hotel-profile') {
       setActiveSection('properties');
-    } else if (path === '/manage-coupons') {
+    } else if (normalizedPath === '/manage-coupons') {
       setActiveSection('coupons');
-    } else if (path === '/owner-bookings') {
+    } else if (normalizedPath === '/owner-bookings') {
       setActiveSection('bookings');
-    } else if (path === '/reply-reviews') {
+    } else if (normalizedPath === '/reply-reviews') {
       setActiveSection('reviews');
-    } else if (path === '/earnings-dashboard') {
+    } else if (normalizedPath === '/earnings-dashboard') {
       setActiveSection('earnings');
     }
   }, [location.pathname]);
@@ -148,7 +152,7 @@ const HotelDashboard = () => {
 
   const changeSection = (section) => {
     setActiveSection(section);
-    // Update URL without navigation to keep sidebar
+    // Use React Router navigate to properly sync with route
     const pathMap = {
       'home': '/hotel-dashboard',
       'properties': '/manage-hotel-profile',
@@ -158,7 +162,7 @@ const HotelDashboard = () => {
       'earnings': '/earnings-dashboard'
     };
     if (pathMap[section]) {
-      window.history.pushState({}, '', pathMap[section]);
+      navigate(pathMap[section], { replace: false });
     }
   };
 
@@ -168,42 +172,77 @@ const HotelDashboard = () => {
 
   return (
     <div className="owner-dashboard">
+      {/* Mobile Menu Toggle */}
+      <button 
+        className="mobile-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="mobile-menu-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="owner-sidebar">
+      <div className={`owner-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <nav className="owner-nav">
           <button 
             className={activeSection === 'home' ? 'active' : ''}
-            onClick={() => changeSection('home')}
+            onClick={() => {
+              changeSection('home');
+              setMobileMenuOpen(false);
+            }}
           >
             🏠 Home
           </button>
           <button 
             className={activeSection === 'properties' ? 'active' : ''}
-            onClick={() => changeSection('properties')}
+            onClick={() => {
+              changeSection('properties');
+              setMobileMenuOpen(false);
+            }}
           >
             🏨 My Properties
           </button>
           <button 
             className={activeSection === 'coupons' ? 'active' : ''}
-            onClick={() => changeSection('coupons')}
+            onClick={() => {
+              changeSection('coupons');
+              setMobileMenuOpen(false);
+            }}
           >
             🎫 Coupons
           </button>
           <button 
             className={activeSection === 'bookings' ? 'active' : ''}
-            onClick={() => changeSection('bookings')}
+            onClick={() => {
+              changeSection('bookings');
+              setMobileMenuOpen(false);
+            }}
           >
             📋 Reservations
           </button>
           <button 
             className={activeSection === 'reviews' ? 'active' : ''}
-            onClick={() => changeSection('reviews')}
+            onClick={() => {
+              changeSection('reviews');
+              setMobileMenuOpen(false);
+            }}
           >
             ⭐ Reviews
           </button>
           <button 
             className={activeSection === 'earnings' ? 'active' : ''}
-            onClick={() => changeSection('earnings')}
+            onClick={() => {
+              changeSection('earnings');
+              setMobileMenuOpen(false);
+            }}
           >
             💰 Earnings
           </button>
