@@ -322,16 +322,31 @@ class Hotel extends BaseEntity {
       return false;
     }
 
-    // Check capacity
-    if (this.capacity && this.capacity.guests) {
-      const hasCapacity = this.capacity.guests >= guests;
-      if (!hasCapacity) {
-        console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" capacity insufficient - capacity.guests: ${this.capacity.guests}, requested: ${guests}`);
+    // Ensure guests is a valid number
+    const requestedGuests = parseInt(guests) || 1;
+    if (requestedGuests < 1) {
+      return false;
+    }
+
+    // Check capacity - hotel must have capacity >= requested guests
+    if (this.capacity && this.capacity.guests !== undefined && this.capacity.guests !== null) {
+      // Handle both number and string types for capacity
+      const hotelCapacity = parseInt(this.capacity.guests);
+      // If capacity is 0 or negative, treat it as "not set" and fall through to default behavior
+      if (isNaN(hotelCapacity) || hotelCapacity <= 0) {
+        // Capacity not properly set, use default behavior
+        return this.isApproved && !this.isSuspended;
+      }
+      const hasCapacity = hotelCapacity >= requestedGuests;
+      // Only log when capacity is insufficient to reduce console noise
+      if (!hasCapacity && requestedGuests > 1) {
+        console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" capacity insufficient - capacity.guests: ${hotelCapacity}, requested: ${requestedGuests}`);
       }
       return hasCapacity;
     }
 
-    // If no capacity info, assume available if hotel is approved
+    // If no capacity info, assume available if hotel is approved (backward compatibility)
+    // This allows hotels without capacity info to still be shown
     return this.isApproved && !this.isSuspended;
   }
 

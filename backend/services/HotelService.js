@@ -183,19 +183,42 @@ class HotelService extends BaseService {
       let filteredHotels = hotelInstances;
       console.log(`[HotelService] After creating instances: ${filteredHotels.length} hotels`);
 
-      // Filter by guests capacity (only if guests > 1, since 1 is the default)
+      // Filter by guests capacity - show hotels that can accommodate the requested number of guests
+      // Only filter when guests > 1 (default is 1, so we don't filter for default)
       if (filters.guests && parseInt(filters.guests) > 1) {
-        const beforeGuestFilter = filteredHotels.length;
-        filteredHotels = filteredHotels.filter(hotel => {
-          const hasCapacity = hotel.hasAvailableCapacity(parseInt(filters.guests));
-          if (!hasCapacity) {
-            console.log(`[HotelService] Hotel "${hotel.name}" filtered out by guest capacity. isBookable: ${hotel.isBookable()}, capacity: ${JSON.stringify(hotel.capacity)}, guests: ${filters.guests}`);
-          }
-          return hasCapacity;
-        });
-        console.log(`[HotelService] After guest filter (${filters.guests} guests): ${beforeGuestFilter} -> ${filteredHotels.length} hotels`);
-      } else {
-        console.log(`[HotelService] Skipping guest filter (guests: ${filters.guests}, parsed: ${parseInt(filters.guests)})`);
+        try {
+          const requestedGuests = parseInt(filters.guests);
+          const beforeGuestFilter = filteredHotels.length;
+          console.log(`[HotelService] Filtering by guests: ${requestedGuests}, hotels before filter: ${beforeGuestFilter}`);
+          
+          filteredHotels = filteredHotels.filter(hotel => {
+            try {
+              // Use the Hotel class method which has proper logic
+              const hasCapacity = hotel.hasAvailableCapacity(requestedGuests);
+              
+              // Also log the actual capacity for debugging
+              const hotelCapacity = hotel.capacity?.guests;
+              const capacityNum = hotelCapacity ? parseInt(hotelCapacity) : 'N/A';
+              
+              if (!hasCapacity) {
+                console.log(`[HotelService] Hotel "${hotel.name}" filtered out - capacity: ${capacityNum}, requested: ${requestedGuests}, isBookable: ${hotel.isBookable()}`);
+              } else {
+                console.log(`[HotelService] Hotel "${hotel.name}" has capacity - capacity: ${capacityNum}, requested: ${requestedGuests} ✓`);
+              }
+              
+              return hasCapacity;
+            } catch (error) {
+              console.error(`[HotelService] Error checking capacity for hotel "${hotel.name}":`, error);
+              // If there's an error, include the hotel to be safe (better to show than hide)
+              return hotel.isBookable();
+            }
+          });
+          
+          console.log(`[HotelService] After guest filter (${requestedGuests} guests): ${beforeGuestFilter} -> ${filteredHotels.length} hotels`);
+        } catch (error) {
+          console.error('[HotelService] Error filtering by guests:', error);
+          // Continue without guest filtering if there's an error
+        }
       }
 
       // Filter by date availability
