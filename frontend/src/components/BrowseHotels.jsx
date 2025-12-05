@@ -97,10 +97,22 @@ const BrowseHotels = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => {
+      const updated = { ...prev, [key]: value };
+      // Log guest filter changes for debugging
+      if (key === 'guests') {
+        console.log(`[BrowseHotels] Guest filter changed to: ${value}`);
+      }
+      return updated;
+    });
     const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
+    if (value !== null && value !== undefined && value !== '') {
+      // Ensure guests is always sent as a number string
+      if (key === 'guests') {
+        newParams.set(key, String(value));
+      } else {
+        newParams.set(key, value);
+      }
     } else {
       newParams.delete(key);
     }
@@ -131,7 +143,7 @@ const BrowseHotels = () => {
       return `${formatDate(filters.checkIn)} - ${formatDate(filters.checkOut)}`;
     }
     if (filters.checkIn) {
-      return formatDate(filters.checkIn);
+      return `${formatDate(filters.checkIn)} - Add checkout`;
     }
     return 'Add dates';
   };
@@ -204,7 +216,8 @@ const BrowseHotels = () => {
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
@@ -213,38 +226,81 @@ const BrowseHotels = () => {
                   if (e.target.closest('.clear-dates-btn')) {
                     return;
                   }
-                  // Determine which input to trigger
-                  if (!filters.checkIn) {
-                    // No check-in date, trigger check-in picker
+                  
+                  // Simple flow:
+                  // 1. If no check-in → open check-in picker (start of range)
+                  // 2. If check-in but no check-out → open check-out picker (end of range)
+                  // 3. If both are set → clear and start over with check-in
+                  const hasCheckIn = filters.checkIn && filters.checkIn.trim() !== '';
+                  const hasCheckOut = filters.checkOut && filters.checkOut.trim() !== '';
+                  
+                  if (!hasCheckIn) {
+                    // Step 1: Select check-in date (start of range)
                     setActiveDateInput('checkIn');
                     setTimeout(() => {
                       if (checkInInputRef.current) {
                         checkInInputRef.current.focus();
                         checkInInputRef.current.click();
+                        if (checkInInputRef.current.showPicker) {
+                          try {
+                            checkInInputRef.current.showPicker();
+                          } catch (err) {
+                            // Fallback to click
+                          }
+                        }
                       }
                     }, 10);
-                  } else if (filters.checkIn && !filters.checkOut) {
-                    // Check-in set, trigger check-out picker
+                  } else if (hasCheckIn && !hasCheckOut) {
+                    // Step 2: Select check-out date (end of range) - THIS IS THE FIX
                     setActiveDateInput('checkOut');
                     setTimeout(() => {
                       if (checkOutInputRef.current) {
+                        // Force enable the input
+                        checkOutInputRef.current.disabled = false;
+                        checkOutInputRef.current.style.pointerEvents = 'auto';
+                        checkOutInputRef.current.style.zIndex = '105';
+                        checkOutInputRef.current.style.opacity = '0';
+                        
+                        // Focus and click
                         checkOutInputRef.current.focus();
-                        checkOutInputRef.current.click();
+                        
+                        // Use a small delay to ensure focus is set
+                        setTimeout(() => {
+                          checkOutInputRef.current.click();
+                          
+                          // Try showPicker
+                          if (checkOutInputRef.current.showPicker) {
+                            try {
+                              checkOutInputRef.current.showPicker();
+                            } catch (err) {
+                              // If showPicker fails, click should work
+                            }
+                          }
+                        }, 20);
                       }
                     }, 10);
                   } else {
-                    // Both set, reset to check-in
+                    // Step 3: Both dates set - clear and start over with check-in
+                    handleFilterChange('checkIn', '');
+                    handleFilterChange('checkOut', '');
                     setActiveDateInput('checkIn');
                     setTimeout(() => {
                       if (checkInInputRef.current) {
                         checkInInputRef.current.focus();
                         checkInInputRef.current.click();
+                        if (checkInInputRef.current.showPicker) {
+                          try {
+                            checkInInputRef.current.showPicker();
+                          } catch (err) {
+                            // Fallback to click
+                          }
+                        }
                       }
                     }, 10);
                   }
                 }}
               >
-                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
+                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1', position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
                   When
                 </div>
                 <div 
@@ -253,12 +309,12 @@ const BrowseHotels = () => {
                     color: filters.checkIn ? '#000' : '#717171',
                     padding: 0,
                     margin: 0,
-                    pointerEvents: 'none',
                     position: 'relative',
                     zIndex: 1,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    pointerEvents: 'none'
                   }}
                 >
                   <span>{getDateDisplay()}</span>
@@ -267,6 +323,7 @@ const BrowseHotels = () => {
                       className="clear-dates-btn"
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         handleFilterChange('checkIn', '');
                         handleFilterChange('checkOut', '');
                       }}
@@ -283,7 +340,9 @@ const BrowseHotels = () => {
                         transition: 'background-color 0.2s',
                         width: '20px',
                         height: '20px',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        position: 'relative',
+                        zIndex: 10
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#e0e0e0';
@@ -299,7 +358,7 @@ const BrowseHotels = () => {
                     </button>
                   )}
                 </div>
-                {/* Check-in Date Input */}
+                {/* Check-in Date Input - Overlay for better UX */}
                 <input
                   ref={checkInInputRef}
                   type="date"
@@ -309,22 +368,45 @@ const BrowseHotels = () => {
                     e.stopPropagation();
                     const checkInDate = e.target.value;
                     handleFilterChange('checkIn', checkInDate);
-                    // If check-out is before new check-in, clear it
-                    if (filters.checkOut && checkInDate && filters.checkOut < checkInDate) {
+                    // If check-out is before or equal to new check-in, clear it
+                    if (filters.checkOut && checkInDate && filters.checkOut <= checkInDate) {
                       handleFilterChange('checkOut', '');
                     }
-                    // Auto-advance to check-out
-                    if (checkInDate && !filters.checkOut) {
-                      setTimeout(() => {
-                        setActiveDateInput('checkOut');
-                        if (checkOutInputRef.current) {
-                          checkOutInputRef.current.focus();
-                          checkOutInputRef.current.click();
-                        }
-                      }, 100);
-                    }
+                    // Don't auto-advance - let user click "When" again to select check-out
+                    // This is more user-friendly and gives user control
                   }}
                   min={new Date().toISOString().split('T')[0]}
+                  onClick={(e) => {
+                    // If check-in is set but check-out isn't, block this click so parent can open check-out
+                    if (filters.checkIn && !filters.checkOut) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      return;
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setActiveDateInput('checkIn');
+                    // Try to open date picker directly
+                    if (e.target.showPicker) {
+                      try {
+                        e.target.showPicker();
+                      } catch (err) {
+                        // If showPicker fails, the click should still work
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    setActiveDateInput('checkIn');
+                  }}
+                  onMouseDown={(e) => {
+                    // Block if we're trying to select check-out
+                    if (filters.checkIn && !filters.checkOut) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    } else {
+                      e.stopPropagation();
+                    }
+                  }}
                   style={{ 
                     position: 'absolute',
                     top: 0,
@@ -333,12 +415,18 @@ const BrowseHotels = () => {
                     height: '100%',
                     opacity: 0,
                     cursor: 'pointer',
-                    zIndex: activeDateInput === 'checkIn' ? 20 : 2,
+                    zIndex: (filters.checkIn && !filters.checkOut) ? 100 : 103,
                     margin: 0,
-                    padding: 0
+                    padding: 0,
+                    pointerEvents: (filters.checkIn && !filters.checkOut) ? 'none' : 'auto',
+                    fontSize: '16px',
+                    border: 'none',
+                    background: 'transparent',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'textfield'
                   }}
                 />
-                {/* Check-out Date Input */}
+                {/* Check-out Date Input - Overlay for better UX */}
                 <input
                   ref={checkOutInputRef}
                   type="date"
@@ -348,8 +436,38 @@ const BrowseHotels = () => {
                     e.stopPropagation();
                     handleFilterChange('checkOut', e.target.value);
                   }}
-                  min={filters.checkIn || new Date().toISOString().split('T')[0]}
+                  min={filters.checkIn ? (() => {
+                    // Set minimum to day after check-in
+                    const checkInDate = new Date(filters.checkIn);
+                    checkInDate.setDate(checkInDate.getDate() + 1);
+                    return checkInDate.toISOString().split('T')[0];
+                  })() : new Date().toISOString().split('T')[0]}
                   disabled={!filters.checkIn}
+                  onClick={(e) => {
+                    if (filters.checkIn) {
+                      e.stopPropagation();
+                      setActiveDateInput('checkOut');
+                      // Try to open date picker directly
+                      if (e.target.showPicker) {
+                        try {
+                          e.target.showPicker();
+                        } catch (err) {
+                          // If showPicker fails, the click should still work
+                        }
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    if (filters.checkIn) {
+                      setActiveDateInput('checkOut');
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (filters.checkIn) {
+                      e.stopPropagation();
+                      setActiveDateInput('checkOut');
+                    }
+                  }}
                   style={{ 
                     position: 'absolute',
                     top: 0,
@@ -358,9 +476,15 @@ const BrowseHotels = () => {
                     height: '100%',
                     opacity: 0,
                     cursor: filters.checkIn ? 'pointer' : 'not-allowed',
-                    zIndex: activeDateInput === 'checkOut' ? 20 : 2,
+                    zIndex: filters.checkIn ? 105 : 99,
                     margin: 0,
-                    padding: 0
+                    padding: 0,
+                    pointerEvents: filters.checkIn ? 'auto' : 'none',
+                    fontSize: '16px',
+                    border: 'none',
+                    background: 'transparent',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'textfield'
                   }}
                 />
               </div>
@@ -372,67 +496,119 @@ const BrowseHotels = () => {
                   cursor: 'pointer',
                   minWidth: '180px',
                   transition: 'background-color 0.2s',
-                  height: '100%'
+                  height: '100%',
+                  position: 'relative'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
                   <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
                     Who
                   </div>
                   <div 
-                  style={{ 
-                    fontSize: '14px',
-                    color: filters.guests > 1 ? '#000' : '#717171',
-                    padding: 0,
-                    margin: 0,
-                    whiteSpace: 'nowrap'
-                  }}
+                    style={{ 
+                      fontSize: '14px',
+                      color: filters.guests > 1 ? '#000' : '#717171',
+                      padding: 0,
+                      margin: 0,
+                      whiteSpace: 'nowrap'
+                    }}
                   >
                     {filters.guests === 1 ? 'Add guests' : getGuestsDisplay()}
                   </div>
-                  <input
-                    type="number"
-                    className="border-0 w-100"
-                    value={filters.guests}
-                    onChange={(e) => handleFilterChange('guests', parseInt(e.target.value) || 1)}
-                    min="1"
-                    style={{ 
-                      outline: 'none', 
-                      fontSize: '14px',
-                      backgroundColor: 'transparent',
-                      display: 'none'
-                    }}
-                  />
                 </div>
-                <div className="d-flex align-items-center justify-content-center" style={{ gap: '8px', marginLeft: '16px' }}>
+                <div className="d-flex align-items-center justify-content-center" style={{ gap: '12px', marginLeft: '12px', flexShrink: 0 }}>
                   <button
-                    className="btn btn-sm border rounded-circle"
-                    style={{ width: '28px', height: '28px', padding: 0, flexShrink: 0 }}
+                    type="button"
+                    className="btn btn-sm border rounded-circle d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      padding: 0, 
+                      flexShrink: 0,
+                      borderColor: filters.guests > 1 ? '#222' : '#ddd',
+                      backgroundColor: 'white',
+                      cursor: filters.guests > 1 ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       if (filters.guests > 1) {
-                        handleFilterChange('guests', filters.guests - 1);
+                        handleFilterChange('guests', Math.max(1, filters.guests - 1));
                       }
                     }}
+                    disabled={filters.guests <= 1}
+                    onMouseEnter={(e) => {
+                      if (filters.guests > 1) {
+                        e.currentTarget.style.backgroundColor = '#f7f7f7';
+                        e.currentTarget.style.borderColor = '#222';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.borderColor = filters.guests > 1 ? '#222' : '#ddd';
+                    }}
+                    aria-label="Decrease guests"
                   >
-                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      fill="currentColor" 
+                      viewBox="0 0 16 16"
+                      style={{ opacity: filters.guests > 1 ? 1 : 0.3 }}
+                    >
                       <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
                     </svg>
                   </button>
-                  <span className="d-flex align-items-center justify-content-center" style={{ fontSize: '13px', width: '24px', textAlign: 'center' }}>
+                  <span 
+                    className="d-flex align-items-center justify-content-center fw-semibold" 
+                    style={{ 
+                      fontSize: '14px', 
+                      minWidth: '24px', 
+                      textAlign: 'center',
+                      color: '#222',
+                      userSelect: 'none'
+                    }}
+                  >
                     {filters.guests}
                   </span>
                   <button
-                    className="btn btn-sm border rounded-circle"
-                    style={{ width: '28px', height: '28px', padding: 0, flexShrink: 0 }}
+                    type="button"
+                    className="btn btn-sm border rounded-circle d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      padding: 0, 
+                      flexShrink: 0,
+                      borderColor: '#222',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       handleFilterChange('guests', filters.guests + 1);
                     }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f7f7f7';
+                      e.currentTarget.style.borderColor = '#222';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.borderColor = '#222';
+                    }}
+                    aria-label="Increase guests"
                   >
-                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                       <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
                     </svg>
                   </button>
