@@ -205,9 +205,61 @@
   }
 }
 
+/* Mobile Styles */
 @media (max-width: 480px) {
+  .dashboard-container {
+    padding: 10px;
+  }
+
+  .dashboard-header {
+    padding: 20px 12px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .dashboard-header p {
+    font-size: 0.9rem;
+  }
+
+  .dashboard-content {
+    padding: 0 10px;
+  }
+
+  .dashboard-card {
+    padding: 20px 16px;
+  }
+
+  .card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+  }
+
+  .dashboard-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .dashboard-card p {
+    font-size: 0.9rem;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-item {
+    padding: 12px;
+  }
+
+  .stat-number {
+    font-size: 1.75rem;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
   }
 }
 

@@ -767,6 +767,39 @@
     }
   }
   
+  /* Enhanced Mobile Styles */
+  @media (max-width: 576px) {
+    .hotel-container {
+      padding-top: 10px;
+    }
+
+    .hotel-main-content {
+      padding: 12px !important;
+    }
+
+    .hotel-header h1 {
+      font-size: 1.5rem !important;
+    }
+
+    .hotel-header .location-text {
+      font-size: 0.9rem !important;
+    }
+
+    .booking-card {
+      margin-top: 20px !important;
+      padding: 16px !important;
+    }
+
+    .amenities-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 12px !important;
+    }
+
+    .carousel-main {
+      aspect-ratio: 4 / 3;
+    }
+  }
+
   @media (max-width: 768px) {
     .hotel-title {
       font-size: 22px;

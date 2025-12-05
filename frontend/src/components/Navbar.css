@@ -1,7 +1,8 @@
 /* Override Bootstrap navbar styles only when needed */
 .navbar.bg-white {
-  background: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* More visible grey gradient navbar */
+  background: linear-gradient(90deg, #90949b 0%, #ccd3dc 50%, #e2e6ef 100%) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
 }
 
 .navbar {
@@ -323,6 +324,7 @@
   display: none;
 }
 
+/* Tablet Styles */
 @media (max-width: 768px) {
   .navbar-container {
     padding: 0 15px;
@@ -359,5 +361,60 @@
   /* Show mobile host button */
   .mobile-host-btn {
     display: inline-block;
+  }
+
+  /* Navbar brand responsive */
+  .navbar-brand span {
+    font-size: 22px !important;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 576px) {
+  .navbar-container {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+
+  .navbar-brand svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .navbar-brand span {
+    font-size: 20px !important;
+    margin-left: 6px !important;
+  }
+
+  .navbar-button {
+    padding: 5px 12px;
+    font-size: 0.75rem;
+  }
+
+  /* Dropdown menu mobile */
+  .dropdown-menu {
+    min-width: 260px !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+}
+
+/* Extra Small Mobile */
+@media (max-width: 375px) {
+  .navbar-container {
+    padding: 0 8px;
+  }
+
+  .navbar-brand span {
+    font-size: 18px !important;
+  }
+
+  .navbar-button {
+    padding: 4px 10px;
+    font-size: 0.7rem;
   }
 }
