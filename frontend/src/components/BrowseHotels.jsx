@@ -146,10 +146,10 @@ const BrowseHotels = () => {
   return (
     <div className="home-container" style={{ minHeight: '91vh' }}>
       {/* Modern Search Bar */}
-      <div className="sticky-top bg-white border-bottom shadow-sm" style={{ top: '72px', zIndex: 100 }}>
+      <div className="sticky-top bg-white border-bottom shadow-sm search-bar-mobile-wrapper" style={{ top: '72px', zIndex: 100 }}>
         <div className="d-flex justify-content-center" style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}>
           <div 
-            className="d-flex align-items-center bg-white rounded-pill shadow-sm"
+            className="d-flex align-items-center bg-white rounded-pill shadow-sm search-bar-mobile"
             style={{ 
               maxWidth: '700px',
               width: '100%',
@@ -219,7 +219,6 @@ const BrowseHotels = () => {
                     setActiveDateInput('checkIn');
                     setTimeout(() => {
                       if (checkInInputRef.current) {
-                        checkInInputRef.current.showPicker?.();
                         checkInInputRef.current.focus();
                         checkInInputRef.current.click();
                       }
@@ -229,7 +228,6 @@ const BrowseHotels = () => {
                     setActiveDateInput('checkOut');
                     setTimeout(() => {
                       if (checkOutInputRef.current) {
-                        checkOutInputRef.current.showPicker?.();
                         checkOutInputRef.current.focus();
                         checkOutInputRef.current.click();
                       }
@@ -239,7 +237,6 @@ const BrowseHotels = () => {
                     setActiveDateInput('checkIn');
                     setTimeout(() => {
                       if (checkInInputRef.current) {
-                        checkInInputRef.current.showPicker?.();
                         checkInInputRef.current.focus();
                         checkInInputRef.current.click();
                       }
@@ -321,7 +318,6 @@ const BrowseHotels = () => {
                       setTimeout(() => {
                         setActiveDateInput('checkOut');
                         if (checkOutInputRef.current) {
-                          checkOutInputRef.current.showPicker?.();
                           checkOutInputRef.current.focus();
                           checkOutInputRef.current.click();
                         }
@@ -502,11 +498,16 @@ const BrowseHotels = () => {
 
       {/* Hotel Listings with Map */}
       {loading ? (
-        <div className="container py-5">
-          <div className="text-center">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '50vh',
+          width: '100%',
+          padding: '40px 20px'
+        }}>
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Loading...</span>
           </div>
         </div>
       ) : hotels.length === 0 ? (
@@ -519,10 +520,12 @@ const BrowseHotels = () => {
       ) : (
         <div className="container py-3">
           <div
+            className="hotels-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '24px'
+              gap: '24px',
+              padding: '24px'
             }}
           >
             {hotels.map((hotel) => (
@@ -532,7 +535,7 @@ const BrowseHotels = () => {
                 onClick={() => navigate(`/hotel/${hotel.id || hotel._id}`)}
                 className="hotel-card"
               >
-                <div className="position-relative" style={{ height: '300px' }}>
+                <div className="position-relative hotel-card-image" style={{ height: '300px' }}>
                   {(() => {
                     // Handle images - they might be objects with url property or direct URLs
                     let imageUrl = '';

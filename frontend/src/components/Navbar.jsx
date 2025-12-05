@@ -92,7 +92,7 @@ const Navbar = () => {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+    <nav className="navbar navbar-expand-lg border-bottom sticky-top">
       <div className="container-fluid">
         {/* Logo */}
         <Link
