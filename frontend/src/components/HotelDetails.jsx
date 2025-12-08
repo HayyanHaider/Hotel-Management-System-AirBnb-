@@ -367,13 +367,6 @@ const HotelDetails = () => {
 
       <div className="content-grid">
         <div className="main-content">
-          <section className="section-card">
-            <h2 className="section-title">{hotel.name}</h2>
-            <p className="section-subtitle">
-              {hotel.location?.address}, {hotel.location?.city}, {hotel.location?.country}
-            </p>
-            <p className="description-text">{hotel.description}</p>
-          </section>
 
           {(hotel.capacity?.guests || hotel.capacity?.bedrooms || hotel.capacity?.bathrooms) && (
             <section className="section-card">
@@ -385,7 +378,7 @@ const HotelDetails = () => {
                 marginTop: '16px'
               }}>
                 {hotel.capacity?.guests && (
-                  <div className="property-detail-item">
+                  <div key="guests" className="property-detail-item">
                     <div className="property-detail-label" style={{
                       fontSize: '14px',
                       color: '#717171',
@@ -401,7 +394,7 @@ const HotelDetails = () => {
                   </div>
                 )}
                 {hotel.capacity?.bedrooms && (
-                  <div className="property-detail-item">
+                  <div key="bedrooms" className="property-detail-item">
                     <div className="property-detail-label" style={{
                       fontSize: '14px',
                       color: '#717171',
@@ -417,7 +410,7 @@ const HotelDetails = () => {
                   </div>
                 )}
                 {hotel.capacity?.bathrooms && (
-                  <div className="property-detail-item">
+                  <div key="bathrooms" className="property-detail-item">
                     <div className="property-detail-label" style={{
                       fontSize: '14px',
                       color: '#717171',

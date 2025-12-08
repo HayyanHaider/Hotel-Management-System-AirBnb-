@@ -98,34 +98,38 @@ const Login = () => {
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-12 col-sm-10 col-md-6 col-lg-5 col-xl-4">
-            <div className="card shadow-sm border-0 rounded-4">
+            <div className="card border-0 rounded-4" style={{ 
+              background: '#FEFEFE',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)'
+            }}>
               <div className="card-body p-4">
                 {/* Logo */}
                 <div className="text-center mb-3">
                   <svg width="40" height="40" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="mb-2" aria-hidden="true">
                     <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>
                   </svg>
-                  <h2 className="h5 fw-bold text-dark mb-1">Welcome back</h2>
+                  <h2 className="h5 fw-bold mb-1" style={{ color: '#222222' }}>Welcome back</h2>
                   <p className="text-muted small mb-0">Log in to your account</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                   <div className="mb-2">
-                    <label htmlFor="email" className="form-label fw-semibold">Email</label>
+                    <label htmlFor="email" className="form-label fw-semibold" style={{ color: '#222222' }}>Email</label>
                     <input
                       type="email"
                       id="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                      className="form-control"
+                      style={{ borderColor: errors.email ? '#dc3545' : '' }}
                       placeholder="Enter your email"
                     />
-                    {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                    {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="password" className="form-label fw-semibold">Password</label>
+                    <label htmlFor="password" className="form-label fw-semibold" style={{ color: '#222222' }}>Password</label>
                     <div className="position-relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -133,19 +137,20 @@ const Login = () => {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`form-control ${errors.password ? 'is-invalid' : ''} pe-5`}
+                        className="form-control"
+                        style={{ paddingRight: '40px', borderColor: errors.password ? '#dc3545' : '' }}
                         placeholder="Enter your password"
                       />
                       <button
                         type="button"
                         className="btn btn-link position-absolute top-50 translate-middle-y text-muted p-0"
                         onClick={() => setShowPassword(!showPassword)}
-                        style={{border: 'none', background: 'none', right: '8px'}}
+                        style={{border: 'none', background: 'none', right: '12px', zIndex: 10}}
                       >
                         {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                       </button>
                     </div>
-                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                    {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
                   </div>
 
                   {errors.submit && (
@@ -156,7 +161,26 @@ const Login = () => {
 
                   <button 
                     type="submit" 
-                    className="btn btn-danger w-100 mb-2"
+                    className="btn w-100 mb-2 login-btn"
+                    style={{
+                      backgroundColor: '#FF5A5F',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontWeight: '600',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.target.style.backgroundColor = '#E04146';
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(255, 90, 95, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#FF5A5F';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }}
                     disabled={loading}
                   >
                     {loading ? (
@@ -173,7 +197,7 @@ const Login = () => {
                 <div className="text-center mt-2">
                   <p className="text-muted mb-0 small">
                     Don't have an account?{' '}
-                    <Link to="/signup" className="text-decoration-none fw-semibold" style={{color: '#FF385C'}}>
+                    <Link to="/signup" className="fw-semibold" style={{color: '#FF5A5F', textDecoration: 'underline'}}>
                       Sign up
                     </Link>
                   </p>

@@ -186,7 +186,12 @@ const BookingHistory = () => {
 
       <div className="container">
         {bookings.length === 0 ? (
-          <div className="text-center py-5">
+          <div className="text-center" style={{ 
+            minHeight: '60vh', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
             <div className="alert alert-info" style={{ maxWidth: '500px', margin: '0 auto' }}>
               <h5>No bookings found</h5>
               <p className="mb-3">You haven't made any reservations yet.</p>

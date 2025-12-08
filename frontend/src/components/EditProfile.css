@@ -29,13 +29,12 @@
 }
 
 .edit-profile-container {
-  max-height: 91vh;
-  background-color: var(--color-gray-50);
+  min-height: 91vh;
+  background: transparent;
   padding: 90px 20px 20px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
 }
 
 .edit-profile-wrapper {

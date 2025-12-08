@@ -198,14 +198,17 @@ const Signup = () => {
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
-            <div className="card shadow-sm border-0 rounded-4">
+            <div className="card border-0 rounded-4" style={{ 
+              background: '#FEFEFE',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)'
+            }}>
               <div className="card-body p-4">
                 {/* Logo */}
                 <div className="text-center mb-3">
                   <svg width="40" height="40" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="mb-2" aria-hidden="true">
                     <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>
                   </svg>
-                  <h2 className="h5 fw-bold text-dark mb-1">
+                  <h2 className="h5 fw-bold mb-1" style={{ color: '#222222' }}>
                     {signupType === 'host' ? 'Become a Host' : 'Create Account'}
                   </h2>
                   <p className="text-muted small mb-0">
@@ -219,36 +222,38 @@ const Signup = () => {
                 <form onSubmit={handleSubmit}>
                   <div className="row g-2">
                     <div className="col-md-6 mb-2">
-                      <label htmlFor="name" className="form-label fw-semibold">First name</label>
+                      <label htmlFor="name" className="form-label fw-semibold" style={{ color: '#222222' }}>First name</label>
                       <input
                         type="text"
                         id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                        className="form-control"
+                        style={{ borderColor: errors.name ? '#dc3545' : '' }}
                         placeholder="Enter your first name"
                       />
-                      {errors.name && <div className="invalid-feedback">{errors.name}</div>}
+                      {errors.name && <div className="text-danger small mt-1">{errors.name}</div>}
                     </div>
                     
                     <div className="col-md-6 mb-2">
-                      <label htmlFor="email" className="form-label fw-semibold">Email</label>
+                      <label htmlFor="email" className="form-label fw-semibold" style={{ color: '#222222' }}>Email</label>
                       <input
                         type="email"
                         id="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                        className="form-control"
+                        style={{ borderColor: errors.email ? '#dc3545' : '' }}
                         placeholder="Enter your email"
                       />
-                      {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                      {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
                     </div>
                   </div>
 
                   <div className="mb-2">
-                    <label htmlFor="phone" className="form-label fw-semibold">Phone number (optional)</label>
+                    <label htmlFor="phone" className="form-label fw-semibold" style={{ color: '#222222' }}>Phone number (optional)</label>
                     <input
                       type="tel"
                       id="phone"
@@ -262,7 +267,7 @@ const Signup = () => {
 
                   {signupType === 'all' && (
                     <div className="mb-2">
-                      <label htmlFor="role" className="form-label fw-semibold">Account Type</label>
+                      <label htmlFor="role" className="form-label fw-semibold" style={{ color: '#222222' }}>Account Type</label>
                       <select
                         id="role"
                         name="role"
@@ -277,7 +282,7 @@ const Signup = () => {
                   )}
 
                   <div className="mb-2">
-                    <label htmlFor="password" className="form-label fw-semibold">Password</label>
+                    <label htmlFor="password" className="form-label fw-semibold" style={{ color: '#222222' }}>Password</label>
                     <div className="position-relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -286,23 +291,24 @@ const Signup = () => {
                         value={formData.password}
                         onChange={handleChange}
                         onBlur={handlePasswordBlur}
-                        className={`form-control ${errors.password ? 'is-invalid' : ''} pe-5`}
+                        className="form-control"
+                        style={{ paddingRight: '40px', borderColor: errors.password ? '#dc3545' : '' }}
                         placeholder="Create a password"
                       />
                       <button
                         type="button"
                         className="btn btn-link position-absolute top-50 translate-middle-y text-muted p-0"
                         onClick={() => setShowPassword(!showPassword)}
-                        style={{border: 'none', background: 'none', right: '8px'}}
+                        style={{border: 'none', background: 'none', right: '12px', zIndex: 10}}
                       >
                         {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                       </button>
                     </div>
-                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                    {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="confirmPassword" className="form-label fw-semibold">Confirm password</label>
+                    <label htmlFor="confirmPassword" className="form-label fw-semibold" style={{ color: '#222222' }}>Confirm password</label>
                     <div className="position-relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"}
@@ -310,19 +316,20 @@ const Signup = () => {
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''} pe-5`}
+                        className="form-control"
+                        style={{ paddingRight: '40px', borderColor: errors.confirmPassword ? '#dc3545' : '' }}
                         placeholder="Confirm your password"
                       />
                       <button
                         type="button"
                         className="btn btn-link position-absolute top-50 translate-middle-y text-muted p-0"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{border: 'none', background: 'none', right: '8px'}}
+                        style={{border: 'none', background: 'none', right: '12px', zIndex: 10}}
                       >
                         {showConfirmPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                       </button>
                     </div>
-                    {errors.confirmPassword && <div className="invalid-feedback">{errors.confirmPassword}</div>}
+                    {errors.confirmPassword && <div className="text-danger small mt-1">{errors.confirmPassword}</div>}
                   </div>
 
                   {errors.submit && (
@@ -333,7 +340,26 @@ const Signup = () => {
 
                   <button 
                     type="submit" 
-                    className="btn btn-danger w-100 mb-2"
+                    className="btn w-100 mb-2 signup-btn"
+                    style={{
+                      backgroundColor: '#FF5A5F',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontWeight: '600',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.target.style.backgroundColor = '#E04146';
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(255, 90, 95, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#FF5A5F';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }}
                     disabled={loading}
                   >
                     {loading ? (
@@ -350,7 +376,7 @@ const Signup = () => {
                 <div className="text-center mt-2">
                   <p className="text-muted mb-1 small">
                     Already have an account?{' '}
-                    <Link to="/login" className="text-decoration-none fw-semibold" style={{color: '#FF385C'}}>
+                    <Link to="/login" className="fw-semibold" style={{color: '#FF5A5F', textDecoration: 'underline'}}>
                       Log in
                     </Link>
                   </p>
@@ -358,7 +384,7 @@ const Signup = () => {
                   {signupType === 'customer' && (
                     <p className="text-muted mb-0 small">
                       Want to become a host?{' '}
-                      <Link to="/signup?type=host" className="text-decoration-none fw-semibold" style={{color: '#FF385C'}}>
+                      <Link to="/signup?type=host" className="fw-semibold" style={{color: '#FF5A5F', textDecoration: 'underline'}}>
                         Host Signup
                       </Link>
                     </p>
@@ -367,7 +393,7 @@ const Signup = () => {
                   {signupType === 'host' && (
                     <p className="text-muted mb-0 small">
                       Want to sign up as a customer?{' '}
-                      <Link to="/signup?type=customer" className="text-decoration-none fw-semibold" style={{color: '#FF385C'}}>
+                      <Link to="/signup?type=customer" className="fw-semibold" style={{color: '#FF5A5F', textDecoration: 'underline'}}>
                         Customer Signup
                       </Link>
                     </p>

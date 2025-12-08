@@ -229,6 +229,7 @@ const Payment = () => {
                       onChange={(e) => setCardDetails({...cardDetails, cardNumber: e.target.value})}
                       placeholder="1234 5678 9012 3456"
                       maxLength="19"
+                      autoComplete="off"
                     />
                   </div>
 
@@ -242,6 +243,7 @@ const Payment = () => {
                         onChange={(e) => setCardDetails({...cardDetails, expiryDate: e.target.value})}
                         placeholder="MM/YY"
                         maxLength="5"
+                        autoComplete="off"
                       />
                     </div>
                     <div className="col-md-6 mb-3">
@@ -253,6 +255,7 @@ const Payment = () => {
                         onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
                         placeholder="123"
                         maxLength="3"
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -265,6 +268,7 @@ const Payment = () => {
                       value={cardDetails.cardHolderName}
                       onChange={(e) => setCardDetails({...cardDetails, cardHolderName: e.target.value})}
                       placeholder="John Doe"
+                      autoComplete="off"
                     />
                   </div>
                 </>

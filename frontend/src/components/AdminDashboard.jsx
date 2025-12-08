@@ -170,6 +170,12 @@ const AdminDashboard = () => {
         toast.success(`Hotel ${action}ed successfully!`);
         fetchHotels(filterStatus);
         fetchDashboardStats(token);
+        
+        // Refresh low-rated hotels list if on monitoring section
+        if (activeSection === 'monitoring') {
+          fetchLowRatedHotels();
+        }
+        
         closeModal();
       } else {
         toast.error(data.message || `Failed to ${action} hotel`);

@@ -694,14 +694,16 @@ const BrowseHotels = () => {
           </div>
         </div>
       ) : (
-        <div className="container py-3">
+        <div className="py-3" style={{ width: '100%', maxWidth: '100%' }}>
           <div
             className="hotels-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '24px',
-              padding: '24px'
+              padding: '24px',
+              width: '100%',
+              maxWidth: '100%'
             }}
           >
             {hotels.map((hotel) => (

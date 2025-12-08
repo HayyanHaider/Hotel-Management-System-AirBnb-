@@ -64,15 +64,15 @@
 /* Sidebar */
 .admin-sidebar {
   width: 280px;
-  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-  color: var(--color-gray-700);
+  background: linear-gradient(180deg, #1e3a5f 0%, #0f2744 50%, #0a1929 100%);
+  color: #e2e8f0;
   padding: 1.5rem 1rem;
-  border-right: 1px solid var(--color-gray-200);
+  border-right: 1px solid #2d5a8a;
   position: fixed;
   height: 100vh;
   overflow-y: auto;
   z-index: 100;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .admin-nav {
@@ -85,7 +85,7 @@
 .admin-nav button {
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: #cbd5e1;
   padding: 0.875rem 1.25rem;
   text-align: left;
   font-size: 15px;
@@ -106,15 +106,15 @@
   top: 0;
   height: 100%;
   width: 4px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   transform: scaleY(0);
   transition: transform 0.3s ease;
   border-radius: 0 4px 4px 0;
 }
 
 .admin-nav button:hover {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.03) 100%);
-  color: #667eea;
+  background: rgba(96, 165, 250, 0.15);
+  color: #ffffff;
 }
 
 .admin-nav button:hover::before {
@@ -122,8 +122,8 @@
 }
 
 .admin-nav button.active {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.06) 100%);
-  color: #667eea;
+  background: rgba(96, 165, 250, 0.25);
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -550,12 +550,13 @@ td strong {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(17, 24, 39, 0.6); /* --color-gray-900 with opacity */
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -568,6 +569,8 @@ td strong {
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
   animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+  z-index: 10000;
 }
 
 @keyframes modalSlideIn {

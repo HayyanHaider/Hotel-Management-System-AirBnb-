@@ -539,7 +539,7 @@
   
   /* Booking Sidebar */
   .booking-sidebar {
-    height: fit-content;
+    position: relative;
   }
   
   .booking-card {
@@ -552,7 +552,8 @@
   
   .booking-card.sticky {
     position: sticky;
-    top: 110px;
+    top: 90px;
+    z-index: 100;
   }
   
   .price-header {

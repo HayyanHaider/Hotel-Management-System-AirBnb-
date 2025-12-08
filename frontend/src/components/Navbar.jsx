@@ -131,7 +131,7 @@ const Navbar = () => {
                     width: "40px",
                     height: "40px",
                     boxShadow: "none",
-                    border: userHovered ? "2px solid #007bff" : "2px solid #dee2e6",
+                    border: userHovered ? "2px solid #007bff" : "2px solid #f2f4f6ff",
                     background: userHovered ? "#f8f9fa" : "transparent",
                     transition: "all 0.2s ease",
                     color: userHovered ? "#007bff" : "#6c757d",
@@ -204,37 +204,7 @@ const Navbar = () => {
                   
                   {(user.role === 'hotel' || user.role === 'hotel_owner') && (
                     <>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/hotel-dashboard">
-                          <span className="me-2">🏠</span> Dashboard
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/manage-hotel-profile">
-                          <span className="me-2">🏨</span> Manage Hotel
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/manage-coupons">
-                          <span className="me-2">🎫</span> Coupons
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/owner-bookings">
-                          <span className="me-2">📋</span> Reservations
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/reply-reviews">
-                          <span className="me-2">⭐</span> Reviews
-                        </Link>
-                      </li>
-                      <li>
-                        <Link className="dropdown-item py-2" to="/earnings-dashboard">
-                          <span className="me-2">💰</span> Earnings
-                        </Link>
-                      </li>
-                      <li><hr className="dropdown-divider" /></li>
+                      
                     </>
                   )}
                   
