@@ -427,9 +427,8 @@ const BrowseHotels = () => {
                 }}
               >
                 {filters.checkIn && filters.checkOut
-                  ? Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24))
-                  : "1"}{" "}
-                night{filters.checkIn && filters.checkOut && Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24)) !== 1 ? "s" : ""}
+                  ? `${Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24))} night${Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24)) !== 1 ? "s" : ""}`
+                  : "-"}
               </div>
             </div>
 
@@ -652,8 +651,8 @@ const BrowseHotels = () => {
               className="hotels-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "24px",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "20px",
                 padding: "0 20px",
                 width: "100%",
               }}
