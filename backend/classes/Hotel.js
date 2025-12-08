@@ -317,8 +317,10 @@ class Hotel extends BaseEntity {
 
   // Method to check if hotel has available capacity for given dates and guests
   hasAvailableCapacity(guests) {
-    // Check if hotel is bookable
-    if (!this.isBookable()) {
+    // For search/browse results, only check approval and suspension (not flagged)
+    // Flagged hotels can still be shown in search results (flagging is for admin review)
+    if (!this.isApproved || this.isSuspended) {
+      console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" not available - isApproved: ${this.isApproved}, isSuspended: ${this.isSuspended}`);
       return false;
     }
 
@@ -329,25 +331,34 @@ class Hotel extends BaseEntity {
     }
 
     // Check capacity - hotel must have capacity >= requested guests
-    if (this.capacity && this.capacity.guests !== undefined && this.capacity.guests !== null) {
-      // Handle both number and string types for capacity
-      const hotelCapacity = parseInt(this.capacity.guests);
-      // If capacity is 0 or negative, treat it as "not set" and fall through to default behavior
-      if (isNaN(hotelCapacity) || hotelCapacity <= 0) {
-        // Capacity not properly set, use default behavior
-        return this.isApproved && !this.isSuspended;
+    // Handle both Mongoose documents and plain objects
+    const capacityObj = this.capacity && typeof this.capacity.toObject === 'function' 
+      ? this.capacity.toObject() 
+      : this.capacity;
+    
+    // If capacity is explicitly set and valid
+    if (capacityObj && (capacityObj.guests !== undefined && capacityObj.guests !== null)) {
+      const hotelCapacity = parseInt(capacityObj.guests);
+      
+      // If capacity is valid and positive, check if it meets the requirement
+      if (!isNaN(hotelCapacity) && hotelCapacity > 0) {
+        const hasCapacity = hotelCapacity >= requestedGuests;
+        console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - capacity: ${hotelCapacity}, requested: ${requestedGuests}, hasCapacity: ${hasCapacity}`);
+        return hasCapacity;
       }
-      const hasCapacity = hotelCapacity >= requestedGuests;
-      // Only log when capacity is insufficient to reduce console noise
-      if (!hasCapacity && requestedGuests > 1) {
-        console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" capacity insufficient - capacity.guests: ${hotelCapacity}, requested: ${requestedGuests}`);
-      }
-      return hasCapacity;
     }
 
-    // If no capacity info, assume available if hotel is approved (backward compatibility)
-    // This allows hotels without capacity info to still be shown
-    return this.isApproved && !this.isSuspended;
+    // If no capacity info or invalid capacity, be lenient and show the hotel
+    // This handles hotels that don't have capacity set yet (backward compatibility)
+    // Show hotel for any reasonable number of guests (up to 10) if capacity not set
+    if (requestedGuests <= 10) {
+      console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - no capacity set, showing for ${requestedGuests} guests (lenient mode)`);
+      return true; // Hotel is bookable and we're being lenient about capacity
+    }
+    
+    // For more than 10 guests, require capacity to be set
+    console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - no capacity set, requested ${requestedGuests} guests (too many, requiring capacity)`);
+    return false;
   }
 
   // Method to check if hotel has available rooms for given dates and guests

@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { useHotels } from '../hooks/useHotels';
-import { useAuth } from '../hooks/useAuth';
-import UserApiService from '../services/api/UserApiService';
-import './Home.css';
+"use client"
+
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { toast } from "react-toastify"
+import { useHotels } from "../hooks/useHotels"
+import { useAuth } from "../hooks/useAuth"
+import UserApiService from "../services/api/UserApiService"
+import { MapPin } from "lucide-react"
+import BrowseHotelImage from "./BrowseHotelImage.jpg.png"
+import "./Home.css"
 
 /**
  * BrowseHotels - Component for browsing hotels
@@ -12,864 +16,838 @@ import './Home.css';
  * Follows Dependency Inversion Principle - depends on hooks and services abstractions
  */
 const BrowseHotels = () => {
-  const [favorites, setFavorites] = useState([]);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [activeDateInput, setActiveDateInput] = useState('checkIn');
-  const checkInInputRef = useRef(null);
-  const checkOutInputRef = useRef(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  
+  const [favorites, setFavorites] = useState([])
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [activeDateInput, setActiveDateInput] = useState("checkIn")
+  const checkInInputRef = useRef(null)
+  const checkOutInputRef = useRef(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+
   // Use custom hooks for data fetching (Separation of Concerns)
-  const { isAuthenticated } = useAuth();
-  
+  const { isAuthenticated } = useAuth()
+
   const [filters, setFilters] = useState({
-    location: searchParams.get('location') || '',
-    checkIn: searchParams.get('checkIn') || '',
-    checkOut: searchParams.get('checkOut') || '',
-    guests: parseInt(searchParams.get('guests')) || 1,
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    minRating: searchParams.get('minRating') || '',
-    amenities: searchParams.get('amenities') ? searchParams.get('amenities').split(',') : [],
-    sortBy: searchParams.get('sortBy') || 'popularity',
-    order: searchParams.get('order') || 'desc',
-    limit: 50
-  });
+    location: searchParams.get("location") || "",
+    checkIn: searchParams.get("checkIn") || "",
+    checkOut: searchParams.get("checkOut") || "",
+    guests: (() => {
+      const guestsParam = searchParams.get("guests");
+      const parsed = parseInt(guestsParam, 10);
+      return (!isNaN(parsed) && parsed > 0) ? parsed : 1;
+    })(),
+    minPrice: searchParams.get("minPrice") || "",
+    maxPrice: searchParams.get("maxPrice") || "",
+    minRating: searchParams.get("minRating") || "",
+    amenities: searchParams.get("amenities") ? searchParams.get("amenities").split(",") : [],
+    sortBy: searchParams.get("sortBy") || "popularity",
+    order: searchParams.get("order") || "desc",
+    limit: 50,
+  })
+
+  // Ensure guests filter is always included in API calls
+  useEffect(() => {
+    const currentGuests = filters.guests || 1
+    console.log(`[BrowseHotels] Current guests filter: ${currentGuests}`)
+  }, [filters.guests])
 
   // Use custom hook for hotels data
-  const { hotels, loading, error, refetch } = useHotels(filters);
+  const { hotels, loading, error, refetch } = useHotels(filters)
+
+  // Debug: Log hotels data
+  useEffect(() => {
+    console.log('[BrowseHotels] Hotels state:', { hotels, loading, error, count: hotels?.length })
+  }, [hotels, loading, error])
 
   const fetchFavorites = useCallback(async () => {
     if (!isAuthenticated) {
-      setFavorites([]);
-      return;
+      setFavorites([])
+      return
     }
 
     try {
-      const response = await UserApiService.getFavorites();
+      const response = await UserApiService.getFavorites()
       if (response.success) {
-        const favoriteIds = (response.favorites || []).map(f => String(f._id || f.id));
-        setFavorites(favoriteIds);
+        const favoriteIds = (response.favorites || []).map((f) => String(f._id || f.id))
+        setFavorites(favoriteIds)
       }
     } catch (error) {
-      console.error('Error fetching favorites:', error);
-      setFavorites([]);
+      console.error("Error fetching favorites:", error)
+      setFavorites([])
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated])
 
   useEffect(() => {
-    fetchFavorites();
-  }, [fetchFavorites]);
+    fetchFavorites()
+  }, [fetchFavorites])
 
   useEffect(() => {
-    refetch();
-  }, [filters, refetch]);
+    refetch()
+  }, [filters, refetch])
 
   const toggleFavorite = async (hotelId, e) => {
-    e.stopPropagation();
-    
+    e.stopPropagation()
+
     if (!isAuthenticated) {
-      return;
+      return
     }
 
     try {
-      const hotelIdStr = String(hotelId);
-      const isFavorite = favorites.includes(hotelIdStr);
+      const hotelIdStr = String(hotelId)
+      const isFavorite = favorites.includes(hotelIdStr)
 
       if (isFavorite) {
-        await UserApiService.removeFavorite(hotelId);
-        setFavorites(prev => prev.filter(id => id !== hotelIdStr));
-        toast.info('Removed from favorites');
+        await UserApiService.removeFavorite(hotelId)
+        setFavorites((prev) => prev.filter((id) => id !== hotelIdStr))
+        toast.info("Removed from favorites")
       } else {
-        await UserApiService.addFavorite(hotelId);
-        setFavorites(prev => [...prev, hotelIdStr]);
-        toast.success('Added to favorites');
+        await UserApiService.addFavorite(hotelId)
+        setFavorites((prev) => [...prev, hotelIdStr])
+        toast.success("Added to favorites")
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast.error(error.message || 'Error updating favorite. Please try again.');
+      console.error("Error toggling favorite:", error)
+      toast.error(error.message || "Error updating favorite. Please try again.")
     }
-  };
+  }
 
   const checkIsFavorite = (hotelId) => {
-    return favorites.includes(String(hotelId));
-  };
+    return favorites.includes(String(hotelId))
+  }
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => {
-      const updated = { ...prev, [key]: value };
-      // Log guest filter changes for debugging
-      if (key === 'guests') {
-        console.log(`[BrowseHotels] Guest filter changed to: ${value}`);
+    setFilters((prev) => {
+      // Ensure guests is always a valid number
+      if (key === "guests") {
+        const numValue = parseInt(value, 10);
+        const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
+        console.log(`[BrowseHotels] Guest filter changed to: ${validGuests}`)
+        return { ...prev, [key]: validGuests }
       }
-      return updated;
-    });
-    const newParams = new URLSearchParams(searchParams);
-    if (value !== null && value !== undefined && value !== '') {
-      // Ensure guests is always sent as a number string
-      if (key === 'guests') {
-        newParams.set(key, String(value));
+      return { ...prev, [key]: value }
+    })
+    const newParams = new URLSearchParams(searchParams)
+    if (value !== null && value !== undefined && value !== "") {
+      // Ensure guests is always sent as a number string (even for 1 guest)
+      if (key === "guests") {
+        const numValue = parseInt(value, 10);
+        const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
+        newParams.set(key, String(validGuests))
+        console.log(`[BrowseHotels] Setting guests filter in URL: ${validGuests}`)
       } else {
-        newParams.set(key, value);
+        newParams.set(key, value)
       }
     } else {
-      newParams.delete(key);
+      newParams.delete(key)
     }
-    if (key === 'amenities' && Array.isArray(value)) {
+    if (key === "amenities" && Array.isArray(value)) {
       if (value.length > 0) {
-        newParams.set('amenities', value.join(','));
+        newParams.set("amenities", value.join(","))
       } else {
-        newParams.delete('amenities');
+        newParams.delete("amenities")
       }
     }
-    setSearchParams(newParams);
-  };
+    setSearchParams(newParams)
+  }
 
   const handleSort = (sortBy) => {
-    const order = filters.sortBy === sortBy && filters.order === 'desc' ? 'asc' : 'desc';
-    handleFilterChange('sortBy', sortBy);
-    handleFilterChange('order', order);
-  };
+    // Toggle between asc/desc when clicking the same sort option
+    // Default: rating = desc (highest first), price = asc (lowest first), popularity = desc
+    let defaultOrder = "desc";
+    if (sortBy === "price") {
+      defaultOrder = "asc"; // Price defaults to lowest first
+    }
+    
+    const order = filters.sortBy === sortBy && filters.order === defaultOrder 
+      ? (defaultOrder === "desc" ? "asc" : "desc")
+      : defaultOrder;
+    
+    handleFilterChange("sortBy", sortBy)
+    handleFilterChange("order", order)
+  }
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+    if (!dateString) return ""
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
 
   const getDateDisplay = () => {
     if (filters.checkIn && filters.checkOut) {
-      return `${formatDate(filters.checkIn)} - ${formatDate(filters.checkOut)}`;
+      return `${formatDate(filters.checkIn)} - ${formatDate(filters.checkOut)}`
     }
     if (filters.checkIn) {
-      return `${formatDate(filters.checkIn)} - Add checkout`;
+      return `${formatDate(filters.checkIn)} - Add checkout`
     }
-    return 'Add dates';
-  };
+    return "Add dates"
+  }
 
   const getGuestsDisplay = () => {
     if (filters.guests === 1) {
-      return '1 guest';
+      return "1 guest"
     }
-    return `${filters.guests} guests`;
-  };
+    return `${filters.guests} guests`
+  }
 
   return (
-    <div className="home-container" style={{ minHeight: '91vh' }}>
-      {/* Modern Search Bar */}
-      <div className="sticky-top bg-white border-bottom shadow-sm search-bar-mobile-wrapper" style={{ top: '72px', zIndex: 100 }}>
-        <div className="d-flex justify-content-center" style={{ paddingTop: '12px', paddingBottom: '12px', paddingLeft: '24px', paddingRight: '24px' }}>
-          <div 
-            className="d-flex align-items-center bg-white rounded-pill shadow-sm search-bar-mobile"
-            style={{ 
-              maxWidth: '700px',
-              width: '100%',
-              border: '1px solid #ddd',
-              overflow: 'hidden',
-              height: '56px'
+    <div className="home-container" style={{ minHeight: "100vh" }}>
+      {/* Hero Section */}
+      <div
+        className="hero-section"
+        style={{
+          backgroundImage: `url(${BrowseHotelImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+          backgroundRepeat: "no-repeat",
+          position: "relative",
+          padding: "40px 20px 30px 20px",
+          overflow: "hidden",
+          minHeight: "auto",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start",
+          alignItems: "center",
+          borderRadius: "24px",
+          margin: "20px 20px 0 20px",
+        }}
+      >
+        {/* Dark overlay for better text readability */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "linear-gradient(180deg, rgba(30, 58, 95, 0.7) 0%, rgba(15, 39, 68, 0.8) 50%, rgba(10, 25, 41, 0.9) 100%)",
+            zIndex: 1,
+          }}
+        />
+        {/* Hero Content */}
+        <div style={{ textAlign: "center", marginBottom: "30px", color: "white", position: "relative", zIndex: 2, width: "100%" }}>
+          <h1
+            style={{
+              fontSize: "clamp(32px, 5vw, 56px)",
+              fontWeight: "700",
+              marginBottom: "16px",
+              lineHeight: "1.2",
+              textShadow: "0 2px 8px rgba(0,0,0,0.2)",
             }}
           >
-              {/* Where Input */}
-              <div 
-                className="flex-grow-1 px-4"
-                style={{ 
-                  borderRight: '1px solid #ddd',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  minWidth: '160px',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-              >
-                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
-                  Where
-                </div>
-                <input
-                  type="text"
-                  className="border-0 w-100"
-                  placeholder="Search destinations"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                  style={{ 
-                    outline: 'none', 
-                    fontSize: '14px',
-                    backgroundColor: 'transparent',
-                    padding: 0,
-                    margin: 0
-                  }}
-                />
-              </div>
-
-              {/* When Input */}
-              <div 
-                className="px-4 position-relative"
-                style={{ 
-                  borderRight: '1px solid #ddd',
-                  cursor: 'pointer',
-                  minWidth: '200px',
-                  transition: 'background-color 0.2s',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                onClick={(e) => {
-                  // Don't trigger if clicking the clear button
-                  if (e.target.closest('.clear-dates-btn')) {
-                    return;
-                  }
-                  
-                  // Simple flow:
-                  // 1. If no check-in → open check-in picker (start of range)
-                  // 2. If check-in but no check-out → open check-out picker (end of range)
-                  // 3. If both are set → clear and start over with check-in
-                  const hasCheckIn = filters.checkIn && filters.checkIn.trim() !== '';
-                  const hasCheckOut = filters.checkOut && filters.checkOut.trim() !== '';
-                  
-                  if (!hasCheckIn) {
-                    // Step 1: Select check-in date (start of range)
-                    setActiveDateInput('checkIn');
-                    setTimeout(() => {
-                      if (checkInInputRef.current) {
-                        checkInInputRef.current.focus();
-                        checkInInputRef.current.click();
-                        if (checkInInputRef.current.showPicker) {
-                          try {
-                            checkInInputRef.current.showPicker();
-                          } catch (err) {
-                            // Fallback to click
-                          }
-                        }
-                      }
-                    }, 10);
-                  } else if (hasCheckIn && !hasCheckOut) {
-                    // Step 2: Select check-out date (end of range) - THIS IS THE FIX
-                    setActiveDateInput('checkOut');
-                    setTimeout(() => {
-                      if (checkOutInputRef.current) {
-                        // Force enable the input
-                        checkOutInputRef.current.disabled = false;
-                        checkOutInputRef.current.style.pointerEvents = 'auto';
-                        checkOutInputRef.current.style.zIndex = '105';
-                        checkOutInputRef.current.style.opacity = '0';
-                        
-                        // Focus and click
-                        checkOutInputRef.current.focus();
-                        
-                        // Use a small delay to ensure focus is set
-                        setTimeout(() => {
-                          checkOutInputRef.current.click();
-                          
-                          // Try showPicker
-                          if (checkOutInputRef.current.showPicker) {
-                            try {
-                              checkOutInputRef.current.showPicker();
-                            } catch (err) {
-                              // If showPicker fails, click should work
-                            }
-                          }
-                        }, 20);
-                      }
-                    }, 10);
-                  } else {
-                    // Step 3: Both dates set - clear and start over with check-in
-                    handleFilterChange('checkIn', '');
-                    handleFilterChange('checkOut', '');
-                    setActiveDateInput('checkIn');
-                    setTimeout(() => {
-                      if (checkInInputRef.current) {
-                        checkInInputRef.current.focus();
-                        checkInInputRef.current.click();
-                        if (checkInInputRef.current.showPicker) {
-                          try {
-                            checkInInputRef.current.showPicker();
-                          } catch (err) {
-                            // Fallback to click
-                          }
-                        }
-                      }
-                    }, 10);
-                  }
-                }}
-              >
-                <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1', position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
-                  When
-                </div>
-                <div 
-                  style={{ 
-                    fontSize: '14px',
-                    color: filters.checkIn ? '#000' : '#717171',
-                    padding: 0,
-                    margin: 0,
-                    position: 'relative',
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    pointerEvents: 'none'
-                  }}
-                >
-                  <span>{getDateDisplay()}</span>
-                  {(filters.checkIn || filters.checkOut) && (
-                    <button
-                      className="clear-dates-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleFilterChange('checkIn', '');
-                        handleFilterChange('checkOut', '');
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'auto',
-                        borderRadius: '50%',
-                        transition: 'background-color 0.2s',
-                        width: '20px',
-                        height: '20px',
-                        flexShrink: 0,
-                        position: 'relative',
-                        zIndex: 10
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#e0e0e0';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                      title="Clear dates"
-                    >
-                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                {/* Check-in Date Input - Overlay for better UX */}
-                <input
-                  ref={checkInInputRef}
-                  type="date"
-                  data-date-type="checkIn"
-                  value={filters.checkIn || ''}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    const checkInDate = e.target.value;
-                    handleFilterChange('checkIn', checkInDate);
-                    // If check-out is before or equal to new check-in, clear it
-                    if (filters.checkOut && checkInDate && filters.checkOut <= checkInDate) {
-                      handleFilterChange('checkOut', '');
-                    }
-                    // Don't auto-advance - let user click "When" again to select check-out
-                    // This is more user-friendly and gives user control
-                  }}
-                  min={new Date().toISOString().split('T')[0]}
-                  onClick={(e) => {
-                    // If check-in is set but check-out isn't, block this click so parent can open check-out
-                    if (filters.checkIn && !filters.checkOut) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setActiveDateInput('checkIn');
-                    // Try to open date picker directly
-                    if (e.target.showPicker) {
-                      try {
-                        e.target.showPicker();
-                      } catch (err) {
-                        // If showPicker fails, the click should still work
-                      }
-                    }
-                  }}
-                  onFocus={() => {
-                    setActiveDateInput('checkIn');
-                  }}
-                  onMouseDown={(e) => {
-                    // Block if we're trying to select check-out
-                    if (filters.checkIn && !filters.checkOut) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    } else {
-                      e.stopPropagation();
-                    }
-                  }}
-                  style={{ 
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer',
-                    zIndex: (filters.checkIn && !filters.checkOut) ? 100 : 103,
-                    margin: 0,
-                    padding: 0,
-                    pointerEvents: (filters.checkIn && !filters.checkOut) ? 'none' : 'auto',
-                    fontSize: '16px',
-                    border: 'none',
-                    background: 'transparent',
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'textfield'
-                  }}
-                />
-                {/* Check-out Date Input - Overlay for better UX */}
-                <input
-                  ref={checkOutInputRef}
-                  type="date"
-                  data-date-type="checkOut"
-                  value={filters.checkOut || ''}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleFilterChange('checkOut', e.target.value);
-                  }}
-                  min={filters.checkIn ? (() => {
-                    // Set minimum to day after check-in
-                    const checkInDate = new Date(filters.checkIn);
-                    checkInDate.setDate(checkInDate.getDate() + 1);
-                    return checkInDate.toISOString().split('T')[0];
-                  })() : new Date().toISOString().split('T')[0]}
-                  disabled={!filters.checkIn}
-                  onClick={(e) => {
-                    if (filters.checkIn) {
-                      e.stopPropagation();
-                      setActiveDateInput('checkOut');
-                      // Try to open date picker directly
-                      if (e.target.showPicker) {
-                        try {
-                          e.target.showPicker();
-                        } catch (err) {
-                          // If showPicker fails, the click should still work
-                        }
-                      }
-                    }
-                  }}
-                  onFocus={() => {
-                    if (filters.checkIn) {
-                      setActiveDateInput('checkOut');
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    if (filters.checkIn) {
-                      e.stopPropagation();
-                      setActiveDateInput('checkOut');
-                    }
-                  }}
-                  style={{ 
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: filters.checkIn ? 'pointer' : 'not-allowed',
-                    zIndex: filters.checkIn ? 105 : 99,
-                    margin: 0,
-                    padding: 0,
-                    pointerEvents: filters.checkIn ? 'auto' : 'none',
-                    fontSize: '16px',
-                    border: 'none',
-                    background: 'transparent',
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'textfield'
-                  }}
-                />
-              </div>
-
-              {/* Who Input */}
-              <div 
-                className="px-4 d-flex justify-content-between align-items-center"
-                style={{ 
-                  cursor: 'pointer',
-                  minWidth: '180px',
-                  transition: 'background-color 0.2s',
-                  height: '100%',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7f7f7'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
-                  <div className="small text-muted" style={{ fontSize: '10px', fontWeight: '600', marginBottom: '2px', lineHeight: '1' }}>
-                    Who
-                  </div>
-                  <div 
-                    style={{ 
-                      fontSize: '14px',
-                      color: filters.guests > 1 ? '#000' : '#717171',
-                      padding: 0,
-                      margin: 0,
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {filters.guests === 1 ? 'Add guests' : getGuestsDisplay()}
-                  </div>
-                </div>
-                <div className="d-flex align-items-center justify-content-center" style={{ gap: '12px', marginLeft: '12px', flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    className="btn btn-sm border rounded-circle d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      padding: 0, 
-                      flexShrink: 0,
-                      borderColor: filters.guests > 1 ? '#222' : '#ddd',
-                      backgroundColor: 'white',
-                      cursor: filters.guests > 1 ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      if (filters.guests > 1) {
-                        handleFilterChange('guests', Math.max(1, filters.guests - 1));
-                      }
-                    }}
-                    disabled={filters.guests <= 1}
-                    onMouseEnter={(e) => {
-                      if (filters.guests > 1) {
-                        e.currentTarget.style.backgroundColor = '#f7f7f7';
-                        e.currentTarget.style.borderColor = '#222';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'white';
-                      e.currentTarget.style.borderColor = filters.guests > 1 ? '#222' : '#ddd';
-                    }}
-                    aria-label="Decrease guests"
-                  >
-                    <svg 
-                      width="16" 
-                      height="16" 
-                      fill="currentColor" 
-                      viewBox="0 0 16 16"
-                      style={{ opacity: filters.guests > 1 ? 1 : 0.3 }}
-                    >
-                      <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
-                    </svg>
-                  </button>
-                  <span 
-                    className="d-flex align-items-center justify-content-center fw-semibold" 
-                    style={{ 
-                      fontSize: '14px', 
-                      minWidth: '24px', 
-                      textAlign: 'center',
-                      color: '#222',
-                      userSelect: 'none'
-                    }}
-                  >
-                    {filters.guests}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-sm border rounded-circle d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      padding: 0, 
-                      flexShrink: 0,
-                      borderColor: '#222',
-                      backgroundColor: 'white',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleFilterChange('guests', filters.guests + 1);
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f7f7f7';
-                      e.currentTarget.style.borderColor = '#222';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'white';
-                      e.currentTarget.style.borderColor = '#222';
-                    }}
-                    aria-label="Increase guests"
-                  >
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Search Button */}
-              <button
-                className="btn d-flex align-items-center justify-content-center"
-                style={{
-                  backgroundColor: '#FF385C',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  minWidth: '48px',
-                  border: 'none',
-                  margin: '4px',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 56, 92, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-                onClick={() => refetch()}
-              >
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.397h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                </svg>
-              </button>
-            </div>
+            Your Trip Starts Here
+          </h1>
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              fontSize: "14px",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px" }}>✓</span> Secure payment
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ opacity: 0.7 }}>|</span>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px" }}>✓</span> Support in approx. 30s
+            </span>
           </div>
+        </div>
 
         {/* Sort Options */}
-        <div className="d-flex justify-content-center mt-2 pb-2">
-          <div className="d-flex gap-3 align-items-center">
-            <span className="text-muted small">Sort by:</span>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            marginBottom: "20px",
+            position: "relative",
+            zIndex: 2,
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            padding: "12px 16px",
+            borderRadius: "30px",
+            backdropFilter: "blur(10px)",
+            width: "fit-content",
+            margin: "0 auto 20px",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: "14px", fontWeight: "600", color: "#fff", marginRight: "4px" }}>Sort by:</span>
+          {["Popularity", "Price", "Rating"].map((option) => (
             <button
-              className={`btn btn-sm ${filters.sortBy === 'popularity' ? 'btn-dark' : 'btn-outline-dark'} rounded-pill`}
-              onClick={() => handleSort('popularity')}
+              key={option}
+              onClick={() => handleSort(option.toLowerCase())}
+              style={{
+                background: filters.sortBy === option.toLowerCase() ? "#000" : "transparent",
+                color: "#fff",
+                border: filters.sortBy === option.toLowerCase() ? "1px solid #000" : "1px solid transparent",
+                padding: "8px 16px",
+                borderRadius: "20px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                if (filters.sortBy !== option.toLowerCase()) {
+                  e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)"
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (filters.sortBy !== option.toLowerCase()) {
+                  e.currentTarget.style.backgroundColor = "transparent"
+                }
+              }}
             >
-              Popularity
+              {option}
             </button>
-            <button
-              className={`btn btn-sm ${filters.sortBy === 'price' ? 'btn-dark' : 'btn-outline-dark'} rounded-pill`}
-              onClick={() => handleSort('price')}
-            >
-              Price {filters.sortBy === 'price' && (filters.order === 'asc' ? '↑' : '↓')}
-            </button>
-            <button
-              className={`btn btn-sm ${filters.sortBy === 'rating' ? 'btn-dark' : 'btn-outline-dark'} rounded-pill`}
-              onClick={() => handleSort('rating')}
-            >
-              Rating {filters.sortBy === 'rating' && (filters.order === 'asc' ? '↑' : '↓')}
-            </button>
+          ))}
+        </div>
+
+        {/* Search Bar Container */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "24px",
+            padding: "12px 14px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+            maxWidth: "1200px",
+            width: "100%",
+            position: "relative",
+            zIndex: 2,
+            margin: "0 auto",
+          }}
+        >
+          <div
+            className="search-form-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, 1fr)",
+              gap: "8px",
+              alignItems: "end",
+            }}
+          >
+            {/* Destination Input */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  marginBottom: "4px",
+                  color: "#333",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  height: "14px",
+                }}
+              >
+                <MapPin size={12} style={{ display: "inline", marginRight: "4px", verticalAlign: "middle" }} />
+                Destination
+              </label>
+              <input
+                type="text"
+                placeholder="City, airport, region..."
+                value={filters.location}
+                onChange={(e) => handleFilterChange("location", e.target.value)}
+                style={{
+                  width: "100%",
+                  border: "1px solid #ddd",
+                  borderRadius: "12px",
+                  padding: "8px 10px",
+                  fontSize: "13px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  height: "38px",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#1e3a5f")}
+                onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+              />
+            </div>
+
+            {/* Check-in Date */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  marginBottom: "4px",
+                  color: "#333",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  height: "14px",
+                }}
+              >
+                Check-in
+              </label>
+              <input
+                ref={checkInInputRef}
+                type="date"
+                value={filters.checkIn || ""}
+                onChange={(e) => {
+                  handleFilterChange("checkIn", e.target.value)
+                  if (filters.checkOut && e.target.value && filters.checkOut <= e.target.value) {
+                    handleFilterChange("checkOut", "")
+                  }
+                }}
+                min={new Date().toISOString().split("T")[0]}
+                style={{
+                  width: "100%",
+                  border: "1px solid #ddd",
+                  borderRadius: "12px",
+                  padding: "8px 10px",
+                  fontSize: "13px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  backgroundColor: "#fff",
+                  height: "38px",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#1e3a5f")}
+                onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+              />
+            </div>
+
+            {/* Nights Display */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#333",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  textAlign: "center",
+                  height: "14px",
+                }}
+              >
+                Duration
+              </div>
+              <div 
+                style={{ 
+                  fontSize: "13px", 
+                  fontWeight: "600", 
+                  color: "#333", 
+                  height: "38px",
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  border: "1px solid #ddd",
+                  borderRadius: "12px",
+                  backgroundColor: "#f9f9f9",
+                  boxSizing: "border-box",
+                }}
+              >
+                {filters.checkIn && filters.checkOut
+                  ? Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24))
+                  : "1"}{" "}
+                night{filters.checkIn && filters.checkOut && Math.ceil((new Date(filters.checkOut) - new Date(filters.checkIn)) / (1000 * 60 * 60 * 24)) !== 1 ? "s" : ""}
+              </div>
+            </div>
+
+            {/* Check-out Date */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  marginBottom: "4px",
+                  color: "#333",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  height: "14px",
+                }}
+              >
+                Check-out
+              </label>
+              <input
+                ref={checkOutInputRef}
+                type="date"
+                value={filters.checkOut || ""}
+                onChange={(e) => handleFilterChange("checkOut", e.target.value)}
+                min={
+                  filters.checkIn
+                    ? (() => {
+                        const checkInDate = new Date(filters.checkIn)
+                        checkInDate.setDate(checkInDate.getDate() + 1)
+                        return checkInDate.toISOString().split("T")[0]
+                      })()
+                    : new Date().toISOString().split("T")[0]
+                }
+                disabled={!filters.checkIn}
+                style={{
+                  width: "100%",
+                  border: "1px solid #ddd",
+                  borderRadius: "12px",
+                  padding: "8px 10px",
+                  fontSize: "13px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  backgroundColor: filters.checkIn ? "#fff" : "#f5f5f5",
+                  cursor: filters.checkIn ? "pointer" : "not-allowed",
+                  opacity: filters.checkIn ? 1 : 0.6,
+                  height: "38px",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => filters.checkIn && (e.target.style.borderColor = "#1e3a5f")}
+                onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+              />
+            </div>
+
+            {/* Guests */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  marginBottom: "4px",
+                  color: "#333",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  height: "14px",
+                }}
+              >
+                Guests
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid #ddd",
+                  borderRadius: "12px",
+                  backgroundColor: "#fff",
+                  height: "38px",
+                  boxSizing: "border-box",
+                  overflow: "hidden",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentGuests = filters.guests || 1;
+                    const newGuests = Math.max(1, currentGuests - 1);
+                    handleFilterChange("guests", newGuests);
+                  }}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    padding: "0 12px",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: "#333",
+                    cursor: "pointer",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  −
+                </button>
+                <div
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    color: "#333",
+                    padding: "0 8px",
+                  }}
+                >
+                  {filters.guests || 1} {(filters.guests || 1) === 1 ? "guest" : "guests"}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentGuests = filters.guests || 1;
+                    const newGuests = currentGuests + 1;
+                    handleFilterChange("guests", newGuests);
+                  }}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    padding: "0 12px",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: "#333",
+                    cursor: "pointer",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Search Button */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  marginBottom: "4px",
+                  color: "transparent",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  lineHeight: "1.2",
+                  height: "14px",
+                }}
+              >
+                &nbsp;
+              </div>
+              <button
+                onClick={() => refetch()}
+                style={{
+                  background: "#FF385C",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "8px 20px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "38px",
+                  whiteSpace: "nowrap",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#E61E4D")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#FF385C")}
+              >
+                Search
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Hotel Listings with Map */}
-      {loading ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '50vh',
-          width: '100%',
-          padding: '40px 20px'
-        }}>
-          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      ) : hotels.length === 0 ? (
-        <div className="no-results-full">
-          <div className="no-results-card text-center">
-            <h3 className="mb-2">No places found</h3>
-            <p className="text-muted mb-0">Try adjusting your search or filters</p>
-          </div>
-        </div>
-      ) : (
-        <div className="py-3" style={{ width: '100%', maxWidth: '100%' }}>
+      <div style={{ width: "100%", padding: "16px 0" }}>
+        {loading ? (
           <div
-            className="hotels-grid"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '24px',
-              padding: '24px',
-              width: '100%',
-              maxWidth: '100%'
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "50vh",
+              width: "100%",
+              padding: "40px 20px",
             }}
           >
-            {hotels.map((hotel) => (
-              <div
-                key={hotel.id || hotel._id}
-                style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/hotel/${hotel.id || hotel._id}`)}
-                className="hotel-card"
-              >
-                <div className="position-relative hotel-card-image" style={{ height: '300px' }}>
-                  {(() => {
-                    // Handle images - they might be objects with url property or direct URLs
-                    let imageUrl = '';
-                    if (hotel.images && hotel.images.length > 0) {
-                      const firstImage = hotel.images[0];
-                      if (typeof firstImage === 'string') {
-                        imageUrl = firstImage;
-                      } else if (firstImage && typeof firstImage === 'object' && firstImage.url) {
-                        imageUrl = firstImage.url;
-                      } else if (firstImage) {
-                        imageUrl = String(firstImage);
-                      }
-                      
-                      // Ensure the URL is properly formatted
-                      if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                        // If it's a local path, prepend the backend URL
-                        if (imageUrl.startsWith('/uploads/')) {
-                          imageUrl = `http://localhost:5000${imageUrl}`;
-                        } else if (!imageUrl.startsWith('/')) {
-                          imageUrl = `http://localhost:5000/uploads/${imageUrl}`;
+            <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : hotels.length === 0 ? (
+          <div className="no-results-full">
+            <div className="no-results-card text-center">
+              <h3 className="mb-2">No places found</h3>
+              <p className="text-muted mb-0">Try adjusting your search or filters</p>
+            </div>
+          </div>
+        ) : (
+          <div className="py-3" style={{ width: "100%" }}>
+            <div
+              className="hotels-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "24px",
+                padding: "0 20px",
+                width: "100%",
+              }}
+            >
+              {hotels.map((hotel) => (
+                <div
+                  key={hotel.id || hotel._id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate(`/hotel/${hotel.id || hotel._id}`)}
+                  className="hotel-card"
+                >
+                  <div className="position-relative hotel-card-image" style={{ height: "300px" }}>
+                    {(() => {
+                      // Handle images - they might be objects with url property or direct URLs
+                      let imageUrl = ""
+                      if (hotel.images && hotel.images.length > 0) {
+                        const firstImage = hotel.images[0]
+                        if (typeof firstImage === "string") {
+                          imageUrl = firstImage
+                        } else if (firstImage && typeof firstImage === "object" && firstImage.url) {
+                          imageUrl = firstImage.url
+                        } else if (firstImage) {
+                          imageUrl = String(firstImage)
+                        }
+
+                        // Ensure the URL is properly formatted
+                        if (imageUrl && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+                          // If it's a local path, prepend the backend URL
+                          if (imageUrl.startsWith("/uploads/")) {
+                            imageUrl = `http://localhost:5000${imageUrl}`
+                          } else if (!imageUrl.startsWith("/")) {
+                            imageUrl = `http://localhost:5000/uploads/${imageUrl}`
+                          }
                         }
                       }
-                    }
-                    
-                    return imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={hotel.name}
-                        className="w-100 rounded-4 position-relative"
-                        style={{
-                          height: '300px',
-                          objectFit: 'cover',
-                          transition: 'transform 0.3s ease',
-                          zIndex: 1
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          const placeholder = e.target.parentElement.querySelector('.image-placeholder');
-                          if (placeholder) {
-                            placeholder.style.display = 'flex';
-                          }
-                        }}
-                      />
-                    ) : null;
-                  })()}
-                  <div
-                    className="w-100 h-100 rounded-4 bg-light d-flex align-items-center justify-content-center position-absolute top-0 start-0 image-placeholder"
-                    style={{ 
-                      display: (hotel.images && hotel.images.length > 0) ? 'none' : 'flex',
-                      zIndex: 0
-                    }}
-                  >
-                    <span className="text-muted">Preview unavailable</span>
-                  </div>
-                  {isAuthenticated && (
-                    <button
-                      className="position-absolute top-0 end-0 m-3 border-0"
-                      style={{ 
-                        zIndex: 10,
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '4px',
-                        margin: '12px',
-                        background: 'transparent'
-                      }}
-                      onClick={(e) => toggleFavorite(hotel.id || hotel._id, e)}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      title={checkIsFavorite(hotel.id || hotel._id) ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      <svg 
-                        width="20" 
-                        height="20" 
-                        viewBox="0 0 16 16" 
-                        style={{ 
-                          transition: 'all 0.2s ease',
-                          pointerEvents: 'none',
-                          flexShrink: 0
-                        }}
-                      >
-                        {checkIsFavorite(hotel.id || hotel._id) ? (
-                          <path 
-                            d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
-                            fill="#FF385C"
-                            stroke="#FF385C"
-                            strokeWidth="0.5"
-                          />
-                        ) : (
-                          <path 
-                            d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
-                            fill="white"
-                            stroke="#222"
-                            strokeWidth="1"
-                          />
-                        )}
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <div className="hotel-card-body">
-                  <div className="d-flex justify-content-between align-items-start mb-1">
-                    <div className="flex-grow-1">
-                      <div className="fw-semibold" style={{ fontSize: '16px', lineHeight: '1.2' }}>
-                        {hotel.location?.city || 'Unknown'}, {hotel.location?.country || 'Unknown'}
-                      </div>
-                      <div className="text-muted small mt-1" style={{ fontSize: '14px' }}>
-                        {hotel.name}
-                      </div>
-                    </div>
-                    <div className="d-flex align-items-center ms-2">
-                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" className="text-warning">
-                        <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-                      </svg>
-                      <span className="ms-1" style={{ fontSize: '14px', fontWeight: '500' }}>
-                        {hotel.rating?.toFixed(1) || '0.0'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-muted small mb-1" style={{ fontSize: '14px' }}>
-                    {hotel.totalReviews || 0} {hotel.totalReviews === 1 ? 'review' : 'reviews'}
-                  </div>
-                  <div className="mt-2">
-                    <div className="d-flex align-items-baseline gap-1">
-                      <span className="fw-semibold" style={{ fontSize: '16px' }}>
-                        PKR {hotel.pricing?.basePrice || hotel.priceRange?.min || '0'}
-                      </span>
-                      <span className="text-muted" style={{ fontSize: '14px' }}>/ night</span>
-                    </div>
-                  </div>
-                  {hotel.amenities && hotel.amenities.length > 0 && (
-                    <div className="mt-2 d-flex flex-wrap gap-1">
-                      {hotel.amenities.slice(0, 3).map((amenity, idx) => (
-                        <span key={idx} className="badge bg-light text-dark small">
-                          {amenity}
-                        </span>
-                      ))}
-                      {hotel.amenities.length > 3 && (
-                        <span className="badge bg-light text-dark small">
-                          +{hotel.amenities.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
-export default BrowseHotels;
+                      return imageUrl ? (
+                        <img
+                          src={imageUrl || "/placeholder.svg"}
+                          alt={hotel.name}
+                          className="w-100 rounded-4 position-relative"
+                          style={{
+                            height: "300px",
+                            objectFit: "cover",
+                            transition: "transform 0.3s ease",
+                            zIndex: 1,
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                          onError={(e) => {
+                            e.target.style.display = "none"
+                            const placeholder = e.target.parentElement.querySelector(".image-placeholder")
+                            if (placeholder) {
+                              placeholder.style.display = "flex"
+                            }
+                          }}
+                        />
+                      ) : null
+                    })()}
+                    <div
+                      className="w-100 h-100 rounded-4 bg-light d-flex align-items-center justify-content-center position-absolute top-0 start-0 image-placeholder"
+                      style={{
+                        display: hotel.images && hotel.images.length > 0 ? "none" : "flex",
+                        zIndex: 0,
+                      }}
+                    >
+                      <span className="text-muted">Preview unavailable</span>
+                    </div>
+                    {isAuthenticated && (
+                      <button
+                        className="position-absolute top-0 end-0 m-3 border-0"
+                        style={{
+                          zIndex: 10,
+                          cursor: "pointer",
+                          transition: "transform 0.2s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "4px",
+                          margin: "12px",
+                          background: "transparent",
+                        }}
+                        onClick={(e) => toggleFavorite(hotel.id || hotel._id, e)}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                        title={checkIsFavorite(hotel.id || hotel._id) ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 16 16"
+                          style={{
+                            transition: "all 0.2s ease",
+                            pointerEvents: "none",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {checkIsFavorite(hotel.id || hotel._id) ? (
+                            <path
+                              d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                              fill="#FF385C"
+                              stroke="#FF385C"
+                              strokeWidth="0.5"
+                            />
+                          ) : (
+                            <path
+                              d="M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748z"
+                              fill="white"
+                              stroke="#222"
+                              strokeWidth="1"
+                            />
+                          )}
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="hotel-card-body">
+                    <div className="d-flex justify-content-between align-items-start mb-1">
+                      <div className="flex-grow-1">
+                        <div className="fw-semibold" style={{ fontSize: "16px", lineHeight: "1.2" }}>
+                          {hotel.location?.city || "Unknown"}, {hotel.location?.country || "Unknown"}
+                        </div>
+                        <div className="text-muted small mt-1" style={{ fontSize: "14px" }}>
+                          {hotel.name}
+                        </div>
+                      </div>
+                      <div className="d-flex align-items-center ms-2">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" className="text-warning">
+                          <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
+                        </svg>
+                        <span className="ms-1" style={{ fontSize: "14px", fontWeight: "500" }}>
+                          {hotel.rating?.toFixed(1) || "0.0"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-muted small mb-1" style={{ fontSize: "14px" }}>
+                      {hotel.totalReviews || 0} {hotel.totalReviews === 1 ? "review" : "reviews"}
+                    </div>
+                    <div className="mt-2">
+                      <div className="d-flex align-items-baseline gap-1">
+                        <span className="fw-semibold" style={{ fontSize: "16px" }}>
+                          PKR {hotel.pricing?.basePrice || hotel.priceRange?.min || "0"}
+                        </span>
+                        <span className="text-muted" style={{ fontSize: "14px" }}>
+                          / night
+                        </span>
+                      </div>
+                    </div>
+                    {hotel.amenities && hotel.amenities.length > 0 && (
+                      <div className="mt-2 d-flex flex-wrap gap-1">
+                        {hotel.amenities.slice(0, 3).map((amenity, idx) => (
+                          <span key={idx} className="badge bg-light text-dark small">
+                            {amenity}
+                          </span>
+                        ))}
+                        {hotel.amenities.length > 3 && (
+                          <span className="badge bg-light text-dark small">+{hotel.amenities.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default BrowseHotels

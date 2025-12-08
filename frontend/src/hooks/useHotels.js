@@ -17,9 +17,18 @@ export const useHotels = (filters = {}) => {
       setLoading(true);
       setError(null);
       
-      const response = await HotelApiService.getHotels(filters);
+      // Ensure guests filter is always included (default to 1 if not specified)
+      const filtersWithGuests = {
+        ...filters,
+        guests: filters.guests || 1
+      };
+      
+      console.log('[useHotels] Fetching hotels with filters:', filtersWithGuests);
+      
+      const response = await HotelApiService.getHotels(filtersWithGuests);
       
       if (response.success) {
+        console.log(`[useHotels] Received ${response.hotels?.length || 0} hotels for ${filtersWithGuests.guests} guests`);
         setHotels(response.hotels || []);
         setPagination(response.pagination || null);
       } else {

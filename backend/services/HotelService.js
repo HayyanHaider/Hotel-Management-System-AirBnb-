@@ -4,12 +4,6 @@ const HotelRepository = require('../repositories/HotelRepository');
 const BookingRepository = require('../repositories/BookingRepository');
 const Hotel = require('../classes/Hotel');
 
-/**
- * HotelService - Handles hotel business logic
- * Follows Single Responsibility Principle - only handles hotel operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- * Implements IHotelService interface
- */
 class HotelService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -17,20 +11,12 @@ class HotelService extends BaseService {
     this.bookingRepository = dependencies.bookingRepository || BookingRepository;
   }
 
-  /**
-   * Normalize date to start of day
-   * @private
-   */
   #normalizeDate(date) {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     return normalized;
   }
 
-  /**
-   * Check if hotel is available for date range
-   * @private
-   */
   async #isHotelAvailableForRange(hotelId, totalRooms, checkInDate, checkOutDate) {
     const bookings = await this.bookingRepository.findOverlapping(
       hotelId,
@@ -65,9 +51,6 @@ class HotelService extends BaseService {
     return true;
   }
 
-  /**
-   * Create a new hotel
-   */
   async createHotel(hotelData, ownerId) {
     try {
       this.validateRequired({ ownerId }, ['ownerId']);
@@ -105,24 +88,17 @@ class HotelService extends BaseService {
     }
   }
 
-  /**
-   * Get hotels with filters
-   */
   async getHotels(filters = {}, options = {}) {
     try {
-      // Base criteria: show only approved hotels and hide suspended ones
-      // (including older documents where isSuspended may be missing).
       const searchCriteria = {
         isApproved: true,
         isSuspended: { $ne: true }
       };
 
-      // Debug: Check total hotels in database
       const totalHotelsInDb = await this.hotelRepository.count({});
       const approvedHotelsInDb = await this.hotelRepository.count({ isApproved: true });
       console.log(`[HotelService] Database stats - Total: ${totalHotelsInDb}, Approved: ${approvedHotelsInDb}`);
 
-      // Apply location filter
       if (filters.location) {
         searchCriteria.$or = [
           { 'location.city': { $regex: filters.location, $options: 'i' } },
@@ -131,7 +107,6 @@ class HotelService extends BaseService {
         ];
       }
 
-      // Apply amenities filter
       if (filters.amenities && filters.amenities.length > 0) {
         const amenityList = Array.isArray(filters.amenities) 
           ? filters.amenities 
@@ -139,27 +114,23 @@ class HotelService extends BaseService {
         searchCriteria.amenities = { $all: amenityList };
       }
 
-      // Apply rating filter
       if (filters.minRating) {
         searchCriteria.ratingAvg = { $gte: Number(filters.minRating) };
       }
 
-      // Build sort options
       const sortOptions = {};
-      if (options.sortBy === 'rating') {
-        sortOptions.ratingAvg = options.order === 'desc' ? -1 : 1;
+      if (options.sortBy === 'rating' || options.sortBy === 'price') {
+        sortOptions.createdAt = -1;
       } else if (options.sortBy === 'popularity') {
         sortOptions.totalReviews = options.order === 'desc' ? -1 : 1;
       } else {
         sortOptions.createdAt = -1;
       }
 
-      // Pagination defaults
       const pageNum = options.page ? Number(options.page) : 1;
       const limitNum = options.limit ? Number(options.limit) : 50;
       const skipNum = (pageNum - 1) * limitNum;
 
-      // Fetch hotels
       const dbHotels = await this.hotelRepository.find(searchCriteria, {
         sort: sortOptions,
         limit: limitNum,
@@ -168,7 +139,6 @@ class HotelService extends BaseService {
 
       console.log(`[HotelService] Found ${dbHotels.length} hotels from database`);
 
-      // Convert to OOP instances
       const hotelInstances = dbHotels.map(dbHotel => {
         try {
           return new Hotel(dbHotel);
@@ -179,24 +149,19 @@ class HotelService extends BaseService {
         }
       });
 
-      // Apply additional filters
       let filteredHotels = hotelInstances;
       console.log(`[HotelService] After creating instances: ${filteredHotels.length} hotels`);
 
-      // Filter by guests capacity - show hotels that can accommodate the requested number of guests
-      // Only filter when guests > 1 (default is 1, so we don't filter for default)
-      if (filters.guests && parseInt(filters.guests) > 1) {
+      if (filters.guests) {
         try {
-          const requestedGuests = parseInt(filters.guests);
+          const requestedGuests = parseInt(filters.guests) || 1;
           const beforeGuestFilter = filteredHotels.length;
           console.log(`[HotelService] Filtering by guests: ${requestedGuests}, hotels before filter: ${beforeGuestFilter}`);
           
           filteredHotels = filteredHotels.filter(hotel => {
             try {
-              // Use the Hotel class method which has proper logic
               const hasCapacity = hotel.hasAvailableCapacity(requestedGuests);
               
-              // Also log the actual capacity for debugging
               const hotelCapacity = hotel.capacity?.guests;
               const capacityNum = hotelCapacity ? parseInt(hotelCapacity) : 'N/A';
               
@@ -209,23 +174,19 @@ class HotelService extends BaseService {
               return hasCapacity;
             } catch (error) {
               console.error(`[HotelService] Error checking capacity for hotel "${hotel.name}":`, error);
-              // If there's an error, include the hotel to be safe (better to show than hide)
-              return hotel.isBookable();
+              return hotel.isApproved && !hotel.isSuspended;
             }
           });
           
           console.log(`[HotelService] After guest filter (${requestedGuests} guests): ${beforeGuestFilter} -> ${filteredHotels.length} hotels`);
         } catch (error) {
           console.error('[HotelService] Error filtering by guests:', error);
-          // Continue without guest filtering if there's an error
         }
       }
 
-      // Filter by date availability
       if (filters.checkIn && filters.checkOut) {
         const checkInDate = new Date(filters.checkIn);
         const checkOutDate = new Date(filters.checkOut);
-        // Convert IDs to strings for proper comparison
         const hotelIds = filteredHotels
           .map(h => {
             const id = h.id;
@@ -235,7 +196,6 @@ class HotelService extends BaseService {
 
         const availabilityChecks = await Promise.all(
           hotelIds.map(async (hotelId) => {
-            // Convert hotel ID to string for comparison
             const hotel = filteredHotels.find(h => {
               const hId = h.id ? (h.id.toString ? h.id.toString() : String(h.id)) : null;
               return hId === hotelId;
@@ -258,7 +218,6 @@ class HotelService extends BaseService {
         );
       }
 
-      // Filter by price
       if (filters.minPrice || filters.maxPrice) {
         filteredHotels = filteredHotels.filter(hotel => {
           const priceRange = hotel.getPriceRange();
@@ -268,13 +227,36 @@ class HotelService extends BaseService {
         });
       }
 
-      // Sort by price if needed
       if (options.sortBy === 'price') {
-        filteredHotels = this.sort(
-          filteredHotels,
-          (h) => h.getPriceRange().min,
-          options.order || 'asc'
-        );
+        const order = options.order || 'asc';
+        console.log(`[HotelService] Sorting by price with order: ${order}`);
+        filteredHotels = filteredHotels.sort((a, b) => {
+          const priceA = parseFloat(a.getPriceRange().min || 0);
+          const priceB = parseFloat(b.getPriceRange().min || 0);
+          console.log(`[HotelService] Comparing "${a.name}" (PKR ${priceA}) vs "${b.name}" (PKR ${priceB})`);
+          if (order === 'desc') {
+            return priceB - priceA;
+          } else {
+            return priceA - priceB;
+          }
+        });
+        console.log(`[HotelService] After price sort, first hotel: "${filteredHotels[0]?.name}" with price PKR ${filteredHotels[0]?.getPriceRange().min || 0}`);
+      }
+
+      if (options.sortBy === 'rating') {
+        const order = options.order || 'desc';
+        console.log(`[HotelService] Sorting by rating with order: ${order}`);
+        filteredHotels = filteredHotels.sort((a, b) => {
+          const ratingA = parseFloat(a.ratingAvg || a.rating || 0);
+          const ratingB = parseFloat(b.ratingAvg || b.rating || 0);
+          console.log(`[HotelService] Comparing "${a.name}" (${ratingA}) vs "${b.name}" (${ratingB})`);
+          if (order === 'desc') {
+            return ratingB - ratingA;
+          } else {
+            return ratingA - ratingB;
+          }
+        });
+        console.log(`[HotelService] After rating sort, first hotel: "${filteredHotels[0]?.name}" with rating ${filteredHotels[0]?.ratingAvg || filteredHotels[0]?.rating || 0}`);
       }
 
       const hotelsData = [];
@@ -286,14 +268,11 @@ class HotelService extends BaseService {
           console.error('[HotelService] Error calling getSearchResult for hotel:', error);
           console.error('[HotelService] Hotel ID:', hotel.id || hotel._id);
           console.error('[HotelService] Hotel name:', hotel.name);
-          // Continue processing other hotels instead of failing completely
-          // Only skip this hotel
         }
       }
 
       console.log(`[HotelService] Returning ${hotelsData.length} hotels after filtering`);
 
-      // Get total count for pagination
       const totalCount = await this.hotelRepository.count(searchCriteria);
 
       return {
@@ -314,9 +293,6 @@ class HotelService extends BaseService {
     }
   }
 
-  /**
-   * Get hotel by ID
-   */
   async getHotelById(hotelId) {
     try {
       if (!hotelId) {
@@ -335,16 +311,12 @@ class HotelService extends BaseService {
     }
   }
 
-  /**
-   * Update hotel
-   */
   async updateHotel(hotelId, updates, ownerId) {
     try {
       if (!hotelId || !ownerId) {
         throw new Error('Hotel ID and Owner ID are required');
       }
 
-      // Verify ownership
       const existingHotel = await this.hotelRepository.findOne({
         _id: hotelId,
         ownerId
@@ -354,7 +326,6 @@ class HotelService extends BaseService {
         throw new Error('Hotel not found or you do not have permission to update it');
       }
 
-      // Prepare update data
       const updateData = {};
       const allowedFields = ['name', 'description', 'amenities', 'images', 'location', 'pricing', 'capacity', 'totalRooms'];
 
@@ -385,7 +356,6 @@ class HotelService extends BaseService {
         };
       }
 
-      // Update in database
       const updatedHotel = await this.hotelRepository.updateById(hotelId, updateData);
       const hotelInstance = new Hotel(updatedHotel);
 
@@ -395,16 +365,12 @@ class HotelService extends BaseService {
     }
   }
 
-  /**
-   * Delete hotel
-   */
   async deleteHotel(hotelId, ownerId) {
     try {
       if (!hotelId || !ownerId) {
         throw new Error('Hotel ID and Owner ID are required');
       }
 
-      // Verify ownership
       const existingHotel = await this.hotelRepository.findOne({
         _id: hotelId,
         ownerId
@@ -421,9 +387,6 @@ class HotelService extends BaseService {
     }
   }
 
-  /**
-   * Get owner's hotels
-   */
   async getOwnerHotels(ownerId) {
     try {
       if (!ownerId) {
@@ -443,4 +406,3 @@ class HotelService extends BaseService {
 }
 
 module.exports = new HotelService();
-

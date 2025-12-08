@@ -21,7 +21,6 @@
 
 .home-container {
   min-height: 100vh;
-  background-color: var(--color-gray-50);
 }
 
 .hero-section {
@@ -281,6 +280,55 @@
    RESPONSIVE STYLES
    ============================================ */
 
+/* Search Form Grid Responsive Styles */
+.search-form-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .search-form-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .search-form-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .search-form-grid > div {
+    min-height: auto !important;
+  }
+  
+  .search-form-grid button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .search-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .search-form-grid > div {
+    min-height: auto !important;
+  }
+}
+
 /* Tablet Styles (768px and below) */
 @media (max-width: 768px) {
   .hero-content h1 {
@@ -319,12 +367,19 @@
   .hotels-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 16px !important;
-    padding: 16px !important;
+    padding: 0 16px !important;
+    display: grid !important;
   }
 
   /* Hotel Card Image */
   .hotel-card-image {
     height: 250px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hotels-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
@@ -373,7 +428,7 @@
   .hotels-grid {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
-    padding: 12px !important;
+    padding: 0 12px !important;
   }
 
   /* Hotel Card Image - Mobile */
