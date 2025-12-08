@@ -19,10 +19,8 @@ const HotelDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Sync activeSection with current route
   useEffect(() => {
     const path = location.pathname;
-    // Handle both with and without trailing slash
     const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
     
     if (normalizedPath === '/hotel-dashboard' || normalizedPath === '/') {
@@ -58,7 +56,6 @@ const HotelDashboard = () => {
     setUser(parsedUser);
     fetchDashboardStats();
 
-    // Listen for logo click to reset to home
     const handleResetDashboard = () => {
       setActiveSection('home');
     };
@@ -80,22 +77,18 @@ const HotelDashboard = () => {
     try {
       setLoading(true);
       
-      // Get token for axios calls
       const token = sessionStorage.getItem('token');
       if (!token) {
         navigate('/login');
         return;
       }
       
-      // Fetch owner's hotels using service
       const hotelsResponse = await HotelApiService.getOwnerHotels();
 
-      // Fetch owner's bookings
       const bookingsResponse = await axios.get('http://localhost:5000/api/owner/bookings', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Fetch earnings from earnings endpoint
       let earningsData = { total: 0, monthly: 0 };
       try {
         const earningsResponse = await axios.get('http://localhost:5000/api/earnings/dashboard?period=month', {
@@ -110,7 +103,6 @@ const HotelDashboard = () => {
         }
       } catch (earningsError) {
         console.error('Error fetching earnings:', earningsError);
-        // Continue with default values if earnings fetch fails
       }
 
       if (hotelsResponse.success && bookingsResponse.data.success) {
@@ -152,7 +144,6 @@ const HotelDashboard = () => {
 
   const changeSection = (section) => {
     setActiveSection(section);
-    // Use React Router navigate to properly sync with route
     const pathMap = {
       'home': '/hotel-dashboard',
       'properties': '/manage-hotel-profile',
@@ -172,7 +163,6 @@ const HotelDashboard = () => {
 
   return (
     <div className="owner-dashboard">
-      {/* Mobile Menu Toggle */}
       <button 
         className="mobile-menu-toggle"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -181,7 +171,6 @@ const HotelDashboard = () => {
         {mobileMenuOpen ? '✕' : '☰'}
       </button>
 
-      {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div 
           className="mobile-menu-overlay"
@@ -189,7 +178,6 @@ const HotelDashboard = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`owner-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <nav className="owner-nav">
           <button 
@@ -249,7 +237,6 @@ const HotelDashboard = () => {
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="owner-main">
         <div className="owner-header">
           <h1>
@@ -262,7 +249,6 @@ const HotelDashboard = () => {
           </h1>
         </div>
 
-        {/* Home Section */}
         {activeSection === 'home' && (
           <div className="owner-overview">
             <div className="stats-grid">
@@ -352,35 +338,30 @@ const HotelDashboard = () => {
           </div>
         )}
 
-        {/* Properties Section */}
         {activeSection === 'properties' && (
           <div className="owner-section">
             <ManageHotelProfile />
           </div>
         )}
 
-        {/* Coupons Section */}
         {activeSection === 'coupons' && (
           <div className="owner-section">
             <ManageCoupons />
           </div>
         )}
 
-        {/* Bookings Section */}
         {activeSection === 'bookings' && (
           <div className="owner-section">
             <OwnerBookingManagement />
           </div>
         )}
 
-        {/* Reviews Section */}
         {activeSection === 'reviews' && (
           <div className="owner-section">
             <ReplyToReviews />
           </div>
         )}
 
-        {/* Earnings Section */}
         {activeSection === 'earnings' && (
           <div className="owner-section">
             <EarningsDashboard />

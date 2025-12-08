@@ -16,20 +16,8 @@ const createTransporter = () => {
       pass: process.env.EMAIL_PASSWORD
     }
   });
-
-  // Alternative: SMTP configuration
-  // return nodemailer.createTransporter({
-  //   host: process.env.SMTP_HOST,
-  //   port: process.env.SMTP_PORT || 587,
-  //   secure: false,
-  //   auth: {
-  //     user: process.env.SMTP_USER,
-  //     pass: process.env.SMTP_PASSWORD
-  //   }
-  // });
 };
 
-// Create Gmail OAuth2 transporter for user's account
 const createGmailOAuth2Transporter = async (userId) => {
   try {
     const oauth2Client = await getAuthenticatedClient(userId);
@@ -56,13 +44,11 @@ const createGmailOAuth2Transporter = async (userId) => {
   }
 };
 
-// Send email function (fallback to system email if user Gmail not authorized)
 const sendEmail = async (to, subject, html, text = '', options = {}) => {
   try {
     console.log('📧 Attempting to send email:', { to, subject, hasAttachments: options.attachments?.length > 0 });
     const { userId, useUserGmail = false, attachments = [] } = options;
     
-    // Try to use user's Gmail account if requested and authorized
     if (useUserGmail && userId) {
       try {
         const user = await UserModel.findById(userId);
@@ -91,7 +77,6 @@ const sendEmail = async (to, subject, html, text = '', options = {}) => {
       }
     }
 
-    // Fallback to system email service
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.error('❌ Email not sent - EMAIL_USER or EMAIL_PASSWORD not configured in environment variables');
       console.log('📧 Email details that would have been sent:', { to, subject });
@@ -125,9 +110,7 @@ const sendEmail = async (to, subject, html, text = '', options = {}) => {
   }
 };
 
-// Email templates
 const emailTemplates = {
-  // Invoice email sent to customer after booking payment is processed
   invoiceEmail: (
     payment,
     booking,
@@ -325,7 +308,6 @@ The Airbnb Team`
     };
   },
 
-  // Cancellation email sent to customer when booking is cancelled
   cancellationEmail: (booking, hotel, customer, refundAmount = null) => {
     const checkIn = new Date(booking.checkIn).toLocaleDateString();
     const checkOut = new Date(booking.checkOut).toLocaleDateString();
@@ -457,7 +439,6 @@ The Airbnb Team`
     };
   },
 
-  // Hotel suspension email sent to hotel owner when their hotel is suspended
   hotelSuspensionEmail: (hotel, owner, reason = '') => {
     return {
       subject: `Hotel Suspended - ${hotel.name || 'Your Hotel'}`,
@@ -558,7 +539,6 @@ The Airbnb Administration Team`
     };
   },
 
-  // Hotel approval email sent to hotel owner when their hotel is approved
   hotelApprovalEmail: (hotel, owner) => {
     return {
       subject: `Hotel Approved - ${hotel.name || 'Your Hotel'}`,
@@ -659,7 +639,6 @@ The Airbnb Administration Team`
     };
   },
 
-  // User suspension email sent to user when their account is suspended
   userSuspensionEmail: (user, reason = '') => {
     return {
       subject: `Account Suspended - Airbnb`,
@@ -757,7 +736,6 @@ The Airbnb Administration Team`
     };
   },
 
-  // Account creation welcome email sent to user when they sign up
   accountCreatedEmail: (user, role) => {
     const roleDisplayName = role === 'hotel' ? 'Hotel Owner' : role === 'customer' ? 'Customer' : role.charAt(0).toUpperCase() + role.slice(1);
     const welcomeMessage = role === 'hotel' 
@@ -876,7 +854,6 @@ The Airbnb Team`
     };
   },
 
-  // Booking reschedule email sent to customer when booking is rescheduled
   rescheduleEmail: (booking, hotel, customer, oldCheckIn, oldCheckOut, oldNights) => {
     const newCheckIn = new Date(booking.checkIn).toLocaleDateString();
     const newCheckOut = new Date(booking.checkOut).toLocaleDateString();

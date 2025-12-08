@@ -10,16 +10,13 @@ class Admin extends User {
     this.lastLoginAt = userData.lastLoginAt || null;
     this.managedUsers = userData.managedUsers || [];
     this.reportsGenerated = userData.reportsGenerated || [];
-    // Initialize permissions after adminLevel is set
     this.permissions = userData.permissions || getAdminPermissionsByLevel(this.adminLevel);
   }
 
-  // Method to get default permissions based on admin level
   getDefaultPermissions() {
     return getAdminPermissionsByLevel(this.adminLevel);
   }
 
-  // Inheritance: Override parent method
   getSpecificCapabilities() {
     if (!this.permissions) {
       this.permissions = this.getDefaultPermissions();
@@ -27,7 +24,6 @@ class Admin extends User {
     return this.permissions;
   }
 
-  // Polymorphism: Override hasPermission method
   hasPermission(permission) {
     if (!this.permissions) {
       this.permissions = this.getDefaultPermissions();
@@ -35,7 +31,6 @@ class Admin extends User {
     return this.permissions.includes(permission) || super.hasPermission(permission);
   }
 
-  // Method to suspend a user
   suspendUser(userId, reason) {
     if (!this.hasPermission('suspend_users')) {
       throw new Error('Insufficient permissions to suspend users');
@@ -50,7 +45,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to verify a user
   verifyUser(userId) {
     if (!this.hasPermission('verify_users')) {
       throw new Error('Insufficient permissions to verify users');
@@ -61,7 +55,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to approve a hotel
   approveHotel(hotelId) {
     if (!this.hasPermission('approve_hotels')) {
       throw new Error('Insufficient permissions to approve hotels');
@@ -72,7 +65,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to suspend a hotel
   suspendHotel(hotelId, reason) {
     if (!this.hasPermission('suspend_hotels')) {
       throw new Error('Insufficient permissions to suspend hotels');
@@ -83,7 +75,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to cancel a booking
   cancelBooking(bookingId, reason) {
     if (!this.hasPermission('cancel_bookings')) {
       throw new Error('Insufficient permissions to cancel bookings');
@@ -94,7 +85,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to process refund
   processRefund(bookingId, amount, reason) {
     if (!this.hasPermission('refund_bookings')) {
       throw new Error('Insufficient permissions to process refunds');
@@ -105,7 +95,6 @@ class Admin extends User {
     return true;
   }
 
-  // Method to generate report
   generateReport(reportType, parameters) {
     if (!this.hasPermission('generate_reports')) {
       throw new Error('Insufficient permissions to generate reports');
@@ -130,7 +119,6 @@ class Admin extends User {
     return report;
   }
 
-  // Method to log admin actions
   logAction(action, details) {
     if (!this.actionsPerformed) {
       this.actionsPerformed = [];
@@ -145,7 +133,6 @@ class Admin extends User {
     this.actionsPerformed.push(actionLog);
   }
 
-  // Method to update admin level
   updateAdminLevel(newLevel) {
     if (!this.hasPermission('manage_admins')) {
       throw new Error('Insufficient permissions to update admin level');
@@ -157,7 +144,6 @@ class Admin extends User {
     this.updatedAt = new Date();
   }
 
-  // Method to add custom permission
   addPermission(permission) {
     if (!this.hasPermission('manage_permissions')) {
       throw new Error('Insufficient permissions to manage permissions');
@@ -173,7 +159,6 @@ class Admin extends User {
     }
   }
 
-  // Method to remove permission
   removePermission(permission) {
     if (!this.hasPermission('manage_permissions')) {
       throw new Error('Insufficient permissions to manage permissions');
@@ -190,7 +175,6 @@ class Admin extends User {
     }
   }
 
-  // Method to get admin statistics
   getAdminStats() {
     return {
       adminLevel: this.adminLevel || 'basic',
@@ -202,7 +186,6 @@ class Admin extends User {
     };
   }
 
-  // Method to get recent actions
   getRecentActions(limit = 10) {
     if (!this.actionsPerformed) {
       this.actionsPerformed = [];
@@ -212,25 +195,22 @@ class Admin extends User {
       .reverse();
   }
 
-  // Method to update last login
   updateLastLogin() {
     this.lastLoginAt = new Date();
     this.updatedAt = new Date();
   }
 
-  // Method to check if admin can perform bulk operations
   canPerformBulkOperations() {
     return this.adminLevel === 'senior' || this.adminLevel === 'super';
   }
 
-  // Method to get system overview (super admin only)
   getSystemOverview() {
     if (this.adminLevel !== 'super') {
       throw new Error('Only super admins can access system overview');
     }
 
     return {
-      totalUsers: 0, // Would be populated from database
+      totalUsers: 0,
       totalHotels: 0,
       totalBookings: 0,
       totalRevenue: 0,
@@ -239,7 +219,6 @@ class Admin extends User {
     };
   }
 
-  // Override getPublicInfo to include admin-specific data
   getPublicInfo() {
     const baseInfo = super.getPublicInfo();
     return {

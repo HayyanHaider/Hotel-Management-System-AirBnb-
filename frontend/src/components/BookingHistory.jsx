@@ -92,17 +92,14 @@ const BookingHistory = () => {
         }
       );
 
-      // Check if response is actually a PDF (success) or an error JSON
       const contentType = response.headers['content-type'];
       if (contentType && contentType.includes('application/json')) {
-        // Response is JSON error, not PDF
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         toast.error(errorData.message || 'Error downloading invoice');
         return;
       }
 
-      // Create blob link to download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -114,7 +111,6 @@ const BookingHistory = () => {
     } catch (error) {
       console.error('Error downloading invoice:', error);
       
-      // Handle blob error responses
       if (error.response && error.response.data instanceof Blob) {
         try {
           const errorText = await error.response.data.text();
@@ -207,7 +203,6 @@ const BookingHistory = () => {
                 <div className="card shadow-sm" style={{ border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden' }}>
                   <div className="card-body p-4">
                     <div className="row">
-                      {/* Left Section - Hotel Info */}
                       <div className="col-md-8">
                         <div className="d-flex align-items-start mb-3">
                           <div className="flex-grow-1">
@@ -228,7 +223,6 @@ const BookingHistory = () => {
                           </span>
                         </div>
 
-                        {/* Booking Details Grid */}
                         <div className="row g-3 mb-3">
                           <div className="col-sm-6 col-md-4">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Check-in</div>
@@ -271,7 +265,6 @@ const BookingHistory = () => {
                         </div>
                       </div>
 
-                      {/* Right Section - Actions */}
                       <div className="col-md-4 mt-3 mt-md-0">
                         <div 
                           className="d-flex flex-column gap-2 booking-actions"

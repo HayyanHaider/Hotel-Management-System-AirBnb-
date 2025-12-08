@@ -122,7 +122,6 @@ const Payment = () => {
                 })()}</p>
                 
                 {booking.priceSnapshot && (() => {
-                  // Recalculate nights correctly
                   const checkInDate = new Date(booking.checkIn);
                   const checkOutDate = new Date(booking.checkOut);
                   checkInDate.setHours(0, 0, 0, 0);
@@ -130,14 +129,12 @@ const Payment = () => {
                   const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
                   const nights = Math.max(1, Math.floor(daysDiff));
                   
-                  // Recalculate prices based on correct nights
                   const basePricePerDay = booking.priceSnapshot.basePricePerDay || 0;
                   const basePriceTotal = basePricePerDay * nights;
                   const cleaningFee = booking.priceSnapshot.cleaningFee || 0;
                   const serviceFee = booking.priceSnapshot.serviceFee || 0;
                   const subtotal = basePriceTotal + cleaningFee + serviceFee;
                   
-                  // Calculate discount based on correct subtotal
                   const couponDiscountPercentage = booking.priceSnapshot.couponDiscountPercentage || 0;
                   const discounts = couponDiscountPercentage > 0 ? (subtotal * couponDiscountPercentage / 100) : 0;
                   const total = subtotal - discounts;

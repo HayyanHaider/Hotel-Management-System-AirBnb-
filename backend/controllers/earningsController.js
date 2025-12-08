@@ -1,20 +1,12 @@
 const BaseController = require('./BaseController');
 const EarningsService = require('../services/EarningsService');
 
-/**
- * EarningsController - Handles HTTP requests for earnings operations
- * Follows Single Responsibility Principle - only handles HTTP concerns
- * Delegates business logic to EarningsService
- */
 class EarningsController extends BaseController {
   constructor() {
     super();
     this.earningsService = EarningsService;
   }
 
-  /**
-   * Get Earnings Dashboard
-   */
   getEarningsDashboard = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -29,9 +21,6 @@ class EarningsController extends BaseController {
     }
   };
 
-  /**
-   * Get Earnings by Hotel
-   */
   getEarningsByHotel = async (req, res) => {
     try {
       const ownerId = req.user.userId;

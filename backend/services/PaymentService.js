@@ -10,12 +10,6 @@ const { generateInvoicePDF } = require('../utils/pdfService');
 const path = require('path');
 const fs = require('fs');
 
-/**
- * PaymentService - Handles payment business logic
- * Follows Single Responsibility Principle - only handles payment operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- * Implements IPaymentService interface
- */
 class PaymentService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -25,18 +19,13 @@ class PaymentService extends BaseService {
     this.userRepository = dependencies.userRepository || UserRepository;
   }
 
-  /**
-   * Process payment
-   */
   async processPayment(paymentData, userId) {
     try {
       this.validateRequired(paymentData, ['bookingId', 'paymentMethod']);
 
-      // Get or create customer document
       const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
       const customerId = customerDoc._id;
 
-      // Find booking
       const booking = await this.bookingRepository.findOne({ 
         _id: paymentData.bookingId, 
         userId: customerId 
@@ -46,7 +35,6 @@ class PaymentService extends BaseService {
         throw new Error('Booking not found');
       }
 
-      // Check if payment already exists
       const existingPayment = await this.paymentRepository.findCompleted(
         { bookingId: booking._id }
       );
@@ -55,14 +43,12 @@ class PaymentService extends BaseService {
         throw new Error('Payment already completed for this booking');
       }
 
-      // Validate payment method specific requirements
       if (paymentData.paymentMethod === 'paypal') {
         if (!paymentData.paypalDetails?.email || !paymentData.paypalDetails?.password) {
           throw new Error('PayPal email and password are required');
         }
       }
 
-      // Create payment instance
       const paymentInstanceData = {
         bookingId: booking._id,
         customerId,
@@ -73,13 +59,11 @@ class PaymentService extends BaseService {
 
       const paymentInstance = new Payment(paymentInstanceData);
 
-      // Validate payment
       const validationErrors = paymentInstance.validate();
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Process payment using strategy pattern (Payment class handles strategy internally)
       const paymentResult = await paymentInstance.processPayment({
         cardDetails: paymentData.cardDetails,
         walletBalance: paymentData.walletBalance,
@@ -88,7 +72,6 @@ class PaymentService extends BaseService {
       });
 
       if (!paymentResult.success) {
-        // Save failed payment attempt
         const failedPaymentData = {
           bookingId: paymentInstance.bookingId,
           customerId: paymentInstance.customerId,
@@ -99,7 +82,6 @@ class PaymentService extends BaseService {
           failureReason: paymentResult.error
         };
         
-        // Only include transactionId if it's not null/undefined to avoid unique index violation
         if (paymentResult.transactionId) {
           failedPaymentData.transactionId = paymentResult.transactionId;
         }
@@ -109,7 +91,6 @@ class PaymentService extends BaseService {
         throw new Error(paymentResult.error);
       }
 
-      // Handle wallet payment deduction
       if (paymentData.paymentMethod === 'wallet' && paymentResult.requiresWalletDeduction) {
         const user = await this.userRepository.findById(userId);
         if (!user) {
@@ -120,13 +101,11 @@ class PaymentService extends BaseService {
           throw new Error('Insufficient wallet balance');
         }
 
-        // Deduct from wallet
         await this.userRepository.updateById(userId, {
           walletBalance: user.walletBalance - paymentInstance.amount
         });
       }
 
-      // Save successful payment
       const successfulPaymentData = {
         bookingId: paymentInstance.bookingId,
         customerId: paymentInstance.customerId,
@@ -137,7 +116,6 @@ class PaymentService extends BaseService {
         processedAt: new Date()
       };
       
-      // Only include transactionId if it's not null/undefined to avoid unique index violation
       if (paymentResult.transactionId) {
         successfulPaymentData.transactionId = paymentResult.transactionId;
       }
@@ -146,14 +124,12 @@ class PaymentService extends BaseService {
 
       paymentInstance.id = successfulPayment._id;
 
-      // Update booking with payment information
       await this.bookingRepository.updateById(paymentData.bookingId, {
         paymentId: successfulPayment._id,
         status: 'confirmed',
         confirmedAt: new Date()
       });
 
-      // Generate invoice and send email (async)
       this.#generateAndSendInvoice(
         paymentData.bookingId,
         userId,
@@ -180,9 +156,6 @@ class PaymentService extends BaseService {
     }
   }
 
-  /**
-   * Get payment by ID
-   */
   async getPaymentById(paymentId, userId) {
     try {
       const customerDoc = await this.customerRepository.findByUser(userId);
@@ -208,9 +181,6 @@ class PaymentService extends BaseService {
     }
   }
 
-  /**
-   * Get user payments
-   */
   async getUserPayments(userId, filters = {}) {
     try {
       const customerDoc = await this.customerRepository.findByUser(userId);
@@ -232,7 +202,6 @@ class PaymentService extends BaseService {
 
       const payments = await this.paymentRepository.find(query, options);
 
-      // Convert to OOP instances
       const paymentInstances = payments.map(payment => {
         const paymentData = {
           id: payment._id,
@@ -261,21 +230,13 @@ class PaymentService extends BaseService {
     }
   }
 
-  /**
-   * Get invoice file path for a booking
-   * @param {string} bookingId - Booking ID
-   * @param {string} userId - User ID (for authorization)
-   * @returns {Promise<string>} Invoice file path
-   */
   async getInvoicePath(bookingId, userId) {
     try {
       this.validateRequired({ bookingId, userId }, ['bookingId', 'userId']);
 
-      // Get or create customer document (bookings store customerId in userId field)
       const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
       const customerId = customerDoc._id;
 
-      // Get booking to verify ownership and get invoice path
       const booking = await this.bookingRepository.findById(bookingId, {
         populate: [{ path: 'hotelId', select: 'name' }]
       });
@@ -284,19 +245,16 @@ class PaymentService extends BaseService {
         throw new Error('Booking not found');
       }
 
-      // Verify the booking belongs to the user (booking.userId is actually customerId)
       if (String(booking.userId) !== String(customerId)) {
         throw new Error('Not authorized to access this invoice');
       }
 
-      // Check if invoice exists
       if (!booking.invoicePath) {
         throw new Error('Invoice not found for this booking');
       }
 
       const invoicePath = path.join(__dirname, '../invoices', booking.invoicePath);
 
-      // Check if file exists
       if (!fs.existsSync(invoicePath)) {
         throw new Error('Invoice file not found');
       }
@@ -307,10 +265,6 @@ class PaymentService extends BaseService {
     }
   }
 
-  /**
-   * Generate and send invoice
-   * @private
-   */
   async #generateAndSendInvoice(bookingId, userId, payment, paymentMethod, paypalEmail) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -334,7 +288,6 @@ class PaymentService extends BaseService {
       const paymentMethodLabel = paymentMethodLabelMap[paymentMethod] || paymentMethod;
       const sanitizedPaypalEmail = paymentMethod === 'paypal' ? (paypalEmail || '').trim() : '';
 
-      // Create invoice directory
       const invoiceDir = path.join(__dirname, '../invoices');
       if (!fs.existsSync(invoiceDir)) {
         fs.mkdirSync(invoiceDir, { recursive: true });
@@ -401,17 +354,14 @@ class PaymentService extends BaseService {
         payment: paymentDetailsForInvoice
       };
 
-      // Generate PDF invoice
       try {
         await generateInvoicePDF(invoiceData, invoicePath);
         console.log('PDF invoice generated:', invoicePath);
 
-        // Store invoice filename in booking record
         await this.bookingRepository.updateById(bookingId, {
           invoicePath: invoiceFileName
         });
 
-        // Send invoice email
         const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
         const invoiceDataUri = buildInvoiceDataUri(invoicePath);
         const emailTemplate = emailTemplates.invoiceEmail(
@@ -448,7 +398,6 @@ class PaymentService extends BaseService {
       } catch (pdfError) {
         console.error('Error generating PDF invoice:', pdfError);
         
-        // Still send email even if PDF generation fails
         const emailTemplate = emailTemplates.invoiceEmail(
           paymentDetailsForInvoice,
           booking,
@@ -479,4 +428,3 @@ class PaymentService extends BaseService {
 }
 
 module.exports = new PaymentService();
-

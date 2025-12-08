@@ -17,7 +17,6 @@ class HotelOwner extends User {
     this.bankDetails = userData.bankDetails || {};
   }
 
-  // Inheritance: Override parent method
   getSpecificCapabilities() {
     return [
       'manage_hotels',
@@ -31,18 +30,14 @@ class HotelOwner extends User {
     ];
   }
 
-  // Polymorphism: Override hasPermission method
   hasPermission(permission) {
-    // Check base permissions first
     if (super.hasPermission(permission)) {
       return true;
     }
     
-    // Hotel-specific permissions
     return getHotelOwnerPermissions().includes(permission);
   }
 
-  // Method to add hotel to owned hotels
   addHotel(hotelId) {
     if (!this.ownedHotels) {
       this.ownedHotels = [];
@@ -55,7 +50,6 @@ class HotelOwner extends User {
     return false;
   }
 
-  // Method to remove hotel from owned hotels
   removeHotel(hotelId) {
     if (!this.ownedHotels) {
       this.ownedHotels = [];
@@ -70,13 +64,11 @@ class HotelOwner extends User {
     return false;
   }
 
-  // Method to calculate earnings after commission
   calculateNetEarnings(grossAmount) {
     const commission = grossAmount * this.commissionRate;
     return grossAmount - commission;
   }
 
-  // Method to add earnings
   addEarnings(amount) {
     const netAmount = this.calculateNetEarnings(amount);
     this.totalEarnings += netAmount;
@@ -86,13 +78,11 @@ class HotelOwner extends User {
     return netAmount;
   }
 
-  // Method to reset monthly earnings (called at month end)
   resetMonthlyEarnings() {
     this.monthlyEarnings = 0;
     this.updatedAt = new Date();
   }
 
-  // Method to update business information
   updateBusinessInfo(businessInfo) {
     const allowedFields = ['businessLicense', 'taxId', 'bankDetails'];
     
@@ -105,25 +95,21 @@ class HotelOwner extends User {
     this.updatedAt = new Date();
   }
 
-  // Method to update rating
   updateRating(newRating) {
-    // Recalculate average rating
     const totalRatingPoints = this.rating * this.totalReviews;
     this.totalReviews += 1;
     this.rating = (totalRatingPoints + newRating) / this.totalReviews;
     this.updatedAt = new Date();
   }
 
-  // Method to check if owner can add more hotels
   canAddMoreHotels() {
     if (!this.ownedHotels) {
       this.ownedHotels = [];
     }
-    const maxHotels = this.isVerified ? 10 : 2; // Verified owners can have more hotels
+    const maxHotels = this.isVerified ? 10 : 2;
     return this.ownedHotels.length < maxHotels && !this.isSuspended;
   }
 
-  // Method to get business statistics
   getBusinessStats() {
     return {
       totalHotels: (this.ownedHotels && this.ownedHotels.length) || 0,
@@ -135,17 +121,14 @@ class HotelOwner extends User {
     };
   }
 
-  // Method to calculate commission for platform
   calculateCommission(amount) {
     return amount * this.commissionRate;
   }
 
-  // Method to check business verification status
   isBusinessVerified() {
     return this.businessLicense && this.taxId && this.isVerified;
   }
 
-  // Method to withdraw earnings
   withdrawEarnings(amount) {
     if (this.walletBalance >= amount && amount > 0) {
       this.walletBalance -= amount;
@@ -155,7 +138,6 @@ class HotelOwner extends User {
     return false;
   }
 
-  // Method to get payout information
   getPayoutInfo() {
     return {
       availableBalance: this.walletBalance,
@@ -166,7 +148,6 @@ class HotelOwner extends User {
     };
   }
 
-  // Override getPublicInfo to include hotel specific data
   getPublicInfo() {
     const baseInfo = super.getPublicInfo();
     return {

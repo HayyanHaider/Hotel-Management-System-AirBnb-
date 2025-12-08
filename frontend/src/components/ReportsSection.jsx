@@ -16,7 +16,6 @@ const ReportsSection = () => {
 
   const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
 
-  // Set default dates (last 30 days)
   useEffect(() => {
     const end = new Date();
     const start = new Date();
@@ -70,27 +69,22 @@ const ReportsSection = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Add header with gradient effect (simulated)
     doc.setFillColor(102, 126, 234);
     doc.rect(0, 0, pageWidth, 40, 'F');
     
-    // Title
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text('Airbnb Admin Report', 14, 20);
     
-    // Report type and date
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text(`Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, 30);
     doc.text(`Period: ${format(new Date(startDate), 'MMM dd, yyyy')} - ${format(new Date(endDate), 'MMM dd, yyyy')}`, 14, 36);
     
-    // Reset text color
     doc.setTextColor(0, 0, 0);
     let yPosition = 50;
 
-    // Generate content based on report type
     switch (reportType) {
       case 'bookings':
         generateBookingsReport(doc, yPosition);

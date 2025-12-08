@@ -39,10 +39,8 @@ const HotelDetails = () => {
   const guestSelectRef = useRef(null);
   const mapSectionRef = useRef(null);
 
-  // Get today's date in YYYY-MM-DD format - recalculate on each render to ensure it's current
   const todayDate = useMemo(() => {
     const today = new Date();
-    // Use local date components to avoid timezone issues
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
@@ -57,7 +55,6 @@ const HotelDetails = () => {
     fetchReviews();
   }, [hotelId]);
 
-  // Update check-out date if it's before or equal to check-in date
   useEffect(() => {
     if (checkIn && checkOut) {
       const checkInDate = new Date(checkIn);
@@ -121,7 +118,6 @@ const HotelDetails = () => {
   const toggleFavorite = async (e) => {
     if (e) e.stopPropagation();
     
-    // If user is not logged in, redirect to login page
     if (!isLoggedIn) {
       navigate('/login');
       return;
@@ -178,7 +174,6 @@ const HotelDetails = () => {
     return (hotel.pricing?.basePrice || 0) * nights + (hotel.pricing?.cleaningFee || 0) + (hotel.pricing?.serviceFee || 0);
   };
 
-  // Get minimum check-out date (check-in date + 1 day)
   const getMinCheckOutDate = () => {
     if (!checkIn) return todayDate;
     const checkInDate = new Date(checkIn);

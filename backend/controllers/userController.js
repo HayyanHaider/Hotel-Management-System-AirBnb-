@@ -1,7 +1,6 @@
 const UserModel = require('../models/userModel');
 const HotelModel = require('../models/hotelModel');
 
-// Add hotel to favorites
 const addFavorite = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -29,7 +28,6 @@ const addFavorite = async (req, res) => {
   }
 };
 
-// Remove hotel from favorites
 const removeFavorite = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -52,7 +50,6 @@ const removeFavorite = async (req, res) => {
   }
 };
 
-// List favorites
 const listFavorites = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -68,5 +65,3 @@ const listFavorites = async (req, res) => {
 };
 
 module.exports = { addFavorite, removeFavorite, listFavorites };
-
-

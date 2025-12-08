@@ -20,7 +20,6 @@ const CreateBooking = () => {
   const [promoCodeError, setPromoCodeError] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
 
-  // Get today's date in YYYY-MM-DD format for min date validation
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -29,7 +28,6 @@ const CreateBooking = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Get minimum check-out date (check-in date + 1 day)
   const getMinCheckOutDate = () => {
     if (!checkIn) return getTodayDate();
     const checkInDate = new Date(checkIn);
@@ -53,7 +51,6 @@ const CreateBooking = () => {
     }
   }, [hotel, checkIn, checkOut, guests]);
 
-  // Update check-out date if it's before or equal to check-in date
   useEffect(() => {
     if (checkIn && checkOut) {
       const checkInDate = new Date(checkIn);
@@ -91,8 +88,6 @@ const CreateBooking = () => {
   const checkAvailability = async () => {
     try {
       setAvailabilityChecked(false);
-      // Simple check: if hotel capacity >= guests, it's available
-      // The actual availability check will be done on the backend when creating the booking
       const maxGuests = hotel?.capacity?.guests || 0;
       if (parseInt(guests) <= maxGuests && checkIn && checkOut) {
         setIsAvailable(true);
@@ -142,8 +137,6 @@ const CreateBooking = () => {
         couponCode: promoCode || undefined
       };
 
-      console.log('Sending booking data:', bookingData); // Debug log
-
       const response = await axios.post(
         'http://localhost:5000/api/bookings',
         bookingData,
@@ -163,7 +156,6 @@ const CreateBooking = () => {
           toast.success(`Great! Coupon "${appliedCoupon.code}" (${appliedCoupon.discountPercentage}% off) has been automatically applied. You saved PKR ${appliedCoupon.discountAmount.toFixed(2)}!`);
         }
         
-        console.log('Booking created successfully, navigating to payment:', bookingId);
         if (bookingId) {
           navigate(`/payment/${bookingId}`);
         } else {
@@ -175,7 +167,6 @@ const CreateBooking = () => {
       }
     } catch (error) {
       console.error('Error creating booking:', error);
-      console.error('Error response:', error.response?.data); // Debug log
       toast.error(error.response?.data?.message || 'Error creating booking');
     } finally {
       setSubmitting(false);
@@ -249,7 +240,6 @@ const CreateBooking = () => {
                 </div>
               )}
 
-              {/* Promo Code Section */}
               <div className="mb-4">
                 <label className="form-label">Promo Code (Optional)</label>
                 <div className="input-group">
@@ -271,7 +261,6 @@ const CreateBooking = () => {
                         setPromoCodeError('Please enter a promo code');
                         return;
                       }
-                      // Coupon will be validated and applied by backend when creating booking
                       setAppliedCoupon({ code: promoCode, discountPercentage: 0 });
                       setPromoCodeError('');
                     }}
@@ -289,7 +278,6 @@ const CreateBooking = () => {
                 )}
               </div>
 
-              {/* Price Breakdown */}
               {hotel && checkIn && checkOut && (
                 <div className="mb-4">
                   <h5>Price Breakdown</h5>
@@ -297,10 +285,8 @@ const CreateBooking = () => {
                     {(() => {
                       const checkInDate = new Date(checkIn);
                       const checkOutDate = new Date(checkOut);
-                      // Normalize to midnight to avoid timezone issues
                       checkInDate.setHours(0, 0, 0, 0);
                       checkOutDate.setHours(0, 0, 0, 0);
-                      // Calculate nights: check-out date minus check-in date gives the number of nights
                       const daysDiff = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
                       const nights = Math.max(1, Math.floor(daysDiff));
                       const basePrice = hotel.pricing?.basePrice || 0;

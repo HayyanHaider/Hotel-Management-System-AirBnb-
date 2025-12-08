@@ -1,21 +1,12 @@
 const BaseController = require('./BaseController');
 const CouponService = require('../services/CouponService');
 
-/**
- * CouponController - Handles coupon endpoints
- * Follows Single Responsibility Principle - only handles HTTP requests/responses
- * Follows Dependency Inversion Principle - depends on service abstractions
- */
 class CouponController extends BaseController {
   constructor() {
     super();
     this.couponService = CouponService;
   }
 
-  /**
-   * Create Coupon
-   * Delegates business logic to CouponService
-   */
   createCoupon = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -47,9 +38,6 @@ class CouponController extends BaseController {
     }
   };
 
-  /**
-   * Get Hotel Coupons
-   */
   getHotelCoupons = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -68,9 +56,6 @@ class CouponController extends BaseController {
     }
   };
 
-  /**
-   * Get Coupon Details
-   */
   getCouponDetails = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -83,9 +68,6 @@ class CouponController extends BaseController {
     }
   };
 
-  /**
-   * Update Coupon
-   */
   updateCoupon = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -113,9 +95,6 @@ class CouponController extends BaseController {
     }
   };
 
-  /**
-   * Delete Coupon
-   */
   deleteCoupon = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -135,7 +114,6 @@ class CouponController extends BaseController {
   };
 }
 
-// Export singleton instance
 const couponController = new CouponController();
 
 module.exports = {

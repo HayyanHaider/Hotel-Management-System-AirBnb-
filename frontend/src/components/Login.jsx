@@ -67,7 +67,6 @@ const Login = () => {
         
         toast.success('Login successful! Welcome back!');
         
-        // Redirect based on role
         if (response.data.user.role === 'customer') {
           navigate('/');
         } else if (response.data.user.role === 'hotel' || response.data.user.role === 'hotel_owner') {
@@ -103,7 +102,6 @@ const Login = () => {
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)'
             }}>
               <div className="card-body p-4">
-                {/* Logo */}
                 <div className="text-center mb-3">
                   <svg width="40" height="40" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="mb-2" aria-hidden="true">
                     <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>

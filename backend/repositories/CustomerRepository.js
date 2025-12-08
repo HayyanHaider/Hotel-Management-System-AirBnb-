@@ -1,20 +1,11 @@
 const BaseRepository = require('./BaseRepository');
 const CustomerModel = require('../models/customerModel');
 
-/**
- * CustomerRepository - Repository for Customer entities
- * Follows Single Responsibility Principle - only handles Customer data access
- */
 class CustomerRepository extends BaseRepository {
   constructor() {
     super(CustomerModel);
   }
 
-  /**
-   * Find customer by user ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object|null>} Customer or null
-   */
   async findByUser(userId) {
     try {
       const doc = await this.model.findOne({ user: userId });
@@ -24,11 +15,6 @@ class CustomerRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Find or create customer by user ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} Customer document
-   */
   async findOrCreateByUser(userId) {
     try {
       let customer = await this.findByUser(userId);
@@ -47,12 +33,6 @@ class CustomerRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Update loyalty points
-   * @param {string} customerId - Customer ID
-   * @param {number} points - Points to add (can be negative)
-   * @returns {Promise<Object|null>} Updated customer
-   */
   async updateLoyaltyPoints(customerId, points) {
     try {
       const doc = await this.model.findByIdAndUpdate(

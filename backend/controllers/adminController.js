@@ -6,16 +6,7 @@ const AdminActivityLogger = require('../services/AdminActivityLogger');
 const RefundModel = require('../models/refundModal');
 const PaymentModel = require('../models/paymentModel');
 
-/**
- * AdminController - Handles HTTP requests for admin operations
- * Delegates business logic to service classes (Separation of Concerns)
- */
 class AdminController {
-  // ========== DASHBOARD ==========
-
-  /**
-   * Get dashboard statistics
-   */
   async getDashboardStats(req, res) {
     try {
       const stats = await AdminDashboardService.getDashboardStats();
@@ -29,11 +20,6 @@ class AdminController {
     }
   }
 
-  // ========== HOTEL MANAGEMENT ==========
-
-  /**
-   * Get hotels with filtering and pagination
-   */
   async getHotels(req, res) {
     try {
       const { status, search, page, limit } = req.query;
@@ -58,9 +44,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Approve a hotel
-   */
   async approveHotel(req, res) {
     try {
       const { hotelId } = req.params;
@@ -77,9 +60,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Reject a hotel
-   */
   async rejectHotel(req, res) {
     try {
       const { hotelId } = req.params;
@@ -97,9 +77,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Suspend a hotel
-   */
   async suspendHotel(req, res) {
     try {
       const { hotelId } = req.params;
@@ -117,9 +94,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Unsuspend a hotel
-   */
   async unsuspendHotel(req, res) {
     try {
       const { hotelId } = req.params;
@@ -136,11 +110,6 @@ class AdminController {
     }
   }
 
-  // ========== USER MANAGEMENT ==========
-
-  /**
-   * Get users with filtering and pagination
-   */
   async getUsers(req, res) {
     try {
       const { role, status, search, page, limit } = req.query;
@@ -166,9 +135,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Suspend a user
-   */
   async suspendUser(req, res) {
     try {
       const { userId } = req.params;
@@ -186,9 +152,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Unsuspend a user
-   */
   async unsuspendUser(req, res) {
     try {
       const { userId } = req.params;
@@ -205,11 +168,6 @@ class AdminController {
     }
   }
 
-  // ========== PERFORMANCE MONITORING ==========
-
-  /**
-   * Get low-rated hotels
-   */
   async getLowRatedHotels(req, res) {
     try {
       const { page, limit } = req.query;
@@ -229,12 +187,6 @@ class AdminController {
     }
   }
 
-
-  // ========== REFUND MANAGEMENT ==========
-
-  /**
-   * Get refund requests
-   */
   async getRefundRequests(req, res) {
     try {
       const { status, page = 1, limit = 50 } = req.query;
@@ -271,9 +223,6 @@ class AdminController {
     }
   }
 
-  /**
-   * Process a refund (approve or reject)
-   */
   async processRefund(req, res) {
     try {
       const { refundId } = req.params;
@@ -301,7 +250,6 @@ class AdminController {
         return res.status(404).json({ success: false, message: 'Refund request not found' });
       }
 
-      // Update payment refund status if approved
       if (action === 'approve') {
         await PaymentModel.findByIdAndUpdate(refund.paymentId, {
           refundStatus: 'refunded',
@@ -330,11 +278,6 @@ class AdminController {
     }
   }
 
-  // ========== REPORTS & ANALYTICS ==========
-
-  /**
-   * Generate and retrieve reports
-   */
   async getReports(req, res) {
     try {
       const { type, startDate, endDate } = req.query;
@@ -357,11 +300,6 @@ class AdminController {
     }
   }
 
-  // ========== ACTIVITY LOG ==========
-
-  /**
-   * Get admin activity logs
-   */
   async getActivityLog(req, res) {
     try {
       const { action, targetType, page, limit } = req.query;
@@ -387,35 +325,21 @@ class AdminController {
   }
 }
 
-// Export controller instance with bound methods
 const controller = new AdminController();
 
 module.exports = {
-  // Dashboard
   getDashboardStats: (req, res) => controller.getDashboardStats(req, res),
-
-  // Hotel Management
   getHotels: (req, res) => controller.getHotels(req, res),
   approveHotel: (req, res) => controller.approveHotel(req, res),
   rejectHotel: (req, res) => controller.rejectHotel(req, res),
   suspendHotel: (req, res) => controller.suspendHotel(req, res),
   unsuspendHotel: (req, res) => controller.unsuspendHotel(req, res),
-
-  // User Management
   getUsers: (req, res) => controller.getUsers(req, res),
   suspendUser: (req, res) => controller.suspendUser(req, res),
   unsuspendUser: (req, res) => controller.unsuspendUser(req, res),
-
-  // Monitoring
   getLowRatedHotels: (req, res) => controller.getLowRatedHotels(req, res),
-
-  // Refunds
   getRefundRequests: (req, res) => controller.getRefundRequests(req, res),
   processRefund: (req, res) => controller.processRefund(req, res),
-
-  // Reports
   getReports: (req, res) => controller.getReports(req, res),
-
-  // Activity Log
   getActivityLog: (req, res) => controller.getActivityLog(req, res)
 };

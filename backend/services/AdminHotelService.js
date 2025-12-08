@@ -6,16 +6,7 @@ const BaseService = require('./BaseService');
 const AdminActivityLogger = require('./AdminActivityLogger');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
-/**
- * AdminHotelService - Handles all hotel management operations for admins
- * Follows OOP principles with encapsulation and single responsibility
- */
 class AdminHotelService extends BaseService {
-  /**
-   * Get hotels with filtering, search, and pagination
-   * @param {Object} filters - Filter options
-   * @returns {Promise<Object>} Hotels and pagination info
-   */
   async getHotels({ status, search, page = 1, limit = 50 }) {
     const skip = (page - 1) * limit;
     const query = this._buildHotelQuery(status, search);
@@ -40,12 +31,6 @@ class AdminHotelService extends BaseService {
     };
   }
 
-  /**
-   * Approve a hotel
-   * @param {String} hotelId - Hotel ID
-   * @param {String} adminId - Admin user ID
-   * @returns {Promise<Object>} Updated hotel
-   */
   async approveHotel(hotelId, adminId) {
     const hotel = await HotelModel.findByIdAndUpdate(
       hotelId,
@@ -70,7 +55,6 @@ class AdminHotelService extends BaseService {
       { hotelName: hotel.name }
     );
 
-    // Send email notification to hotel owner
     try {
       if (hotel.ownerId && hotel.ownerId.email) {
         const owner = hotel.ownerId;
@@ -89,19 +73,11 @@ class AdminHotelService extends BaseService {
       }
     } catch (emailError) {
       console.error('❌ Error sending hotel approval email:', emailError);
-      // Don't fail the approval if email fails
     }
 
     return hotel;
   }
 
-  /**
-   * Reject a hotel
-   * @param {String} hotelId - Hotel ID
-   * @param {String} adminId - Admin user ID
-   * @param {String} reason - Rejection reason
-   * @returns {Promise<Object>} Updated hotel
-   */
   async rejectHotel(hotelId, adminId, reason = '') {
     const hotel = await HotelModel.findByIdAndUpdate(
       hotelId,
@@ -129,13 +105,6 @@ class AdminHotelService extends BaseService {
     return hotel;
   }
 
-  /**
-   * Suspend a hotel
-   * @param {String} hotelId - Hotel ID
-   * @param {String} adminId - Admin user ID
-   * @param {String} reason - Suspension reason
-   * @returns {Promise<Object>} Updated hotel
-   */
   async suspendHotel(hotelId, adminId, reason = '') {
     const hotel = await HotelModel.findByIdAndUpdate(
       hotelId,
@@ -236,12 +205,6 @@ class AdminHotelService extends BaseService {
     return hotel;
   }
 
-  /**
-   * Unsuspend a hotel
-   * @param {String} hotelId - Hotel ID
-   * @param {String} adminId - Admin user ID
-   * @returns {Promise<Object>} Updated hotel
-   */
   async unsuspendHotel(hotelId, adminId) {
     const hotel = await HotelModel.findByIdAndUpdate(
       hotelId,
@@ -268,11 +231,6 @@ class AdminHotelService extends BaseService {
     return hotel;
   }
 
-  /**
-   * Get low-rated hotels
-   * @param {Object} options - Pagination options
-   * @returns {Promise<Object>} Low-rated hotels and pagination
-   */
   async getLowRatedHotels({ page = 1, limit = 50 }) {
     const skip = (page - 1) * limit;
 
@@ -303,10 +261,6 @@ class AdminHotelService extends BaseService {
   }
 
 
-  /**
-   * Private method to build query object
-   * @private
-   */
   _buildHotelQuery(status, search) {
     const query = {};
 

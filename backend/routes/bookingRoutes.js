@@ -3,7 +3,6 @@ const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const bookingController = require('../controllers/bookingController');
 
-// Protected routes - Customer only
 router.post('/', authenticateToken, authorizeRoles(['customer']), bookingController.createBooking);
 router.get('/my-bookings', authenticateToken, authorizeRoles(['customer']), bookingController.getUserBookings);
 router.get('/:bookingId', authenticateToken, authorizeRoles(['customer']), bookingController.getBookingDetails);

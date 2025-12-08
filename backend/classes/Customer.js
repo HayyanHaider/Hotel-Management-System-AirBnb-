@@ -9,7 +9,6 @@ class Customer extends User {
     this.reviewsGiven = userData.reviewsGiven || [];
   }
 
-  // Inheritance: Override parent method
   getSpecificCapabilities() {
     return [
       'book_rooms',
@@ -21,18 +20,14 @@ class Customer extends User {
     ];
   }
 
-  // Polymorphism: Override hasPermission method
   hasPermission(permission) {
-    // Check base permissions first
     if (super.hasPermission(permission)) {
       return true;
     }
     
-    // Customer-specific permissions
     return getCustomerPermissions().includes(permission);
   }
 
-  // Method to add hotel to favorites
   addToFavorites(hotelId) {
     if (!this.favorites.includes(hotelId)) {
       this.favorites.push(hotelId);
@@ -42,7 +37,6 @@ class Customer extends User {
     return false;
   }
 
-  // Method to remove hotel from favorites
   removeFromFavorites(hotelId) {
     const index = this.favorites.indexOf(hotelId);
     if (index > -1) {
@@ -53,12 +47,10 @@ class Customer extends User {
     return false;
   }
 
-  // Method to check if hotel is in favorites
   isFavorite(hotelId) {
     return this.favorites.includes(hotelId);
   }
 
-  // Method to add booking to history
   addBookingToHistory(bookingId) {
     if (!this.bookingHistory) {
       this.bookingHistory = [];
@@ -69,25 +61,22 @@ class Customer extends User {
     }
   }
 
-  // Method to add review
   addReview(reviewId) {
     if (!this.reviewsGiven) {
       this.reviewsGiven = [];
     }
     if (!this.reviewsGiven.includes(reviewId)) {
       this.reviewsGiven.push(reviewId);
-      this.earnLoyaltyPoints(10); // Earn points for writing reviews
+      this.earnLoyaltyPoints(10);
       this.updatedAt = new Date();
     }
   }
 
-  // Method to earn loyalty points
   earnLoyaltyPoints(points) {
     this.loyaltyPoints += points;
     this.updatedAt = new Date();
   }
 
-  // Method to redeem loyalty points
   redeemLoyaltyPoints(points) {
     if (this.loyaltyPoints >= points) {
       this.loyaltyPoints -= points;
@@ -97,7 +86,6 @@ class Customer extends User {
     return false;
   }
 
-  // Method to get booking statistics
   getBookingStats() {
     return {
       totalBookings: (this.bookingHistory && this.bookingHistory.length) || 0,
@@ -107,20 +95,17 @@ class Customer extends User {
     };
   }
 
-  // Method to check if customer can book (business logic)
   canBook() {
     return this.isVerified && !this.isSuspended;
   }
 
-  // Method to calculate discount based on loyalty points
   calculateLoyaltyDiscount() {
-    if (this.loyaltyPoints >= 1000) return 0.15; // 15% discount
-    if (this.loyaltyPoints >= 500) return 0.10;  // 10% discount
-    if (this.loyaltyPoints >= 200) return 0.05;  // 5% discount
-    return 0; // No discount
+    if (this.loyaltyPoints >= 1000) return 0.15;
+    if (this.loyaltyPoints >= 500) return 0.10;
+    if (this.loyaltyPoints >= 200) return 0.05;
+    return 0;
   }
 
-  // Override getPublicInfo to include customer-specific data
   getPublicInfo() {
     const baseInfo = super.getPublicInfo();
     return {

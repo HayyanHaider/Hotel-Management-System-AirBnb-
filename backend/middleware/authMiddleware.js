@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const mongoose = require('mongoose');
 
-// Verify JWT Token
 const verifyToken = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -16,19 +15,17 @@ const verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    console.log('Decoded token:', decoded); // Debug log
+    console.log('Decoded token:', decoded);
     
-    // Check if user still exists - handle both string and ObjectId
     let userId = decoded.userId;
     
-    // If userId is a string, convert to ObjectId if valid
     if (typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)) {
       userId = new mongoose.Types.ObjectId(userId);
     }
     
     const user = await User.findById(userId);
     
-    console.log('Found user:', user ? user._id : 'NOT FOUND'); // Debug log
+    console.log('Found user:', user ? user._id : 'NOT FOUND');
     
     if (!user) {
       return res.status(401).json({
@@ -37,7 +34,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Check if user is suspended
     if (user.isSuspended) {
       return res.status(403).json({
         success: false,
@@ -45,7 +41,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Attach both decoded token and full user to request
     req.user = {
       userId: user._id.toString(),
       role: decoded.role
@@ -77,7 +72,6 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Role-based authorization middleware
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -98,7 +92,6 @@ const authorize = (...roles) => {
   };
 };
 
-// Create authorizeRoles function that matches the expected interface
 const authorizeRoles = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -108,10 +101,9 @@ const authorizeRoles = (roles) => {
       });
     }
 
-    // Handle hotel_owner role - treat it as 'hotel' for authorization
     let userRole = req.user.role;
     if (userRole === 'hotel_owner' && roles.includes('hotel')) {
-      userRole = 'hotel'; // Allow hotel_owner to access hotel routes
+      userRole = 'hotel';
     }
 
     if (!roles.includes(userRole)) {

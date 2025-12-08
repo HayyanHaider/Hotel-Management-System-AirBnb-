@@ -36,7 +36,6 @@ const ManageCoupons = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
-      // Use the owner-specific endpoint to get only the hotel's hotels
       const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -76,7 +75,6 @@ const ManageCoupons = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Ensure hotelId is set - use selectedHotel as fallback
     const hotelId = formData.hotelId || selectedHotel;
     
     if (!hotelId) {
@@ -92,7 +90,6 @@ const ManageCoupons = () => {
     try {
       const token = sessionStorage.getItem('token');
       
-      // Prepare data to send
       const couponData = {
         hotelId: hotelId,
         code: formData.code,

@@ -1,21 +1,12 @@
 const BaseController = require('./BaseController');
 const RoomService = require('../services/RoomService');
 
-/**
- * RoomController - Handles room endpoints
- * Follows Single Responsibility Principle - only handles HTTP requests/responses
- * Follows Dependency Inversion Principle - depends on service abstractions
- */
 class RoomController extends BaseController {
   constructor() {
     super();
     this.roomService = RoomService;
   }
 
-  /**
-   * Create Room
-   * Delegates business logic to RoomService
-   */
   createRoom = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -48,9 +39,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Get Hotel Rooms
-   */
   getHotelRooms = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -69,9 +57,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Get Room Details
-   */
   getRoomDetails = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -91,9 +76,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Update Room
-   */
   updateRoom = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -114,9 +96,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Delete Room
-   */
   deleteRoom = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -135,9 +114,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Toggle Room Availability
-   */
   toggleRoomAvailability = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -157,9 +133,6 @@ class RoomController extends BaseController {
     }
   };
 
-  /**
-   * Get Available Rooms (Public endpoint)
-   */
   getAvailableRooms = async (req, res) => {
     try {
       const { hotelId } = req.params;
@@ -183,7 +156,6 @@ class RoomController extends BaseController {
   };
 }
 
-// Export singleton instance
 const roomController = new RoomController();
 
 module.exports = {

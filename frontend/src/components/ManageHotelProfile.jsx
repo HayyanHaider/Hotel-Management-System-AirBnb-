@@ -58,7 +58,6 @@ const ManageHotelProfile = () => {
     }
   }, [selectedCountry]);
 
-  // Handle province selection
   useEffect(() => {
     if (selectedProvince && selectedCountry === 'PK') {
       const cities = pakistanData.cities[selectedProvince] || [];
@@ -71,7 +70,6 @@ const ManageHotelProfile = () => {
     }
   }, [selectedProvince, selectedCountry]);
 
-  // Handle city selection
   useEffect(() => {
     if (selectedCity && selectedCountry === 'PK') {
       const societies = getSocietiesForCity(selectedCity);
@@ -82,22 +80,17 @@ const ManageHotelProfile = () => {
     }
   }, [selectedCity, selectedCountry]);
 
-  // Build address string for geocoding (memoized to track changes)
-  // Street address first for better geocoding accuracy
   const addressString = useMemo(() => {
     const parts = [];
     
-    // Start with street address (most specific)
     if (formData.streetAddress && formData.streetAddress.trim()) {
       parts.push(formData.streetAddress.trim());
     }
     
-    // Then society/area
     if (formData.society && formData.society.trim()) {
       parts.push(formData.society.trim());
     }
     
-    // Then city
     if (selectedCountry === 'PK') {
       if (selectedCity && selectedCity.trim()) {
         parts.push(selectedCity.trim());
@@ -108,7 +101,6 @@ const ManageHotelProfile = () => {
       }
     }
     
-    // Then province/state
     if (selectedCountry === 'PK') {
       if (selectedProvince) {
         const provinceName = pakistanData.provinces.find(p => p.code === selectedProvince)?.name;
@@ -120,19 +112,16 @@ const ManageHotelProfile = () => {
       }
     }
     
-    // Then country
     if (selectedCountry) {
       const countryName = countries.find(c => c.code === selectedCountry)?.name;
-      if (countryName) parts.push(countryName);
+      if (countryName)       parts.push(countryName);
     }
     
-    // Zip code last
     if (formData.zipCode && formData.zipCode.trim()) {
       parts.push(formData.zipCode.trim());
     }
     
     const result = parts.join(', ');
-    // Only return if we have at least city or country (minimum for geocoding)
     if (parts.length >= 2 || (selectedCountry && (selectedCity || formData.city))) {
       return result;
     }
@@ -150,7 +139,6 @@ const ManageHotelProfile = () => {
         return;
       }
 
-      // Use the owner-specific endpoint to get only the hotel's hotels
       const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -181,7 +169,6 @@ const ManageHotelProfile = () => {
     const state = hotel.location?.state || '';
     const city = hotel.location?.city || '';
     
-    // Try to determine country code
     let countryCode = '';
     if (country.toLowerCase().includes('pakistan')) {
       countryCode = 'PK';
@@ -192,7 +179,6 @@ const ManageHotelProfile = () => {
     
     setSelectedCountry(countryCode);
     
-    // If Pakistan, try to find province
     if (countryCode === 'PK' && state) {
       const province = pakistanData.provinces.find(p => 
         p.name.toLowerCase() === state.toLowerCase() || 
@@ -259,16 +245,13 @@ const ManageHotelProfile = () => {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('token');
-      // Validate that coordinates are provided
       if (!formData.latitude || !formData.longitude) {
         toast.warning('Please select a location on the map by clicking on it');
         return;
       }
 
-      // Build full address string (use memoized addressString or build from form data)
       let fullAddress = addressString;
       if (!fullAddress || fullAddress.trim() === '') {
-        // Fallback: build address from form data if addressString is empty
         const parts = [];
         if (formData.streetAddress) parts.push(formData.streetAddress);
         if (formData.society) parts.push(formData.society);
@@ -411,8 +394,7 @@ const ManageHotelProfile = () => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Validate file sizes (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     const invalidFiles = files.filter(file => file.size > maxSize);
     if (invalidFiles.length > 0) {
       toast.warning(`Some files exceed the 10MB limit. Please select smaller images.`);
@@ -425,7 +407,6 @@ const ManageHotelProfile = () => {
       const token = sessionStorage.getItem('token');
       const uploadFormData = new FormData();
       
-      // Upload multiple images (up to 10 per request, but can upload multiple times)
       const filesToUpload = files.slice(0, 10);
       filesToUpload.forEach((file) => {
         uploadFormData.append('images', file);
@@ -448,7 +429,6 @@ const ManageHotelProfile = () => {
           ...prev,
           images: [...prev.images, ...uploadedUrls]
         }));
-        // Reset file input to allow uploading more images
         e.target.value = '';
         console.log(`${uploadedUrls.length} image(s) uploaded successfully to Cloudinary!`);
       }
@@ -456,7 +436,6 @@ const ManageHotelProfile = () => {
       console.error('Error uploading images:', error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Error uploading images';
       toast.error(errorMessage);
-      // Reset file input on error too
       e.target.value = '';
     } finally {
       setUploading(false);

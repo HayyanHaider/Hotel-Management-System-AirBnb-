@@ -3,11 +3,6 @@ const BookingRepository = require('../repositories/BookingRepository');
 const HotelRepository = require('../repositories/HotelRepository');
 const PaymentRepository = require('../repositories/PaymentRepository');
 
-/**
- * EarningsService - Handles earnings calculations for hotel owners
- * Follows Single Responsibility Principle - only handles earnings operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- */
 class EarningsService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -16,10 +11,6 @@ class EarningsService extends BaseService {
     this.paymentRepository = dependencies.paymentRepository || PaymentRepository;
   }
 
-  /**
-   * Calculate date range based on period
-   * @private
-   */
   #calculateDateRange(period) {
     const now = new Date();
     let startDate;
@@ -45,18 +36,11 @@ class EarningsService extends BaseService {
     return startDate;
   }
 
-  /**
-   * Calculate net earnings (after commission)
-   * @private
-   */
   #calculateNetEarnings(grossAmount, commissionRate = 0.10) {
     const commission = grossAmount * commissionRate;
     return grossAmount - commission;
   }
 
-  /**
-   * Get earnings dashboard
-   */
   async getEarningsDashboard(ownerId, period = 'month') {
     try {
       // Get all hotels owned by this owner (excluding suspended hotels)
@@ -184,9 +168,6 @@ class EarningsService extends BaseService {
     }
   }
 
-  /**
-   * Get earnings by hotel
-   */
   async getEarningsByHotel(ownerId, hotelId, period = 'month') {
     try {
       // Verify hotel ownership

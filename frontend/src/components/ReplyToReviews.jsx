@@ -31,7 +31,6 @@ const ReplyToReviews = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
-      // Use the owner-specific endpoint to get only the logged-in owner's hotels
       const hotelsResponse = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -58,7 +57,6 @@ const ReplyToReviews = () => {
     try {
       setReviewsLoading(true);
       const token = sessionStorage.getItem('token');
-      // Fetch reviews for the selected hotel (which should only be from owner's hotels)
       const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

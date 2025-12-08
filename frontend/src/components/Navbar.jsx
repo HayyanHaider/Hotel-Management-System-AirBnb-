@@ -10,7 +10,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // NEW: Track compact mode based on viewport width (Bootstrap lg breakpoint: 992px)
   const [isCompact, setIsCompact] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 992 : false);
 
   useEffect(() => {
@@ -19,7 +18,6 @@ const Navbar = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Sync user state with sessionStorage
   useEffect(() => {
     const checkUserStatus = () => {
       const token = sessionStorage.getItem('token');
@@ -42,7 +40,6 @@ const Navbar = () => {
     };
   }, []);
 
-  // Update when location changes
   useEffect(() => {
     const token = sessionStorage.getItem('token');
     const userData = sessionStorage.getItem('user');
@@ -94,7 +91,6 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg border-bottom sticky-top">
       <div className="container-fluid">
-        {/* Logo */}
         <Link
           to={
             user && user.role === 'admin' ? "/admin-dashboard" :
@@ -116,11 +112,9 @@ const Navbar = () => {
           }}>airbnb</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="navbar-nav d-none d-lg-flex align-items-center ms-auto">
           {user ? (
             <div className="d-flex align-items-center">
-              {/* Circular User Button */}
               <div className="dropdown me-3">
                 <button
                   className="btn rounded-circle d-flex align-items-center justify-content-center"
@@ -156,7 +150,6 @@ const Navbar = () => {
                 </button>
 
                 <ul className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4" style={{ minWidth: "280px" }}>
-                  {/* User Details Header */}
                   <li className="dropdown-header">
                     <div className="d-flex align-items-center mb-2">
                       <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style={{ width: "40px", height: "40px" }}>
@@ -174,7 +167,6 @@ const Navbar = () => {
                   </li>
                   <li><hr className="dropdown-divider" /></li>
                   
-                  {/* Role-specific navigation links */}
                   {user.role === 'admin' && (
                     <>
                       
@@ -215,7 +207,6 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="d-flex align-items-center">
-              {/* Become a Host button and Settings dropdown - Only show when not on auth pages */}
               {!isAuthPage && (
                 <>
                   <button
@@ -261,7 +252,6 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Small-screen right actions (show settings/avatar without 3-dot toggler) */}
         <div className="d-flex d-lg-none align-items-center ms-auto">
           {user ? (
             <>
@@ -286,7 +276,6 @@ const Navbar = () => {
                 <li className="px-2 py-1 text-muted small">Signed in as <span className="fw-semibold text-dark">{user.name}</span></li>
                 <li><hr className="dropdown-divider" /></li>
                 
-                {/* Role-specific navigation links for mobile */}
                 {user.role === 'admin' && (
                   <li>
                     <Link className="dropdown-item py-2" to="/admin-dashboard">

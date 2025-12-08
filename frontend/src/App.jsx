@@ -9,7 +9,6 @@ import CustomerDashboard from './components/CustomerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import HotelDashboard from './components/HotelDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-// Customer components
 import Home from './components/Home';
 import BrowseHotels from './components/BrowseHotels';
 import HotelDetails from './components/HotelDetails';
@@ -20,7 +19,6 @@ import BookingHistory from './components/BookingHistory';
 import LeaveReview from './components/LeaveReview';
 import RescheduleBooking from './components/RescheduleBooking';
 import EditProfile from './components/EditProfile';
-// Hotel components
 import ManageHotelProfile from './components/ManageHotelProfile';
 import ManageCoupons from './components/ManageCoupons';
 import OwnerBookingManagement from './components/OwnerBookingManagement';
@@ -47,27 +45,22 @@ function AppContent() {
           });
 
           if (!response.ok) {
-            // Token is invalid or expired
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('user');
             window.dispatchEvent(new Event('userStatusChanged'));
           } else {
             const data = await response.json();
             if (!data.success || !data.valid) {
-              // Token verification failed
               sessionStorage.removeItem('token');
               sessionStorage.removeItem('user');
               window.dispatchEvent(new Event('userStatusChanged'));
             } else {
-              // Update user data in case it changed
               sessionStorage.setItem('user', JSON.stringify(data.user));
               window.dispatchEvent(new Event('userStatusChanged'));
             }
           }
         } catch (error) {
           console.error('Token verification error:', error);
-          // On network error, keep user logged in (don't logout on server/network issues)
-          // Only logout if the token is actually invalid (handled above)
         }
       }
       
@@ -108,7 +101,6 @@ function AppContent() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         
-        {/* Customer Routes */}
         <Route 
           path="/customer-dashboard" 
           element={
@@ -176,7 +168,6 @@ function AppContent() {
           } 
         />
         
-        {/* Hotel Routes - All routes render HotelDashboard which handles sections internally */}
         <Route 
           path="/hotel-dashboard" 
           element={
@@ -226,7 +217,6 @@ function AppContent() {
           } 
         />
         
-        {/* Admin Routes */}
         <Route 
           path="/admin-dashboard" 
           element={

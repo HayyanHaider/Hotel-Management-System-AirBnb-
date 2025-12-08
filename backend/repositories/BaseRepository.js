@@ -1,10 +1,5 @@
 const IRepository = require('./IRepository');
 
-/**
- * BaseRepository - Base implementation of Repository Pattern
- * Follows Open/Closed Principle - can be extended without modification
- * Follows Liskov Substitution Principle - can be used wherever IRepository is expected
- */
 class BaseRepository extends IRepository {
   constructor(model) {
     super();
@@ -14,11 +9,6 @@ class BaseRepository extends IRepository {
     this.model = model;
   }
 
-  /**
-   * Convert MongoDB document to plain object
-   * @param {Object} doc - MongoDB document
-   * @returns {Object} Plain object
-   */
   toObject(doc) {
     if (!doc) return null;
     if (doc.toObject) {

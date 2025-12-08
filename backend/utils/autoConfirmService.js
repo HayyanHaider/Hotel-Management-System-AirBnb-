@@ -2,7 +2,6 @@ const BookingModel = require('../models/bookingModel');
 const UserModel = require('../models/userModel');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
-// Auto-confirm pending bookings after 24 hours
 const AUTO_CONFIRM_HOURS = 24;
 
 const autoConfirmBookings = async () => {
@@ -10,7 +9,6 @@ const autoConfirmBookings = async () => {
     const autoConfirmTime = new Date();
     autoConfirmTime.setHours(autoConfirmTime.getHours() - AUTO_CONFIRM_HOURS);
 
-    // Find pending bookings older than 24 hours
     const pendingBookings = await BookingModel.find({
       status: 'pending',
       createdAt: { $lte: autoConfirmTime },
@@ -23,14 +21,12 @@ const autoConfirmBookings = async () => {
 
     for (const booking of pendingBookings) {
       try {
-        // Auto-confirm the booking
         await BookingModel.findByIdAndUpdate(booking._id, {
           status: 'confirmed',
           confirmedAt: new Date(),
           autoConfirmedAt: new Date()
         });
 
-        // Send confirmation email to customer
         try {
           if (booking.userId && booking.userId.email) {
             const customer = booking.userId;
@@ -149,7 +145,6 @@ The Airbnb Team`
           }
         } catch (emailError) {
           console.error(`❌ Error sending auto-confirmation email for booking ${booking._id}:`, emailError);
-          // Don't fail auto-confirmation if email fails
         }
 
         console.log(`Auto-confirmed booking ${booking._id}`);
@@ -162,12 +157,9 @@ The Airbnb Team`
   }
 };
 
-// Run auto-confirm check every hour
 const startAutoConfirmService = () => {
-  // Run immediately on startup
   autoConfirmBookings();
   
-  // Then run every hour
   setInterval(autoConfirmBookings, 60 * 60 * 1000);
   
   console.log('Auto-confirm service started (runs every hour)');

@@ -4,11 +4,6 @@ const HotelRepository = require('../repositories/HotelRepository');
 const UserRepository = require('../repositories/UserRepository');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
-/**
- * OwnerBookingService - Handles owner-specific booking operations
- * Follows Single Responsibility Principle - only handles owner booking operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- */
 class OwnerBookingService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -17,12 +12,8 @@ class OwnerBookingService extends BaseService {
     this.userRepository = dependencies.userRepository || UserRepository;
   }
 
-  /**
-   * Get owner bookings
-   */
   async getOwnerBookings(ownerId, filters = {}) {
     try {
-      // Get all hotels owned by this owner (excluding suspended hotels)
       const hotels = await this.hotelRepository.find({ 
         ownerId, 
         isSuspended: { $ne: true } 
@@ -34,7 +25,6 @@ class OwnerBookingService extends BaseService {
         return { bookings: [] };
       }
 
-      // Get all bookings for owner's hotels
       const query = { hotelId: { $in: hotelIds } };
       if (filters.status) {
         query.status = filters.status;
@@ -54,7 +44,6 @@ class OwnerBookingService extends BaseService {
 
       const bookings = await this.bookingRepository.find(query, options);
 
-      // Filter out bookings where hotel is null (suspended hotels)
       const filteredBookings = bookings.filter(booking => booking.hotelId !== null);
 
       return {
@@ -66,9 +55,6 @@ class OwnerBookingService extends BaseService {
     }
   }
 
-  /**
-   * Confirm booking (owner)
-   */
   async confirmBooking(bookingId, ownerId) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -93,7 +79,6 @@ class OwnerBookingService extends BaseService {
         confirmedAt: new Date()
       });
 
-      // Send confirmation email to customer (async)
       this.#sendConfirmationEmail(bookingId, booking).catch(err =>
         console.error('Error sending confirmation email:', err)
       );
@@ -104,9 +89,6 @@ class OwnerBookingService extends BaseService {
     }
   }
 
-  /**
-   * Reject booking (owner)
-   */
   async rejectBooking(bookingId, ownerId) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -132,9 +114,6 @@ class OwnerBookingService extends BaseService {
     }
   }
 
-  /**
-   * Check-in booking (owner)
-   */
   async checkIn(bookingId, ownerId) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -161,9 +140,6 @@ class OwnerBookingService extends BaseService {
     }
   }
 
-  /**
-   * Check-out booking (owner)
-   */
   async checkOut(bookingId, ownerId) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -190,10 +166,6 @@ class OwnerBookingService extends BaseService {
     }
   }
 
-  /**
-   * Send confirmation email
-   * @private
-   */
   async #sendConfirmationEmail(bookingId, booking) {
     try {
       if (!booking.userId || !booking.userId.email) {
@@ -324,4 +296,3 @@ The Airbnb Team`
 }
 
 module.exports = new OwnerBookingService();
-

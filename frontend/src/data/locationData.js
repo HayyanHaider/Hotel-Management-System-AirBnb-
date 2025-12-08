@@ -10,10 +10,8 @@ export const countries = [
   { code: 'CN', name: 'China' },
   { code: 'AE', name: 'United Arab Emirates' },
   { code: 'SA', name: 'Saudi Arabia' },
-  // Add more countries as needed
 ];
 
-// Pakistan Provinces and Cities
 export const pakistanData = {
   provinces: [
     { code: 'PUN', name: 'Punjab' },

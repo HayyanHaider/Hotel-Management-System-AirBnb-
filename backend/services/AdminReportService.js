@@ -5,10 +5,6 @@ const HotelModel = require('../models/hotelModel');
 const UserModel = require('../models/userModel');
 const AdminActivityLogger = require('./AdminActivityLogger');
 
-/**
- * AdminReportService - Handles report generation and analytics
- * Follows OOP principles with encapsulation and single responsibility
- */
 class AdminReportService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -16,13 +12,6 @@ class AdminReportService extends BaseService {
     this.COMMISSION_RATE = 0.10;
   }
 
-  /**
-   * Generate report based on type
-   * @param {String} type - Report type
-   * @param {String} adminId - Admin user ID
-   * @param {Object} dateRange - Start and end dates
-   * @returns {Promise<Object>} Report data
-   */
   async generateReport(type, adminId, { startDate, endDate }) {
     try {
       console.log(`Generating ${type} report from ${startDate} to ${endDate}`);
@@ -67,10 +56,6 @@ class AdminReportService extends BaseService {
     }
   }
 
-  /**
-   * Generate booking report
-   * @private
-   */
   async _generateBookingReport(dateFilter) {
     const query = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
@@ -91,10 +76,6 @@ class AdminReportService extends BaseService {
     };
   }
 
-  /**
-   * Generate revenue report
-   * @private
-   */
   async _generateRevenueReport(dateFilter) {
     const query = Object.keys(dateFilter).length > 0
       ? { createdAt: dateFilter, status: 'completed' }
@@ -133,10 +114,6 @@ class AdminReportService extends BaseService {
     };
   }
 
-  /**
-   * Generate hotel report
-   * @private
-   */
   async _generateHotelReport(dateFilter) {
     const query = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
@@ -211,10 +188,6 @@ class AdminReportService extends BaseService {
     };
   }
 
-  /**
-   * Generate customer report
-   * @private
-   */
   async _generateUserReport(dateFilter) {
     const query = Object.keys(dateFilter).length > 0 
       ? { createdAt: dateFilter, role: 'customer' } 
@@ -271,10 +244,6 @@ class AdminReportService extends BaseService {
     };
   }
 
-  /**
-   * Generate performance report
-   * @private
-   */
   async _generatePerformanceReport(dateFilter) {
     const matchQuery = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
@@ -320,10 +289,6 @@ class AdminReportService extends BaseService {
     };
   }
 
-  /**
-   * Build date filter object
-   * @private
-   */
   _buildDateFilter(startDate, endDate) {
     const dateFilter = {};
     if (startDate) dateFilter.$gte = new Date(startDate);

@@ -11,12 +11,6 @@ const { generateInvoicePDF } = require('../utils/pdfService');
 const path = require('path');
 const fs = require('fs');
 
-/**
- * BookingService - Handles booking business logic
- * Follows Single Responsibility Principle - only handles booking operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- * Implements IBookingService interface
- */
 class BookingService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -27,20 +21,12 @@ class BookingService extends BaseService {
     this.userRepository = dependencies.userRepository || UserRepository;
   }
 
-  /**
-   * Normalize date to start of day
-   * @private
-   */
   #normalizeDate(date) {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     return normalized;
   }
 
-  /**
-   * Check room availability for date range
-   * @private
-   */
   async #checkRoomAvailability(hotelId, totalRooms, checkIn, checkOut, excludeBookingId = null) {
     const overlappingBookings = await this.bookingRepository.findOverlapping(
       hotelId,
@@ -49,7 +35,6 @@ class BookingService extends BaseService {
       ['cancelled', 'pending']
     );
 
-    // Filter out the booking being rescheduled if provided
     const bookingsToCheck = excludeBookingId
       ? overlappingBookings.filter(b => String(b._id) !== String(excludeBookingId))
       : overlappingBookings;
@@ -79,16 +64,12 @@ class BookingService extends BaseService {
     return { available: true };
   }
 
-  /**
-   * Calculate booking price
-   * @private
-   */
   #calculatePrice(hotel, nights, appliedCoupon = null) {
     const basePrice = hotel.pricing?.basePrice || 0;
     const cleaningFee = hotel.pricing?.cleaningFee || 0;
     const serviceFee = hotel.pricing?.serviceFee || 0;
     const subtotal = (basePrice * nights) + cleaningFee + serviceFee;
-    const taxes = 0; // No taxes
+    const taxes = 0;
     
     let discounts = 0;
     if (appliedCoupon) {
@@ -111,15 +92,11 @@ class BookingService extends BaseService {
     };
   }
 
-  /**
-   * Find and apply available coupon
-   * @private
-   */
   async #findAndApplyCoupon(hotelId) {
     const now = new Date();
     const availableCoupons = await this.couponRepository.findActive(
       { hotelId },
-      { sort: { createdAt: 1 } } // First-come-first-serve
+      { sort: { createdAt: 1 } }
     );
 
     if (availableCoupons.length === 0) {
@@ -128,7 +105,6 @@ class BookingService extends BaseService {
 
     const couponDoc = availableCoupons[0];
     
-    // Check if coupon has remaining uses
     if (couponDoc.maxUses && couponDoc.currentUses >= couponDoc.maxUses) {
       return null;
     }
@@ -148,35 +124,28 @@ class BookingService extends BaseService {
       return null;
     }
 
-    // Reserve coupon by incrementing usage
     await this.couponRepository.incrementUsage(couponDoc._id);
 
     return {
       id: couponDoc._id,
       code: couponDoc.code,
       discountPercentage: couponDoc.discountPercentage,
-      discountAmount: 0 // Will be calculated later
+      discountAmount: 0
     };
   }
 
-  /**
-   * Create a new booking
-   */
   async createBooking(bookingData, userId) {
     try {
       this.validateRequired(bookingData, ['hotelId', 'checkInDate', 'checkOutDate', 'guests']);
 
-      // Get or create customer document
       const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
       const customerId = customerDoc._id;
 
-      // Get hotel
       const hotel = await this.hotelRepository.findById(bookingData.hotelId);
       if (!hotel) {
         throw new Error('Hotel not found');
       }
 
-      // Validate hotel status
       if (!hotel.isApproved) {
         throw new Error('Hotel is not approved yet');
       }
@@ -184,13 +153,11 @@ class BookingService extends BaseService {
         throw new Error('Hotel is currently suspended');
       }
 
-      // Validate guests
       const maxGuests = hotel.capacity?.guests || 1;
       if (parseInt(bookingData.guests) > maxGuests) {
         throw new Error(`Hotel can only accommodate ${maxGuests} guests`);
       }
 
-      // Validate dates
       const checkIn = this.#normalizeDate(new Date(bookingData.checkInDate));
       const checkOut = this.#normalizeDate(new Date(bookingData.checkOutDate));
       const today = this.#normalizeDate(new Date());
@@ -202,11 +169,9 @@ class BookingService extends BaseService {
         throw new Error('Check-in date cannot be in the past');
       }
 
-      // Calculate nights
       const daysDiff = (checkOut - checkIn) / (1000 * 60 * 60 * 24);
       const nights = Math.max(1, Math.floor(daysDiff));
 
-      // Check availability
       const totalRooms = hotel.totalRooms || 1;
       const availability = await this.#checkRoomAvailability(
         bookingData.hotelId,
@@ -219,17 +184,14 @@ class BookingService extends BaseService {
         throw new Error(`Hotel is fully booked on ${availability.date}. Only ${totalRooms} room(s) available.`);
       }
 
-      // Find and apply coupon
       const appliedCoupon = await this.#findAndApplyCoupon(bookingData.hotelId);
       
-      // Calculate price
       const priceData = this.#calculatePrice(hotel, nights, appliedCoupon);
       
       if (appliedCoupon) {
         appliedCoupon.discountAmount = priceData.discounts;
       }
 
-      // Create booking
       const bookingDoc = await this.bookingRepository.create({
         userId: customerId,
         hotelId: bookingData.hotelId,
@@ -257,7 +219,6 @@ class BookingService extends BaseService {
         }
       });
 
-      // Populate and return
       const booking = await this.bookingRepository.findById(bookingDoc._id, {
         populate: [
           { path: 'hotelId', select: 'name location' },
@@ -278,9 +239,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Get user bookings
-   */
   async getUserBookings(userId, filters = {}) {
     try {
       const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
@@ -291,7 +249,6 @@ class BookingService extends BaseService {
       if (filters.status) {
         query.status = filters.status;
       } else {
-        // By default, exclude pending bookings
         query.status = { $ne: 'pending' };
       }
 
@@ -310,7 +267,6 @@ class BookingService extends BaseService {
 
       const bookings = await this.bookingRepository.find(query, options);
 
-      // Filter out bookings where hotel is null (suspended hotels) and pending bookings
       const filteredBookings = bookings.filter(booking => 
         booking.hotelId !== null && booking.status !== 'pending'
       );
@@ -324,9 +280,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Get booking by ID
-   */
   async getBookingById(bookingId, userId) {
     try {
       const customerDoc = await this.customerRepository.findOrCreateByUser(userId);
@@ -360,9 +313,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Cancel booking
-   */
   async cancelBooking(bookingId, userId, reason = '') {
     try {
       const customerDoc = await this.customerRepository.findByUser(userId);
@@ -376,17 +326,13 @@ class BookingService extends BaseService {
         throw new Error('Booking not found');
       }
 
-      // Handle pending bookings
       if (booking.status === 'pending') {
-        // Decrement coupon usage if coupon was applied
         if (booking.couponId) {
           await this.couponRepository.decrementUsage(booking.couponId);
         }
 
-        // Delete the pending booking
         await this.bookingRepository.deleteById(bookingId);
 
-        // Send cancellation email (async)
         this.#sendCancellationEmail(bookingId, userId, null).catch(err => 
           console.error('Error sending cancellation email:', err)
         );
@@ -394,7 +340,6 @@ class BookingService extends BaseService {
         return { message: 'Pending booking removed successfully' };
       }
 
-      // For confirmed bookings, check 24-hour rule
       if (booking.status === 'confirmed') {
         const hoursUntilCheckIn = (new Date(booking.checkIn) - new Date()) / (1000 * 60 * 60);
         if (hoursUntilCheckIn <= 24) {
@@ -402,7 +347,6 @@ class BookingService extends BaseService {
         }
       }
 
-      // Validate status
       if (booking.status === 'cancelled') {
         throw new Error('Booking is already cancelled');
       }
@@ -411,14 +355,12 @@ class BookingService extends BaseService {
         throw new Error('Cannot cancel a completed booking');
       }
 
-      // Decrement coupon usage if coupon was applied
       if (booking.couponId && booking.status === 'confirmed') {
         await this.couponRepository.decrementUsage(booking.couponId);
       }
 
       const refundAmount = booking.priceSnapshot?.totalPrice || booking.totalPrice;
 
-      // Update booking status
       await this.bookingRepository.updateById(bookingId, {
         status: 'cancelled',
         cancelledAt: new Date(),
@@ -427,7 +369,6 @@ class BookingService extends BaseService {
         refundAmount: refundAmount
       });
 
-      // Send cancellation email (async)
       this.#sendCancellationEmail(bookingId, userId, refundAmount).catch(err => 
         console.error('Error sending cancellation email:', err)
       );
@@ -438,9 +379,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Reschedule booking
-   */
   async rescheduleBooking(bookingId, userId, newDates) {
     try {
       this.validateRequired(newDates, ['checkInDate', 'checkOutDate']);
@@ -460,12 +398,10 @@ class BookingService extends BaseService {
         throw new Error('Booking not found');
       }
 
-      // Only allow rescheduling for pending or confirmed bookings
       if (booking.status !== 'pending' && booking.status !== 'confirmed') {
         throw new Error('Can only reschedule pending or confirmed bookings');
       }
 
-      // Validate new dates
       const newCheckIn = this.#normalizeDate(new Date(newDates.checkInDate));
       const newCheckOut = this.#normalizeDate(new Date(newDates.checkOutDate));
       const today = this.#normalizeDate(new Date());
@@ -477,11 +413,9 @@ class BookingService extends BaseService {
         throw new Error('Check-in date cannot be in the past');
       }
 
-      // Calculate new nights
       const daysDiff = (newCheckOut - newCheckIn) / (1000 * 60 * 60 * 24);
       const newNights = Math.max(1, Math.floor(daysDiff));
 
-      // Check availability for new dates
       const hotel = booking.hotelId;
       const totalRooms = hotel.totalRooms || 1;
       const availability = await this.#checkRoomAvailability(
@@ -496,13 +430,11 @@ class BookingService extends BaseService {
         throw new Error(`Hotel is fully booked on ${availability.date}. Please choose different dates.`);
       }
 
-      // Recalculate price using original pricing
       const basePrice = booking.priceSnapshot?.basePricePerDay || hotel.pricing?.basePrice || 0;
       const cleaningFee = booking.priceSnapshot?.cleaningFee || hotel.pricing?.cleaningFee || 0;
       const serviceFee = booking.priceSnapshot?.serviceFee || hotel.pricing?.serviceFee || 0;
       const subtotal = (basePrice * newNights) + cleaningFee + serviceFee;
       
-      // Apply same discount if coupon was used
       let discounts = 0;
       if (booking.couponId && booking.priceSnapshot?.couponDiscountPercentage) {
         discounts = subtotal * (booking.priceSnapshot.couponDiscountPercentage / 100);
@@ -510,7 +442,6 @@ class BookingService extends BaseService {
       
       const newTotalPrice = subtotal - discounts;
 
-      // Update booking
       await this.bookingRepository.updateById(bookingId, {
         checkIn: newCheckIn,
         checkOut: newCheckOut,
@@ -531,12 +462,10 @@ class BookingService extends BaseService {
         ]
       });
 
-      // Send reschedule email (async)
       this.#sendRescheduleEmail(bookingId, userId, booking, updatedBooking).catch(err =>
         console.error('Error sending reschedule email:', err)
       );
 
-      // Regenerate invoice if payment was made (async)
       if (booking.invoicePath) {
         this.#regenerateInvoice(bookingId, userId, updatedBooking, newCheckIn, newCheckOut, newNights)
           .catch(err => console.error('Error regenerating invoice:', err));
@@ -551,10 +480,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Send cancellation email
-   * @private
-   */
   async #sendCancellationEmail(bookingId, userId, refundAmount) {
     try {
       const booking = await this.bookingRepository.findById(bookingId, {
@@ -592,10 +517,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Send reschedule email
-   * @private
-   */
   async #sendRescheduleEmail(bookingId, userId, oldBooking, newBooking) {
     try {
       const user = await this.userRepository.findById(userId);
@@ -627,10 +548,6 @@ class BookingService extends BaseService {
     }
   }
 
-  /**
-   * Regenerate invoice after reschedule
-   * @private
-   */
   async #regenerateInvoice(bookingId, userId, booking, checkIn, checkOut, nights) {
     try {
       const user = await this.userRepository.findById(userId);
@@ -766,4 +683,3 @@ class BookingService extends BaseService {
 }
 
 module.exports = new BookingService();
-

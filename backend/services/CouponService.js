@@ -3,11 +3,6 @@ const CouponRepository = require('../repositories/CouponRepository');
 const HotelRepository = require('../repositories/HotelRepository');
 const Coupon = require('../classes/Coupon');
 
-/**
- * CouponService - Handles coupon business logic
- * Follows Single Responsibility Principle - only handles coupon operations
- * Follows Dependency Inversion Principle - depends on repository abstractions
- */
 class CouponService extends BaseService {
   constructor(dependencies = {}) {
     super(dependencies);
@@ -15,37 +10,29 @@ class CouponService extends BaseService {
     this.hotelRepository = dependencies.hotelRepository || HotelRepository;
   }
 
-  /**
-   * Create a new coupon
-   */
   async createCoupon(couponData, ownerId) {
     try {
       this.validateRequired(couponData, ['hotelId', 'code', 'discountPercentage', 'validFrom', 'validTo']);
       this.validateRequired({ ownerId }, ['ownerId']);
 
-      // Verify hotel ownership
       const hotel = await this.hotelRepository.findOne({ _id: couponData.hotelId, ownerId });
       if (!hotel) {
         throw new Error('Hotel not found or you do not have permission');
       }
 
-      // Check if hotel is suspended
       if (hotel.isSuspended) {
         throw new Error('Cannot create coupons for a suspended hotel');
       }
 
-      // Check if coupon code already exists
       const existingCoupon = await this.couponRepository.findByCode(couponData.code);
       if (existingCoupon) {
         throw new Error('Coupon code already exists');
       }
 
-      // Validate coupon code format
       if (!Coupon.isValidCodeFormat(couponData.code.toUpperCase())) {
         throw new Error('Invalid coupon code format');
       }
 
-      // Create coupon instance
       const couponInstance = new Coupon({
         hotelId: couponData.hotelId,
         code: couponData.code.toUpperCase(),
@@ -56,16 +43,13 @@ class CouponService extends BaseService {
         currentUses: 0
       });
 
-      // Validate coupon
       const validationErrors = couponInstance.validate();
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Calculate active status based on dates and usage
       const calculatedIsActive = couponInstance.calculateActiveStatus();
 
-      // Save coupon
       const savedCoupon = await this.couponRepository.create({
         hotelId: couponInstance.hotelId,
         code: couponInstance.code,
@@ -74,7 +58,7 @@ class CouponService extends BaseService {
         validTo: couponInstance.validTo,
         maxUses: couponInstance.maxUses,
         currentUses: couponInstance.currentUses,
-        isActive: calculatedIsActive // Set based on calculated status
+        isActive: calculatedIsActive
       });
 
       couponInstance.id = savedCoupon._id || savedCoupon.id;
@@ -85,16 +69,12 @@ class CouponService extends BaseService {
     }
   }
 
-  /**
-   * Get coupons for a hotel
-   */
   async getHotelCoupons(hotelId, ownerId) {
     try {
       if (!hotelId || !ownerId) {
         throw new Error('Hotel ID and Owner ID are required');
       }
 
-      // Verify ownership
       const hotel = await this.hotelRepository.findOne({ _id: hotelId, ownerId });
       if (!hotel) {
         throw new Error('Hotel not found or you do not have permission');
@@ -113,9 +93,6 @@ class CouponService extends BaseService {
     }
   }
 
-  /**
-   * Get single coupon
-   */
   async getCoupon(couponId, ownerId) {
     try {
       if (!couponId || !ownerId) {
@@ -127,7 +104,6 @@ class CouponService extends BaseService {
         throw new Error('Coupon not found');
       }
 
-      // Verify hotel ownership
       const hotel = await this.hotelRepository.findOne({ _id: coupon.hotelId, ownerId });
       if (!hotel) {
         throw new Error('Coupon not found or you do not have permission');
@@ -140,9 +116,6 @@ class CouponService extends BaseService {
     }
   }
 
-  /**
-   * Update coupon
-   */
   async updateCoupon(couponId, updates, ownerId) {
     try {
       if (!couponId || !ownerId) {
@@ -154,7 +127,6 @@ class CouponService extends BaseService {
         throw new Error('Coupon not found');
       }
 
-      // Verify hotel ownership
       const hotel = await this.hotelRepository.findOne({ _id: coupon.hotelId, ownerId });
       if (!hotel) {
         throw new Error('Not authorized to update this coupon');
@@ -169,8 +141,6 @@ class CouponService extends BaseService {
         }
       });
 
-      // Create a temporary instance to calculate active status
-      // Convert coupon to plain object if it's a Mongoose document
       const couponPlain = coupon.toObject ? coupon.toObject() : coupon;
       const tempCouponData = {
         ...couponPlain,
@@ -178,7 +148,6 @@ class CouponService extends BaseService {
       };
       const tempCouponInstance = new Coupon(tempCouponData);
       
-      // Recalculate active status based on updated dates and usage
       updateData.isActive = tempCouponInstance.calculateActiveStatus();
 
       const updatedCoupon = await this.couponRepository.updateById(couponId, updateData);
@@ -190,9 +159,6 @@ class CouponService extends BaseService {
     }
   }
 
-  /**
-   * Delete coupon
-   */
   async deleteCoupon(couponId, ownerId) {
     try {
       if (!couponId || !ownerId) {
@@ -204,7 +170,6 @@ class CouponService extends BaseService {
         throw new Error('Coupon not found');
       }
 
-      // Verify hotel ownership
       const hotel = await this.hotelRepository.findOne({ _id: coupon.hotelId, ownerId });
       if (!hotel) {
         throw new Error('Not authorized to delete this coupon');
@@ -219,4 +184,3 @@ class CouponService extends BaseService {
 }
 
 module.exports = new CouponService();
-

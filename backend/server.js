@@ -6,18 +6,16 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:5173', // Update this to match your frontend URL
+    origin: 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Serve static files from uploads directory
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 
-// Import routes
 const authRoutes = require('./routes/authRoutes');
 const hotelRoutes = require('./routes/hotelRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -33,7 +31,6 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 const { startAutoConfirmService } = require('./utils/autoConfirmService');
 const { startAutoFlagService } = require('./utils/autoFlagService');
 
-// Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/bookings', bookingRoutes);
@@ -46,10 +43,8 @@ app.use('/api/earnings', earningsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Error handling middleware
 app.use(errorMiddleware);
 
-// Check email configuration on startup
 const checkEmailConfig = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
     console.warn('⚠️  Email service not configured - booking confirmation emails will not be sent');
@@ -71,7 +66,6 @@ const connectToDatabase = async () => {
     await mongoose.connect(uri);
     console.log('✅ MongoDB Connected');
 
-    // Start background services only after DB connection is ready
     startAutoConfirmService();
     startAutoFlagService();
     checkEmailConfig();

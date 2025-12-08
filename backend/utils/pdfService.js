@@ -2,7 +2,6 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-// Color constants
 const COLORS = {
   primary: '#FF385C',      // Airbnb red
   primaryDark: '#E61E4D',
@@ -18,30 +17,25 @@ const COLORS = {
   mediumGray: '#B0B0B0'
 };
 
-// Create PDF invoice
 const generateInvoicePDF = (invoiceData, outputPath) => {
   return new Promise((resolve, reject) => {
     try {
-      // Create PDF document with better margins
       const doc = new PDFDocument({ 
         margin: 50,
         size: 'A4'
       });
       
-      // Create output directory if it doesn't exist
       const outputDir = path.dirname(outputPath);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
       
-      // Create write stream
       const stream = fs.createWriteStream(outputPath);
       doc.pipe(stream);
       
       const currency = invoiceData.currency || invoiceData.payment?.currency || 'PKR';
       const formatCurrency = (value) => `${currency} ${(Number(value || 0)).toFixed(2)}`;
 
-      // Helper function to convert hex to RGB
       const hexToRgb = (hex) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -60,38 +54,31 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       const lightGrayColor = hexToRgb(COLORS.lightGray);
       const mediumGrayColor = hexToRgb(COLORS.mediumGray);
 
-      // Header Section with gradient-like effect
       const headerHeight = 140;
       
-      // Main header background
       doc.rect(0, 0, doc.page.width, headerHeight)
          .fillColor(primaryColor.r, primaryColor.g, primaryColor.b)
          .fill();
       
-      // Decorative accent line
       doc.rect(0, headerHeight - 8, doc.page.width, 8)
          .fillColor(primaryDarkColor.r, primaryDarkColor.g, primaryDarkColor.b)
          .fill();
       
-      // Logo/Brand section
-      doc.fillColor(1, 1, 1) // White
+      doc.fillColor(1, 1, 1)
          .fontSize(36)
          .font('Helvetica-Bold')
          .text('airbnb', 50, 35, { align: 'left' });
       
-      // Invoice title with better styling
       doc.fontSize(28)
          .font('Helvetica-Bold')
          .text('INVOICE', 50, 80, { align: 'left' });
       
-      // Invoice number and date in styled boxes (right side)
       const rightInfoX = doc.page.width - 280;
       const infoBoxY = 40;
       const infoBoxHeight = 45;
       
-      // Background box for invoice info
       doc.rect(rightInfoX - 10, infoBoxY, 270, infoBoxHeight)
-         .fillColor(1, 1, 1, 0.15) // Semi-transparent white
+         .fillColor(1, 1, 1, 0.15)
          .fill()
          .strokeColor(1, 1, 1, 0.3)
          .lineWidth(1)

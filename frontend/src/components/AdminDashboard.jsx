@@ -23,7 +23,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const API_URL = 'http://localhost:5000/api';
 
-  // Ensure page scrolls to top when switching admin sections (hotels, users, refunds, monitoring, reports)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -48,7 +47,6 @@ const AdminDashboard = () => {
     setUser(parsedUser);
     fetchDashboardStats(token);
 
-    // Listen for logo click to reset to home
     const handleResetDashboard = () => {
       setActiveSection('home');
     };
@@ -171,7 +169,6 @@ const AdminDashboard = () => {
         fetchHotels(filterStatus);
         fetchDashboardStats(token);
         
-        // Refresh low-rated hotels list if on monitoring section
         if (activeSection === 'monitoring') {
           fetchLowRatedHotels();
         }
@@ -291,7 +288,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      {/* Sidebar */}
       <div className="admin-sidebar">
         <nav className="admin-nav">
           <button 
@@ -333,7 +329,6 @@ const AdminDashboard = () => {
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="admin-main">
         <div className="admin-header">
           <h1>
@@ -346,7 +341,6 @@ const AdminDashboard = () => {
           </h1>
         </div>
 
-        {/* Home Section */}
         {activeSection === 'home' && (
           <div className="admin-overview">
             <div className="stats-grid">
@@ -443,7 +437,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Hotels Section */}
         {activeSection === 'hotels' && (
           <div className="admin-section">
             <div className="section-controls">
@@ -568,7 +561,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Users Section */}
         {activeSection === 'users' && (
           <div className="admin-section">
             <div className="section-controls">
@@ -664,7 +656,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Monitoring Section */}
         {activeSection === 'monitoring' && (
           <div className="admin-section">
             <div className="section-header">
@@ -732,8 +723,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-
-        {/* Refunds Section */}
         {activeSection === 'refunds' && (
           <div className="admin-section">
             <div className="section-controls">
@@ -842,7 +831,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Reports Section */}
         {activeSection === 'reports' && (
           <div className="admin-section">
             <ReportsSection />
@@ -850,7 +838,6 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {/* Modals */}
       {modalType && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -954,7 +941,6 @@ const AdminDashboard = () => {
         </div>
       )}
       
-      {/* Toast Container for notifications */}
       <ToastContainer
         position="top-right"
         autoClose={3000}

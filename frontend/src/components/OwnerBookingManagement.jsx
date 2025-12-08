@@ -19,8 +19,6 @@ const OwnerBookingManagement = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       
-      // Note: This endpoint should be created to get owner's bookings
-      // For now, we'll use a placeholder
       const response = await axios.get('http://localhost:5000/api/owner/bookings', {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -28,7 +28,6 @@ const RescheduleBooking = () => {
       if (response.data.success) {
         const bookingData = response.data.booking;
         setBooking(bookingData);
-        // Set current dates as default
         if (bookingData.checkIn) {
           const checkInDate = new Date(bookingData.checkIn);
           setCheckIn(checkInDate.toISOString().split('T')[0]);
@@ -47,7 +46,6 @@ const RescheduleBooking = () => {
     }
   };
 
-  // Helper function to get today's date at midnight (for date-only comparison)
   const getTodayDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

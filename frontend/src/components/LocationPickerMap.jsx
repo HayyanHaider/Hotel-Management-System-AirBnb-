@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 're
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default marker icons in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -21,7 +20,6 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-// Component to handle map clicks
 function MapClickHandler({ onLocationSelect }) {
   useMapEvents({
     click: (e) => {
@@ -34,7 +32,6 @@ function MapClickHandler({ onLocationSelect }) {
   return null;
 }
 
-// Component to update map view when coordinates change
 function MapViewUpdater({ center, zoom, forceUpdate }) {
   const map = useMap();
   useEffect(() => {
@@ -55,10 +52,8 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
   const markerRef = useRef(null);
   const lastGeocodedAddress = useRef('');
 
-  // Initialize marker position from props (only on mount or when explicitly changed)
   useEffect(() => {
     if (initialLat !== null && initialLng !== null && !isNaN(initialLat) && !isNaN(initialLng)) {
-      // Only set if we don't have a marker position or if it's significantly different
       if (!markerPosition || 
           Math.abs(markerPosition[0] - initialLat) > 0.0001 || 
           Math.abs(markerPosition[1] - initialLng) > 0.0001) {
@@ -67,14 +62,11 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
     }
   }, [initialLat, initialLng]);
 
-  // Geocode address when addressToGeocode changes
   useEffect(() => {
-    // Only geocode if we have a meaningful address (at least 3 characters)
     if (addressToGeocode && addressToGeocode.trim().length >= 3) {
       const trimmedAddress = addressToGeocode.trim();
       const lastAddress = lastGeocodedAddress.current.trim();
       
-      // Check if address has changed (compare normalized strings)
       const addressChanged = trimmedAddress !== lastAddress && trimmedAddress.length > 0;
       
       if (addressChanged) {

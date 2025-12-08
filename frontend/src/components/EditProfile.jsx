@@ -69,7 +69,6 @@ const EditProfile = () => {
       [name]: value
     }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -119,7 +118,6 @@ const EditProfile = () => {
       );
 
       if (response.data.success) {
-        // Update session storage with new user data
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
         window.dispatchEvent(new Event('userStatusChanged'));
         toast.success('Profile updated successfully!');

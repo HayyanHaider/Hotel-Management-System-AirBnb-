@@ -20,7 +20,6 @@ const Home = () => {
 
   return (
     <div className="bg-white">
-      {/* Hero Banner Section */}
       <div style={{
         background: 'linear-gradient(135deg, #1e5bb8 0%, #4a90e2 50%, #6ba3d8 100%)',
         minHeight: '350px',
@@ -58,7 +57,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Search Bar Section - Overlapping the hero */}
       <div style={{ marginTop: '-90px', position: 'relative', zIndex: 10, paddingBottom: '40px' }}>
         <div className="container">
           <div className="row justify-content-center">
@@ -70,7 +68,6 @@ const Home = () => {
                 }}>
                   <div className="card-body p-3 p-md-4">
                     <div className="row g-3 align-items-end">
-                      {/* Destination */}
                       <div className="col-12 col-md-3">
                         <label className="form-label fw-semibold text-dark mb-2" style={{ fontSize: '13px' }}>Destination</label>
                         <input 
@@ -87,7 +84,6 @@ const Home = () => {
                         />
                       </div>
                       
-                      {/* Check-in */}
                       <div className="col-6 col-md-2">
                         <label className="form-label fw-semibold text-dark mb-2" style={{ fontSize: '13px' }}>Check-in</label>
                         <input 
@@ -103,7 +99,6 @@ const Home = () => {
                         />
                       </div>
                       
-                      {/* Check-out */}
                       <div className="col-6 col-md-2">
                         <label className="form-label fw-semibold text-dark mb-2" style={{ fontSize: '13px' }}>Check-out</label>
                         <input 
@@ -119,7 +114,6 @@ const Home = () => {
                         />
                       </div>
                       
-                      {/* Rooms and Guests */}
                       <div className="col-12 col-md-3">
                         <label className="form-label fw-semibold text-dark mb-2" style={{ fontSize: '13px' }}>Rooms and Guests</label>
                         <select 
@@ -140,7 +134,6 @@ const Home = () => {
                         </select>
                       </div>
                       
-                      {/* Search Button */}
                       <div className="col-12 col-md-2">
                         <button 
                           type="submit"

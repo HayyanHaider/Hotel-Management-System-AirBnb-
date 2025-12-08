@@ -1,20 +1,12 @@
 const BaseController = require('./BaseController');
 const OwnerBookingService = require('../services/OwnerBookingService');
 
-/**
- * OwnerBookingController - Handles HTTP requests for owner booking operations
- * Follows Single Responsibility Principle - only handles HTTP concerns
- * Delegates business logic to OwnerBookingService
- */
 class OwnerBookingController extends BaseController {
   constructor() {
     super();
     this.ownerBookingService = OwnerBookingService;
   }
 
-  /**
-   * Get Owner Bookings
-   */
   getOwnerBookings = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -30,9 +22,6 @@ class OwnerBookingController extends BaseController {
     }
   };
 
-  /**
-   * Confirm Booking (Owner)
-   */
   confirmBooking = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -50,9 +39,6 @@ class OwnerBookingController extends BaseController {
     }
   };
 
-  /**
-   * Reject Booking (Owner)
-   */
   rejectBooking = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -70,9 +56,6 @@ class OwnerBookingController extends BaseController {
     }
   };
 
-  /**
-   * Check-in Booking (Owner)
-   */
   checkIn = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -90,9 +73,6 @@ class OwnerBookingController extends BaseController {
     }
   };
 
-  /**
-   * Check-out Booking (Owner)
-   */
   checkOut = async (req, res) => {
     try {
       const ownerId = req.user.userId;

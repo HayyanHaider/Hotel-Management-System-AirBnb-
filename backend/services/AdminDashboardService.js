@@ -5,15 +5,7 @@ const BookingModel = require('../models/bookingModel');
 const PaymentModel = require('../models/paymentModel');
 const RefundRequestModel = require('../models/refundModal');
 
-/**
- * AdminDashboardService - Handles all dashboard statistics and overview data
- * Follows OOP principles with single responsibility
- */
 class AdminDashboardService extends BaseService {
-  /**
-   * Get comprehensive dashboard statistics
-   * @returns {Promise<Object>} Dashboard stats object
-   */
   async getDashboardStats() {
     try {
       const [userStats, hotelStats, bookingStats, financialStats, supportStats] = await Promise.all([
@@ -36,10 +28,6 @@ class AdminDashboardService extends BaseService {
     }
   }
 
-  /**
-   * Get user statistics
-   * @returns {Promise<Object>} User stats
-   */
   async getUserStats() {
     const total = await UserModel.countDocuments();
     const suspended = await UserModel.countDocuments({ isSuspended: true });
@@ -50,10 +38,6 @@ class AdminDashboardService extends BaseService {
     };
   }
 
-  /**
-   * Get hotel statistics
-   * @returns {Promise<Object>} Hotel stats
-   */
   async getHotelStats() {
     const total = await HotelModel.countDocuments();
     const pending = await HotelModel.countDocuments({ 
@@ -79,10 +63,6 @@ class AdminDashboardService extends BaseService {
     };
   }
 
-  /**
-   * Get booking statistics
-   * @returns {Promise<Object>} Booking stats
-   */
   async getBookingStats() {
     const total = await BookingModel.countDocuments();
     const active = await BookingModel.countDocuments({
@@ -96,10 +76,6 @@ class AdminDashboardService extends BaseService {
     };
   }
 
-  /**
-   * Get financial statistics
-   * @returns {Promise<Object>} Financial stats
-   */
   async getFinancialStats() {
     const payments = await PaymentModel.find({ status: 'completed' });
     const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -126,10 +102,6 @@ class AdminDashboardService extends BaseService {
     };
   }
 
-  /**
-   * Get support statistics
-   * @returns {Promise<Object>} Support stats
-   */
   async getSupportStats() {
     try {
       const pendingRefunds = await RefundRequestModel.countDocuments({
