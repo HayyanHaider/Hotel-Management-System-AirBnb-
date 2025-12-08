@@ -27,7 +27,6 @@ class Hotel extends BaseEntity {
     this.commissionRate = hotelData.commissionRate || 0.10;
   }
 
-  // Encapsulation: Private method to validate hotel data
   #validateHotelData() {
     const errors = [];
     
@@ -47,9 +46,6 @@ class Hotel extends BaseEntity {
       errors.push('Owner ID is required');
     }
     
-    // Pricing and capacity are now optional - removed validation
-    // They can be set later by the hotel owner
-    
     if (!this.totalRooms || this.totalRooms <= 0) {
       errors.push('Total rooms must be at least 1');
     }
@@ -57,12 +53,10 @@ class Hotel extends BaseEntity {
     return errors;
   }
 
-  // Method to validate hotel information
   validate() {
     return this.#validateHotelData();
   }
 
-  // Method to add amenity
   addAmenity(amenity) {
     if (!this.amenities) {
       this.amenities = [];
@@ -73,7 +67,6 @@ class Hotel extends BaseEntity {
     }
   }
 
-  // Method to remove amenity
   removeAmenity(amenity) {
     if (!this.amenities) {
       this.amenities = [];
@@ -86,7 +79,6 @@ class Hotel extends BaseEntity {
     }
   }
 
-  // Method to add image
   addImage(imageUrl) {
     if (!this.images) {
       this.images = [];
@@ -97,7 +89,6 @@ class Hotel extends BaseEntity {
     }
   }
 
-  // Method to remove image
   removeImage(imageUrl) {
     if (!this.images) {
       this.images = [];
@@ -110,7 +101,6 @@ class Hotel extends BaseEntity {
     }
   }
 
-  // Method to update rating
   updateRating(newRating) {
     if (!this.totalReviews) {
       this.totalReviews = 0;
@@ -122,11 +112,10 @@ class Hotel extends BaseEntity {
     const totalRatingPoints = this.ratingAvg * this.totalReviews;
     this.totalReviews += 1;
     this.ratingAvg = (totalRatingPoints + newRating) / this.totalReviews;
-    this.rating = this.ratingAvg; // Keep rating field for backward compatibility
+    this.rating = this.ratingAvg;
     this.updatedAt = new Date();
   }
 
-  // Method to update hotel information
   updateInfo(updates) {
     const allowedFields = [
       'name', 'description', 'location', 'amenities', 
@@ -142,35 +131,30 @@ class Hotel extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to approve hotel
   approve() {
     this.isApproved = true;
     this.rejectionReason = '';
     this.updatedAt = new Date();
   }
 
-  // Method to reject hotel approval
   reject(reason = '') {
     this.isApproved = false;
     this.rejectionReason = reason;
     this.updatedAt = new Date();
   }
 
-  // Method to suspend hotel
   suspend(reason = '') {
     this.isSuspended = true;
     this.suspensionReason = reason;
     this.updatedAt = new Date();
   }
 
-  // Method to unsuspend hotel
   unsuspend() {
     this.isSuspended = false;
     this.suspensionReason = '';
     this.updatedAt = new Date();
   }
 
-  // Method to flag hotel
   flag(reason = '', forLowRating = false) {
     this.isFlagged = true;
     this.flaggedReason = reason;
@@ -179,7 +163,6 @@ class Hotel extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to unflag hotel
   unflag() {
     this.isFlagged = false;
     this.flaggedReason = '';
@@ -188,7 +171,6 @@ class Hotel extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to check if hotel is bookable
   isBookable() {
     const bookable = this.isApproved && !this.isSuspended && !this.isFlagged;
     if (!bookable) {
@@ -197,7 +179,6 @@ class Hotel extends BaseEntity {
     return bookable;
   }
 
-  // Method to get hotel statistics
   getStats() {
     return {
       rating: this.ratingAvg || this.rating || 0,
@@ -210,14 +191,13 @@ class Hotel extends BaseEntity {
     };
   }
 
-  // Method to calculate distance from coordinates
   calculateDistance(lat, lng) {
     if (!this.location || !this.location.coordinates || 
         !this.location.coordinates.lat || !this.location.coordinates.lng) {
-      return null; // Cannot calculate distance without coordinates
+      return null;
     }
     
-    const R = 6371; // Earth's radius in kilometers
+    const R = 6371;
     const dLat = this.#toRadians(lat - this.location.coordinates.lat);
     const dLng = this.#toRadians(lng - this.location.coordinates.lng);
     
@@ -230,12 +210,10 @@ class Hotel extends BaseEntity {
     return R * c;
   }
 
-  // Private helper method to convert degrees to radians
   #toRadians(degrees) {
     return degrees * (Math.PI / 180);
   }
 
-  // Static method to search hotels by criteria
   static searchByCriteria(hotels, criteria) {
     if (!hotels) return [];
     
@@ -274,9 +252,7 @@ class Hotel extends BaseEntity {
     });
   }
 
-  // Method to get public hotel information
   getPublicInfo() {
-    // Convert ObjectId to string for proper JSON serialization
     const idString = this.id ? (this.id.toString ? this.id.toString() : String(this.id)) : null;
     return {
       id: idString,
@@ -295,9 +271,7 @@ class Hotel extends BaseEntity {
     };
   }
 
-  // Method to get detailed information (for owner/admin)
   getDetailedInfo() {
-    // Convert ownerId ObjectId to string if it exists
     const ownerIdString = this.ownerId ? (this.ownerId.toString ? this.ownerId.toString() : (this.ownerId._id ? this.ownerId._id.toString() : String(this.ownerId))) : null;
     return {
       ...this.getPublicInfo(),
@@ -315,32 +289,24 @@ class Hotel extends BaseEntity {
     };
   }
 
-  // Method to check if hotel has available capacity for given dates and guests
   hasAvailableCapacity(guests) {
-    // For search/browse results, only check approval and suspension (not flagged)
-    // Flagged hotels can still be shown in search results (flagging is for admin review)
     if (!this.isApproved || this.isSuspended) {
       console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" not available - isApproved: ${this.isApproved}, isSuspended: ${this.isSuspended}`);
       return false;
     }
 
-    // Ensure guests is a valid number
     const requestedGuests = parseInt(guests) || 1;
     if (requestedGuests < 1) {
       return false;
     }
 
-    // Check capacity - hotel must have capacity >= requested guests
-    // Handle both Mongoose documents and plain objects
     const capacityObj = this.capacity && typeof this.capacity.toObject === 'function' 
       ? this.capacity.toObject() 
       : this.capacity;
     
-    // If capacity is explicitly set and valid
     if (capacityObj && (capacityObj.guests !== undefined && capacityObj.guests !== null)) {
       const hotelCapacity = parseInt(capacityObj.guests);
       
-      // If capacity is valid and positive, check if it meets the requirement
       if (!isNaN(hotelCapacity) && hotelCapacity > 0) {
         const hasCapacity = hotelCapacity >= requestedGuests;
         console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - capacity: ${hotelCapacity}, requested: ${requestedGuests}, hasCapacity: ${hasCapacity}`);
@@ -348,40 +314,30 @@ class Hotel extends BaseEntity {
       }
     }
 
-    // If no capacity info or invalid capacity, be lenient and show the hotel
-    // This handles hotels that don't have capacity set yet (backward compatibility)
-    // Show hotel for any reasonable number of guests (up to 10) if capacity not set
     if (requestedGuests <= 10) {
       console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - no capacity set, showing for ${requestedGuests} guests (lenient mode)`);
-      return true; // Hotel is bookable and we're being lenient about capacity
+      return true;
     }
     
-    // For more than 10 guests, require capacity to be set
     console.log(`[Hotel.hasAvailableCapacity] Hotel "${this.name}" - no capacity set, requested ${requestedGuests} guests (too many, requiring capacity)`);
     return false;
   }
 
-  // Method to check if hotel has available rooms for given dates and guests
-  // Note: This is a simplified check - actual availability should check bookings
   hasAvailableRooms(checkIn, checkOut, guests) {
-    // Check if hotel is bookable
     if (!this.isBookable()) {
       return false;
     }
 
-    // Check capacity
     if (this.capacity && this.capacity.guests) {
       if (this.capacity.guests < guests) {
         return false;
       }
     }
 
-    // Check if hotel has rooms available
     if (this.totalRooms && this.totalRooms <= 0) {
       return false;
     }
 
-    // Basic validation - dates should be valid
     if (!checkIn || !checkOut) {
       return false;
     }
@@ -390,12 +346,9 @@ class Hotel extends BaseEntity {
       return false;
     }
 
-    // If all checks pass, assume available
-    // Note: Actual availability checking should be done in the controller by querying bookings
     return true;
   }
 
-  // Method to get price range
   getPriceRange() {
     const basePrice = this.pricing?.basePrice || 0;
     const cleaningFee = this.pricing?.cleaningFee || 0;
@@ -407,10 +360,8 @@ class Hotel extends BaseEntity {
     };
   }
 
-  // Method to get search result format (for hotel listings)
   getSearchResult() {
     try {
-      // Convert ObjectId to string for proper JSON serialization
       let idString = null;
       if (this.id) {
         if (typeof this.id === 'object' && this.id.toString) {
@@ -430,7 +381,7 @@ class Hotel extends BaseEntity {
 
       return {
         id: idString,
-        _id: idString, // For compatibility
+        _id: idString,
         name: this.name || '',
         description: this.description || '',
         location: this.location || {},
@@ -458,7 +409,6 @@ class Hotel extends BaseEntity {
     }
   }
 
-  // Method to get basic info (alias for getPublicInfo for backward compatibility)
   getBasicInfo() {
     return this.getPublicInfo();
   }

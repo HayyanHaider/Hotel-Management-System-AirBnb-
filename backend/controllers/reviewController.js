@@ -1,21 +1,12 @@
 const BaseController = require('./BaseController');
 const ReviewService = require('../services/ReviewService');
 
-/**
- * ReviewController - Handles review endpoints
- * Follows Single Responsibility Principle - only handles HTTP requests/responses
- * Follows Dependency Inversion Principle - depends on service abstractions
- */
 class ReviewController extends BaseController {
   constructor() {
     super();
     this.reviewService = ReviewService;
   }
 
-  /**
-   * Create Review
-   * Delegates business logic to ReviewService
-   */
   createReview = async (req, res) => {
     try {
       const { bookingId, rating, comment } = req.body;
@@ -43,9 +34,6 @@ class ReviewController extends BaseController {
     }
   };
 
-  /**
-   * List Hotel Reviews
-   */
   listHotelReviews = async (req, res) => {
     try {
       const { hotelId } = req.params;
@@ -54,7 +42,6 @@ class ReviewController extends BaseController {
         populate: 'userId'
       });
 
-      // Normalize reviews for response format
       const normalizedReviews = reviews.map((review) => {
         const reviewObj = typeof review === 'object' && review.toJSON ? review.toJSON() : review;
         if (!reviewObj.reply && reviewObj.replyText) {
@@ -77,9 +64,6 @@ class ReviewController extends BaseController {
     }
   };
 
-  /**
-   * Reply to Review
-   */
   replyToReview = async (req, res) => {
     try {
       const { reviewId } = req.params;
@@ -95,13 +79,11 @@ class ReviewController extends BaseController {
         return this.fail(res, 404, 'Review not found');
       }
 
-      // Check if hotel is suspended
       const hotel = await this.reviewService.hotelRepository.findById(reviewData.hotelId);
       if (hotel && hotel.isSuspended) {
         return this.fail(res, 403, 'Cannot reply to reviews for a suspended hotel');
       }
 
-      // Update review with reply
       const Review = require('../classes/Review');
       const reviewInstance = new Review(reviewData);
       reviewInstance.addOwnerResponse(text);
@@ -128,7 +110,6 @@ class ReviewController extends BaseController {
   };
 }
 
-// Export singleton instance
 const reviewController = new ReviewController();
 
 module.exports = {
@@ -136,5 +117,3 @@ module.exports = {
   listHotelReviews: reviewController.listHotelReviews,
   replyToReview: reviewController.replyToReview
 };
-
-

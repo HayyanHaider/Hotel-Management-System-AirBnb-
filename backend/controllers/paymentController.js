@@ -1,20 +1,12 @@
 const BaseController = require('./BaseController');
 const PaymentService = require('../services/PaymentService');
 
-/**
- * PaymentController - Handles HTTP requests for payment operations
- * Follows Single Responsibility Principle - only handles HTTP concerns
- * Delegates business logic to PaymentService
- */
 class PaymentController extends BaseController {
   constructor() {
     super();
     this.paymentService = PaymentService;
   }
 
-  /**
-   * Process Payment
-   */
   processPayment = async (req, res) => {
     try {
       const userId = req.user?.userId;
@@ -40,9 +32,6 @@ class PaymentController extends BaseController {
     }
   };
 
-  /**
-   * Get Payment History
-   */
   getPaymentHistory = async (req, res) => {
     try {
       const userId = req.user?.userId;
@@ -63,9 +52,6 @@ class PaymentController extends BaseController {
     }
   };
 
-  /**
-   * Get Payment by ID
-   */
   getPaymentById = async (req, res) => {
     try {
     const userId = req.user?.userId;
@@ -86,10 +72,6 @@ class PaymentController extends BaseController {
     }
   };
 
-  /**
-   * Download Invoice
-   * Delegates business logic to PaymentService
-   */
   downloadInvoice = async (req, res) => {
     try {
       const userId = req.user?.userId;
@@ -102,22 +84,17 @@ class PaymentController extends BaseController {
       const fs = require('fs');
       const path = require('path');
 
-      // Get invoice path from service
       const invoicePath = await this.paymentService.getInvoicePath(bookingId, userId);
 
-      // Check if file exists
       if (!fs.existsSync(invoicePath)) {
         return this.fail(res, 404, 'Invoice file not found');
       }
 
-      // Get filename for download
       const filename = path.basename(invoicePath);
 
-      // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-      // Stream the file
       const fileStream = fs.createReadStream(invoicePath);
       fileStream.pipe(res);
     } catch (error) {

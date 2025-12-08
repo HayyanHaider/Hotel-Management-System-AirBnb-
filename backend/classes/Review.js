@@ -12,7 +12,6 @@ class Review extends BaseEntity {
     this.repliedAt = reviewData.repliedAt || null;
   }
 
-  // Encapsulation: Private method to validate review data
   #validateReviewData() {
     const errors = [];
     
@@ -39,26 +38,22 @@ class Review extends BaseEntity {
     return errors;
   }
 
-  // Method to validate review information
   validate() {
     return this.#validateReviewData();
   }
 
-  // Method to add owner response
   addOwnerResponse(response) {
     this.replyText = response;
     this.repliedAt = new Date();
     this.updatedAt = new Date();
   }
 
-  // Method to remove owner response
   removeOwnerResponse() {
     this.replyText = '';
     this.repliedAt = null;
     this.updatedAt = new Date();
   }
 
-  // Method to update review content
   updateContent(updates) {
     const allowedFields = ['comment'];
     
@@ -71,29 +66,24 @@ class Review extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to check if review is recent
   isRecent(days = 30) {
     if (!this.createdAt) return false;
     const daysDiff = (new Date() - new Date(this.createdAt)) / (1000 * 60 * 60 * 24);
     return daysDiff <= days;
   }
 
-  // Method to check if review is highly rated
   isHighlyRated() {
     return this.rating >= 4;
   }
 
-  // Method to check if review is poorly rated
   isPoorlyRated() {
     return this.rating <= 2;
   }
 
-  // Method to check if review has owner response
   hasOwnerResponse() {
     return !!this.replyText && this.replyText.trim().length > 0;
   }
 
-  // Static method to calculate average rating from reviews
   static calculateAverageRating(reviews) {
     if (!reviews || reviews.length === 0) return 0;
     
@@ -101,7 +91,6 @@ class Review extends BaseEntity {
     return sum / reviews.length;
   }
 
-  // Static method to get rating distribution
   static getRatingDistribution(reviews) {
     const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     
@@ -116,7 +105,6 @@ class Review extends BaseEntity {
     return distribution;
   }
 
-  // Static method to search reviews by criteria
   static searchByCriteria(reviews, criteria) {
     if (!reviews) return [];
     
@@ -158,7 +146,6 @@ class Review extends BaseEntity {
     });
   }
 
-  // Method to get review statistics
   getStats() {
     return {
       rating: this.rating,
@@ -169,7 +156,6 @@ class Review extends BaseEntity {
     };
   }
 
-  // Method to get public review information
   getPublicInfo() {
     return {
       id: this.id,
@@ -182,7 +168,6 @@ class Review extends BaseEntity {
     };
   }
 
-  // Method to get detailed information (for admin/owner)
   getDetailedInfo() {
     return {
       ...this.getPublicInfo(),
@@ -193,7 +178,6 @@ class Review extends BaseEntity {
     };
   }
 
-  // Method to generate review summary
   getSummary() {
     return {
       reviewId: this.id,

@@ -1,19 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import AuthApiService from '../services/api/AuthApiService';
 
-/**
- * useAuth - Custom hook for authentication
- * Follows Single Responsibility Principle - only handles auth state and operations
- * Follows Dependency Inversion Principle - depends on AuthApiService abstraction
- */
 export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  /**
-   * Verify stored token and load user
-   */
   const verifyStoredToken = useCallback(async () => {
     try {
       const token = sessionStorage.getItem('token');
@@ -27,14 +19,12 @@ export const useAuth = () => {
             setIsAuthenticated(true);
             sessionStorage.setItem('user', JSON.stringify(response.user));
           } else {
-            // Token invalid, clear storage
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('user');
             setUser(null);
             setIsAuthenticated(false);
           }
         } catch (error) {
-          // Token verification failed
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('user');
           setUser(null);
@@ -53,9 +43,6 @@ export const useAuth = () => {
     }
   }, []);
 
-  /**
-   * Login user
-   */
   const login = useCallback(async (email, password) => {
     try {
       setLoading(true);
@@ -77,9 +64,6 @@ export const useAuth = () => {
     }
   }, []);
 
-  /**
-   * Register user
-   */
   const register = useCallback(async (userData) => {
     try {
       setLoading(true);
@@ -101,9 +85,6 @@ export const useAuth = () => {
     }
   }, []);
 
-  /**
-   * Logout user
-   */
   const logout = useCallback(() => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
@@ -111,9 +92,6 @@ export const useAuth = () => {
     setIsAuthenticated(false);
   }, []);
 
-  /**
-   * Update user profile
-   */
   const updateProfile = useCallback(async (profileData) => {
     try {
       setLoading(true);
@@ -148,4 +126,3 @@ export const useAuth = () => {
     verifyToken: verifyStoredToken
   };
 };
-

@@ -7,11 +7,6 @@ const HotelOwner = require('../classes/HotelOwner');
 const Admin = require('../classes/Admin');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
-/**
- * AuthController - Handles authentication endpoints
- * Follows Single Responsibility Principle - only handles HTTP requests/responses
- * Follows Dependency Inversion Principle - depends on service abstractions
- */
 class AuthController extends BaseController {
   constructor() {
     super();
@@ -19,7 +14,6 @@ class AuthController extends BaseController {
     this.userRepository = UserRepository;
   }
 
-  // Factory function to create user instances based on role
   createUserInstance(userData) {
     switch (userData.role) {
       case 'customer':
@@ -33,15 +27,10 @@ class AuthController extends BaseController {
     }
   }
 
-  /**
-   * Signup Controller
-   * Delegates business logic to AuthenticationService
-   */
   signup = async (req, res) => {
     try {
       const { name, email, password, phone, role } = req.body;
 
-      // Basic validation
       if (!name || !email || !password) {
         return this.fail(res, 400, 'Name, email, and password are required');
       }
@@ -56,7 +45,6 @@ class AuthController extends BaseController {
         return this.fail(res, 400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
       }
 
-      // Trim and normalize
       const trimmedName = name?.trim() || '';
       const trimmedEmail = email?.trim().toLowerCase() || '';
       const trimmedPhone = phone?.trim() || '';
@@ -65,7 +53,6 @@ class AuthController extends BaseController {
         return this.fail(res, 400, 'Name and email are required');
       }
 
-      // Use service for registration
       const result = await this.authService.register({
         name: trimmedName,
         email: trimmedEmail,
@@ -74,7 +61,6 @@ class AuthController extends BaseController {
         role: userRole
       });
 
-      // Create role-specific document if needed
       if (result.user.role === 'customer') {
         const CustomerModel = require('../models/customerModel');
         const existingCustomer = await CustomerModel.findOne({ user: result.user.id });
@@ -88,7 +74,6 @@ class AuthController extends BaseController {
         }
       }
 
-      // Send welcome email (async, don't block)
       sendEmail(
         result.user.email,
         emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).subject,
@@ -118,10 +103,6 @@ class AuthController extends BaseController {
     }
   };
 
-  /**
-   * Login Controller
-   * Delegates business logic to AuthenticationService
-   */
   login = async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -145,10 +126,6 @@ class AuthController extends BaseController {
     }
   };
 
-  /**
-   * Get User Profile
-   * Follows Single Responsibility - only handles HTTP request/response
-   */
   getProfile = async (req, res) => {
     try {
       const userData = await this.userRepository.findById(req.user.userId);
@@ -169,9 +146,6 @@ class AuthController extends BaseController {
     }
   };
 
-  /**
-   * Verify Token
-   */
   verifyTokenController = async (req, res) => {
     try {
       const userData = await this.userRepository.findById(req.user.userId);
@@ -197,9 +171,6 @@ class AuthController extends BaseController {
     }
   };
 
-  /**
-   * Update User Profile
-   */
   updateProfile = async (req, res) => {
     try {
       const { name, phone } = req.body;
@@ -239,7 +210,6 @@ class AuthController extends BaseController {
   };
 }
 
-// Export singleton instance
 const authController = new AuthController();
 
 module.exports = {

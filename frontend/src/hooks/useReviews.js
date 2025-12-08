@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import ReviewApiService from '../services/api/ReviewApiService';
 
-/**
- * useReviews - Custom hook for review data fetching
- * Follows Single Responsibility Principle - only handles review data state and fetching
- * Follows Dependency Inversion Principle - depends on ReviewApiService abstraction
- */
 export const useReviews = (hotelId) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,4 +42,3 @@ export const useReviews = (hotelId) => {
     refetch: fetchReviews
   };
 };
-

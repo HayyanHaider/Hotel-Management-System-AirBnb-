@@ -22,7 +22,6 @@ class Booking extends BaseEntity {
     this.autoConfirmedAt = bookingData.autoConfirmedAt || null;
   }
 
-  // Encapsulation: Private method to validate booking data
   #validateBookingData() {
     const errors = [];
     
@@ -53,12 +52,10 @@ class Booking extends BaseEntity {
     return errors;
   }
 
-  // Method to validate booking information
   validate() {
     return this.#validateBookingData();
   }
 
-  // Method to calculate number of nights
   getNights() {
     if (!this.checkIn || !this.checkOut) {
       return 0;
@@ -68,12 +65,10 @@ class Booking extends BaseEntity {
     return Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
   }
 
-  // Method to check if booking is active
   isActive() {
     return this.status === 'confirmed' && this.paymentId;
   }
 
-  // Method to check if booking can be cancelled
   canBeCancelled() {
     if (this.status !== 'confirmed' && this.status !== 'pending') {
       return false;
@@ -83,10 +78,9 @@ class Booking extends BaseEntity {
     const checkInDate = new Date(this.checkIn);
     const hoursUntilCheckIn = (checkInDate - now) / (1000 * 60 * 60);
     
-    return hoursUntilCheckIn > 24; // Can cancel up to 24 hours before check-in
+    return hoursUntilCheckIn > 24;
   }
 
-  // Method to confirm booking
   confirm() {
     if (this.status !== 'pending') {
       throw new Error('Only pending bookings can be confirmed');
@@ -97,7 +91,6 @@ class Booking extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to cancel booking
   cancel(reason = '') {
     if (!this.canBeCancelled()) {
       throw new Error('Booking cannot be cancelled');
@@ -108,14 +101,12 @@ class Booking extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to check if booking is in the past
   isPast() {
     const now = new Date();
     const checkOutDate = new Date(this.checkOut);
     return checkOutDate < now;
   }
 
-  // Method to check if booking is current (guest is checked in)
   isCurrent() {
     const now = new Date();
     const checkInDate = new Date(this.checkIn);
@@ -123,19 +114,16 @@ class Booking extends BaseEntity {
     return checkInDate <= now && now < checkOutDate && this.status === 'confirmed';
   }
 
-  // Method to check if booking is upcoming
   isUpcoming() {
     const now = new Date();
     const checkInDate = new Date(this.checkIn);
     return checkInDate > now && this.status === 'confirmed';
   }
 
-  // Method to get booking duration in days
   getDuration() {
     return this.getNights();
   }
 
-  // Method to get public booking information
   getPublicInfo() {
     return {
       id: this.id,
@@ -150,7 +138,6 @@ class Booking extends BaseEntity {
     };
   }
 
-  // Method to get detailed information (for customer/owner/admin)
   getDetailedInfo() {
     return {
       ...this.getPublicInfo(),
@@ -168,7 +155,6 @@ class Booking extends BaseEntity {
     };
   }
 
-  // Method to generate booking confirmation details
   getConfirmationDetails() {
     return {
       bookingId: this.id,
@@ -181,7 +167,6 @@ class Booking extends BaseEntity {
     };
   }
 
-  // Static method to search bookings by criteria
   static searchByCriteria(bookings, criteria) {
     return bookings.filter(booking => {
       let matches = true;
@@ -210,7 +195,6 @@ class Booking extends BaseEntity {
     });
   }
 
-  // Method to get booking statistics
   getStats() {
     return {
       nights: this.getNights(),

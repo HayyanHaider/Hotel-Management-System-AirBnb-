@@ -1,17 +1,8 @@
-/**
- * BaseApiService - Base class for API services
- * Follows Open/Closed Principle - can be extended without modification
- * Follows Single Responsibility Principle - handles HTTP communication
- */
 class BaseApiService {
   constructor(baseURL = 'http://localhost:5000/api') {
     this.baseURL = baseURL;
   }
 
-  /**
-   * Get authorization headers
-   * @returns {Object} Headers object
-   */
   getHeaders() {
     const token = sessionStorage.getItem('token');
     const headers = {
@@ -25,11 +16,6 @@ class BaseApiService {
     return headers;
   }
 
-  /**
-   * Handle API response
-   * @param {Response} response - Fetch response
-   * @returns {Promise} Parsed response
-   */
   async handleResponse(response) {
     const data = await response.json();
     
@@ -40,12 +26,6 @@ class BaseApiService {
     return data;
   }
 
-  /**
-   * Make GET request
-   * @param {string} endpoint - API endpoint
-   * @param {Object} params - Query parameters
-   * @returns {Promise} Response data
-   */
   async get(endpoint, params = {}) {
     try {
       const queryString = new URLSearchParams(params).toString();
@@ -62,12 +42,6 @@ class BaseApiService {
     }
   }
 
-  /**
-   * Make POST request
-   * @param {string} endpoint - API endpoint
-   * @param {Object} data - Request body
-   * @returns {Promise} Response data
-   */
   async post(endpoint, data = {}) {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -82,12 +56,6 @@ class BaseApiService {
     }
   }
 
-  /**
-   * Make PUT request
-   * @param {string} endpoint - API endpoint
-   * @param {Object} data - Request body
-   * @returns {Promise} Response data
-   */
   async put(endpoint, data = {}) {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -102,11 +70,6 @@ class BaseApiService {
     }
   }
 
-  /**
-   * Make DELETE request
-   * @param {string} endpoint - API endpoint
-   * @returns {Promise} Response data
-   */
   async delete(endpoint) {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -122,4 +85,3 @@ class BaseApiService {
 }
 
 export default BaseApiService;
-

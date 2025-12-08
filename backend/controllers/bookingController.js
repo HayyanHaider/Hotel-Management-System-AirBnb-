@@ -1,20 +1,12 @@
 const BaseController = require('./BaseController');
 const BookingService = require('../services/BookingService');
 
-/**
- * BookingController - Handles HTTP requests for booking operations
- * Follows Single Responsibility Principle - only handles HTTP concerns
- * Delegates business logic to BookingService
- */
 class BookingController extends BaseController {
   constructor() {
     super();
     this.bookingService = BookingService;
   }
 
-  /**
-   * Create Booking
-   */
   createBooking = async (req, res) => {
     try {
     const userId = req.user?.userId;
@@ -36,9 +28,6 @@ class BookingController extends BaseController {
     }
   };
 
-  /**
-   * Get User Bookings
-   */
   getUserBookings = async (req, res) => {
   try {
     const userId = req.user?.userId;
@@ -59,9 +48,6 @@ class BookingController extends BaseController {
     }
   };
 
-  /**
-   * Get Booking Details
-   */
   getBookingDetails = async (req, res) => {
     try {
       const userId = req.user?.userId;
@@ -81,9 +67,6 @@ class BookingController extends BaseController {
     }
   };
 
-  /**
-   * Cancel Booking
-   */
   cancelBooking = async (req, res) => {
     try {
       const userId = req.user?.userId;
@@ -106,9 +89,6 @@ class BookingController extends BaseController {
     }
   };
 
-  /**
-   * Reschedule Booking
-   */
   rescheduleBooking = async (req, res) => {
     try {
     const userId = req.user?.userId;

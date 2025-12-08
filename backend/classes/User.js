@@ -19,18 +19,15 @@ class User extends BaseEntity {
     this.walletBalance = userData.walletBalance || 0;
   }
 
-  // Encapsulation: Private method to validate email
   #validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  // Encapsulation: Private method to validate password strength
   #validatePassword(password) {
     return password && password.length >= 6;
   }
 
-  // Method to hash password
   async hashPassword(password) {
     if (!this.#validatePassword(password)) {
       throw new Error('Password must be at least 6 characters long');
@@ -39,12 +36,10 @@ class User extends BaseEntity {
     this.passwordHash = await bcrypt.hash(password, saltRounds);
   }
 
-  // Method to verify password
   async verifyPassword(password) {
     return await bcrypt.compare(password, this.passwordHash);
   }
 
-  // Method to generate JWT token
   generateToken() {
     return jwt.sign(
       { userId: this.id, role: this.role },
@@ -53,7 +48,6 @@ class User extends BaseEntity {
     );
   }
 
-  // Method to validate user data
   validate() {
     const errors = [];
     
@@ -65,12 +59,9 @@ class User extends BaseEntity {
       errors.push('Valid email is required');
     }
     
-    // Don't validate passwordHash during signup - it will be set after validation
-    
     return errors;
   }
 
-  // Method to update profile
   updateProfile(updates) {
     const allowedFields = ['name', 'phone'];
     
@@ -83,7 +74,6 @@ class User extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to suspend user (Admin functionality)
   suspend(reason) {
     this.isSuspended = true;
     this.suspendedReason = reason || '';
@@ -91,7 +81,6 @@ class User extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to unsuspend user
   unsuspend() {
     this.isSuspended = false;
     this.suspendedReason = '';
@@ -99,13 +88,11 @@ class User extends BaseEntity {
     this.updatedAt = new Date();
   }
 
-  // Method to verify user
   verify() {
     this.isVerified = true;
     this.updatedAt = new Date();
   }
 
-  // Method to get user info (excluding sensitive data)
   getPublicInfo() {
     return {
       id: this.id,
@@ -119,12 +106,10 @@ class User extends BaseEntity {
     };
   }
 
-  // Abstract method to be overridden by child classes
   getSpecificCapabilities() {
     throw new Error('getSpecificCapabilities method must be implemented by child classes');
   }
 
-  // Method to check if user has permission
   hasPermission(permission) {
     return getBaseUserPermissions().includes(permission);
   }

@@ -10,11 +10,6 @@ import { MapPin } from "lucide-react"
 import BrowseHotelImage from "./BrowseHotelImage.jpg.png"
 import "./Home.css"
 
-/**
- * BrowseHotels - Component for browsing hotels
- * Follows Single Responsibility Principle - only handles UI and user interactions
- * Follows Dependency Inversion Principle - depends on hooks and services abstractions
- */
 const BrowseHotels = () => {
   const [favorites, setFavorites] = useState([])
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -24,7 +19,6 @@ const BrowseHotels = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  // Use custom hooks for data fetching (Separation of Concerns)
   const { isAuthenticated } = useAuth()
 
   const [filters, setFilters] = useState({
@@ -45,16 +39,13 @@ const BrowseHotels = () => {
     limit: 50,
   })
 
-  // Ensure guests filter is always included in API calls
   useEffect(() => {
     const currentGuests = filters.guests || 1
     console.log(`[BrowseHotels] Current guests filter: ${currentGuests}`)
   }, [filters.guests])
 
-  // Use custom hook for hotels data
   const { hotels, loading, error, refetch } = useHotels(filters)
 
-  // Debug: Log hotels data
   useEffect(() => {
     console.log('[BrowseHotels] Hotels state:', { hotels, loading, error, count: hotels?.length })
   }, [hotels, loading, error])
@@ -117,7 +108,6 @@ const BrowseHotels = () => {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
-      // Ensure guests is always a valid number
       if (key === "guests") {
         const numValue = parseInt(value, 10);
         const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
@@ -128,7 +118,6 @@ const BrowseHotels = () => {
     })
     const newParams = new URLSearchParams(searchParams)
     if (value !== null && value !== undefined && value !== "") {
-      // Ensure guests is always sent as a number string (even for 1 guest)
       if (key === "guests") {
         const numValue = parseInt(value, 10);
         const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
@@ -151,11 +140,9 @@ const BrowseHotels = () => {
   }
 
   const handleSort = (sortBy) => {
-    // Toggle between asc/desc when clicking the same sort option
-    // Default: rating = desc (highest first), price = asc (lowest first), popularity = desc
     let defaultOrder = "desc";
     if (sortBy === "price") {
-      defaultOrder = "asc"; // Price defaults to lowest first
+      defaultOrder = "asc";
     }
     
     const order = filters.sortBy === sortBy && filters.order === defaultOrder 
@@ -191,7 +178,6 @@ const BrowseHotels = () => {
 
   return (
     <div className="home-container" style={{ minHeight: "100vh" }}>
-      {/* Hero Section */}
       <div
         className="hero-section"
         style={{
@@ -211,7 +197,6 @@ const BrowseHotels = () => {
           margin: "20px 20px 0 20px",
         }}
       >
-        {/* Dark overlay for better text readability */}
         <div
           style={{
             position: "absolute",
@@ -223,7 +208,6 @@ const BrowseHotels = () => {
             zIndex: 1,
           }}
         />
-        {/* Hero Content */}
         <div style={{ textAlign: "center", marginBottom: "30px", color: "white", position: "relative", zIndex: 2, width: "100%" }}>
           <h1
             style={{
@@ -257,7 +241,6 @@ const BrowseHotels = () => {
           </div>
         </div>
 
-        {/* Sort Options */}
         <div
           style={{
             display: "flex",
@@ -308,7 +291,6 @@ const BrowseHotels = () => {
           ))}
         </div>
 
-        {/* Search Bar Container */}
         <div
           style={{
             background: "#fff",
@@ -331,7 +313,6 @@ const BrowseHotels = () => {
               alignItems: "end",
             }}
           >
-            {/* Destination Input */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <label
                 style={{
@@ -370,7 +351,6 @@ const BrowseHotels = () => {
               />
             </div>
 
-            {/* Check-in Date */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <label
                 style={{
@@ -415,7 +395,6 @@ const BrowseHotels = () => {
               />
             </div>
 
-            {/* Nights Display */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <div
                 style={{
@@ -454,7 +433,6 @@ const BrowseHotels = () => {
               </div>
             </div>
 
-            {/* Check-out Date */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <label
                 style={{
@@ -505,7 +483,6 @@ const BrowseHotels = () => {
               />
             </div>
 
-            {/* Guests */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <label
                 style={{
@@ -601,7 +578,6 @@ const BrowseHotels = () => {
               </div>
             </div>
 
-            {/* Search Button */}
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
               <div
                 style={{
@@ -647,7 +623,6 @@ const BrowseHotels = () => {
         </div>
       </div>
 
-      {/* Hotel Listings with Map */}
       <div style={{ width: "100%", padding: "16px 0" }}>
         {loading ? (
           <div
@@ -692,7 +667,6 @@ const BrowseHotels = () => {
                 >
                   <div className="position-relative hotel-card-image" style={{ height: "300px" }}>
                     {(() => {
-                      // Handle images - they might be objects with url property or direct URLs
                       let imageUrl = ""
                       if (hotel.images && hotel.images.length > 0) {
                         const firstImage = hotel.images[0]
@@ -704,9 +678,7 @@ const BrowseHotels = () => {
                           imageUrl = String(firstImage)
                         }
 
-                        // Ensure the URL is properly formatted
                         if (imageUrl && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
-                          // If it's a local path, prepend the backend URL
                           if (imageUrl.startsWith("/uploads/")) {
                             imageUrl = `http://localhost:5000${imageUrl}`
                           } else if (!imageUrl.startsWith("/")) {

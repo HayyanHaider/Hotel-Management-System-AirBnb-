@@ -1,27 +1,17 @@
 const BaseController = require('./BaseController');
 const HotelService = require('../services/HotelService');
 
-/**
- * HotelController - Handles hotel endpoints
- * Follows Single Responsibility Principle - only handles HTTP requests/responses
- * Follows Dependency Inversion Principle - depends on service abstractions
- */
 class HotelController extends BaseController {
   constructor() {
     super();
     this.hotelService = HotelService;
   }
 
-  /**
-   * Create Hotel
-   * Delegates business logic to HotelService
-   */
   createHotel = async (req, res) => {
     try {
       const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
       const ownerId = req.user.userId;
 
-      // Normalize images
       const normalizedImages = Array.isArray(images) 
         ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
         : [];
@@ -50,10 +40,6 @@ class HotelController extends BaseController {
     }
   };
 
-  /**
-   * Get Hotels
-   * Delegates business logic to HotelService
-   */
   getHotels = async (req, res) => {
     try {
       const { location, checkIn, checkOut, guests, minPrice, maxPrice, amenities, minRating, sortBy, order = 'asc', page = 1, limit = 10 } = req.query;
@@ -101,9 +87,6 @@ class HotelController extends BaseController {
     }
   };
 
-  /**
-   * Get Hotel Details
-   */
   getHotelDetails = async (req, res) => {
     try {
       const { hotelId } = req.params;
@@ -121,16 +104,12 @@ class HotelController extends BaseController {
     }
   };
 
-  /**
-   * Update Hotel
-   */
   updateHotel = async (req, res) => {
     try {
       const { hotelId } = req.params;
       const ownerId = req.user.userId;
       const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
 
-      // Normalize images
       const normalizedImages = images !== undefined
         ? (Array.isArray(images) 
           ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
@@ -161,9 +140,6 @@ class HotelController extends BaseController {
     }
   };
 
-  /**
-   * Get Owner's Hotels
-   */
   getOwnerHotels = async (req, res) => {
     try {
       const ownerId = req.user.userId;
@@ -181,9 +157,6 @@ class HotelController extends BaseController {
     }
   };
 
-  /**
-   * Delete Hotel
-   */
   deleteHotel = async (req, res) => {
     try {
       const { hotelId } = req.params;
@@ -203,7 +176,6 @@ class HotelController extends BaseController {
   };
 }
 
-// Export singleton instance
 const hotelController = new HotelController();
 
 module.exports = {

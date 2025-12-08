@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import HotelApiService from '../services/api/HotelApiService';
 
-/**
- * useHotels - Custom hook for hotel data fetching
- * Follows Single Responsibility Principle - only handles hotel data state and fetching
- * Follows Dependency Inversion Principle - depends on HotelApiService abstraction
- */
 export const useHotels = (filters = {}) => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +12,6 @@ export const useHotels = (filters = {}) => {
       setLoading(true);
       setError(null);
       
-      // Ensure guests filter is always included (default to 1 if not specified)
       const filtersWithGuests = {
         ...filters,
         guests: filters.guests || 1
@@ -55,9 +49,6 @@ export const useHotels = (filters = {}) => {
   };
 };
 
-/**
- * useHotel - Custom hook for single hotel data
- */
 export const useHotel = (hotelId) => {
   const [hotel, setHotel] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,9 +91,6 @@ export const useHotel = (hotelId) => {
   };
 };
 
-/**
- * useOwnerHotels - Custom hook for owner's hotels
- */
 export const useOwnerHotels = () => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,4 +127,3 @@ export const useOwnerHotels = () => {
     refetch: fetchOwnerHotels
   };
 };
-
