@@ -29,3 +29,7 @@ Thumbs.db
 dist/
 build/
 
+# Invoices (now stored in Cloudinary)
+invoices/
+temp_invoices/
+

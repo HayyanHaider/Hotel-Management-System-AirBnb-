@@ -32,6 +32,8 @@ const BookingSchema = new Schema({
     couponDiscountPercentage: { type: Number, default: null }
   },
   invoicePath: { type: String, default: '' },
+  invoiceUrl: { type: String, default: '' },
+  cloudinaryPublicId: { type: String, default: '' },
   autoConfirmedAt: { type: Date, default: null }
 }, { timestamps: true });
 

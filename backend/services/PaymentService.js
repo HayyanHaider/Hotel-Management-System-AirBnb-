@@ -7,6 +7,7 @@ const UserRepository = require('../repositories/UserRepository');
 const Payment = require('../classes/Payment');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 const { generateInvoicePDF } = require('../utils/pdfService');
+const { uploadInvoiceToCloudinary, downloadInvoiceFromCloudinary, hasCloudinaryConfig } = require('../utils/cloudinaryInvoiceService');
 const path = require('path');
 const fs = require('fs');
 
@@ -249,11 +250,26 @@ class PaymentService extends BaseService {
         throw new Error('Not authorized to access this invoice');
       }
 
-      if (!booking.invoicePath) {
+      if (!booking.invoiceUrl) {
         throw new Error('Invoice not found for this booking');
       }
 
-      const invoicePath = path.join(__dirname, '../invoices', booking.invoicePath);
+      // If using Cloudinary, download the invoice to a temp location
+      if (booking.invoiceUrl.includes('cloudinary.com')) {
+        const tempDir = path.join(__dirname, '../temp_invoices');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        const tempFilePath = path.join(tempDir, `temp-invoice-${bookingId}.pdf`);
+        const buffer = await downloadInvoiceFromCloudinary(booking.invoiceUrl);
+        fs.writeFileSync(tempFilePath, buffer);
+        
+        return tempFilePath;
+      }
+
+      // Legacy: Local file system path
+      const invoicePath = path.join(__dirname, '../invoices', booking.invoicePath || booking.invoiceUrl);
 
       if (!fs.existsSync(invoicePath)) {
         throw new Error('Invoice file not found');
@@ -356,13 +372,34 @@ class PaymentService extends BaseService {
 
       try {
         await generateInvoicePDF(invoiceData, invoicePath);
-        console.log('PDF invoice generated:', invoicePath);
+        console.log('PDF invoice generated locally:', invoicePath);
 
+        let invoiceUrl = '';
+        let cloudinaryPublicId = '';
+
+        // Upload to Cloudinary if configured
+        if (hasCloudinaryConfig) {
+          try {
+            const cloudinaryResult = await uploadInvoiceToCloudinary(invoicePath, bookingId);
+            invoiceUrl = cloudinaryResult.url;
+            cloudinaryPublicId = cloudinaryResult.publicId;
+            console.log('✅ Invoice uploaded to Cloudinary:', invoiceUrl);
+          } catch (cloudinaryError) {
+            console.error('❌ Failed to upload to Cloudinary, using local storage:', cloudinaryError);
+            invoiceUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+          }
+        } else {
+          // Fallback to local storage
+          invoiceUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+        }
+
+        // Update booking with invoice URL
         await this.bookingRepository.updateById(bookingId, {
-          invoicePath: invoiceFileName
+          invoiceUrl: invoiceUrl,
+          invoicePath: invoiceFileName, // Keep for backwards compatibility
+          cloudinaryPublicId: cloudinaryPublicId || undefined
         });
 
-        const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
         const invoiceDataUri = buildInvoiceDataUri(invoicePath);
         const emailTemplate = emailTemplates.invoiceEmail(
           paymentDetailsForInvoice,
@@ -370,7 +407,7 @@ class PaymentService extends BaseService {
           booking.hotelId || {},
           { name: user.name, email: user.email },
           invoiceFileName,
-          invoicePublicUrl,
+          invoiceUrl,
           invoiceDataUri
         );
 

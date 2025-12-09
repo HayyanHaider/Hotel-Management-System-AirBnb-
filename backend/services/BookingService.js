@@ -8,6 +8,7 @@ const UserRepository = require('../repositories/UserRepository');
 const Coupon = require('../classes/Coupon');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 const { generateInvoicePDF } = require('../utils/pdfService');
+const { uploadInvoiceToCloudinary, hasCloudinaryConfig } = require('../utils/cloudinaryInvoiceService');
 const path = require('path');
 const fs = require('fs');
 
@@ -600,8 +601,30 @@ class BookingService extends BaseService {
 
       await generateInvoicePDF(invoiceData, invoicePath);
 
+      let invoiceUrl = '';
+      let cloudinaryPublicId = '';
+
+      // Upload to Cloudinary if configured
+      if (hasCloudinaryConfig) {
+        try {
+          const cloudinaryResult = await uploadInvoiceToCloudinary(invoicePath, bookingId);
+          invoiceUrl = cloudinaryResult.url;
+          cloudinaryPublicId = cloudinaryResult.publicId;
+          console.log('✅ Regenerated invoice uploaded to Cloudinary:', invoiceUrl);
+        } catch (cloudinaryError) {
+          console.error('❌ Failed to upload to Cloudinary, using local storage:', cloudinaryError);
+          const invoiceBaseUrl = process.env.BACKEND_BASE_URL || 'http://localhost:5000';
+          invoiceUrl = `${invoiceBaseUrl.replace(/\/$/, '')}/invoices/${invoiceFileName}`;
+        }
+      } else {
+        const invoiceBaseUrl = process.env.BACKEND_BASE_URL || 'http://localhost:5000';
+        invoiceUrl = `${invoiceBaseUrl.replace(/\/$/, '')}/invoices/${invoiceFileName}`;
+      }
+
       await this.bookingRepository.updateById(bookingId, {
-        invoicePath: invoiceFileName
+        invoicePath: invoiceFileName,
+        invoiceUrl: invoiceUrl,
+        cloudinaryPublicId: cloudinaryPublicId || undefined
       });
 
       console.log('Invoice regenerated for rescheduled booking:', invoiceFileName);
@@ -615,15 +638,17 @@ class BookingService extends BaseService {
         };
         const paymentMethodLabel = paymentMethodLabelMap[payment.method] || payment.method || 'N/A';
 
-        const invoiceBaseUrl =
-          process.env.BACKEND_BASE_URL ||
-          process.env.API_BASE_URL ||
-          process.env.SERVER_URL ||
-          process.env.APP_URL ||
-          process.env.BASE_URL ||
-          'http://localhost:5000';
-        const normalizedInvoiceBaseUrl = invoiceBaseUrl.replace(/\/$/, '');
-        const invoicePublicUrl = `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+        const invoicePublicUrl = invoiceUrl || (() => {
+          const invoiceBaseUrl =
+            process.env.BACKEND_BASE_URL ||
+            process.env.API_BASE_URL ||
+            process.env.SERVER_URL ||
+            process.env.APP_URL ||
+            process.env.BASE_URL ||
+            'http://localhost:5000';
+          const normalizedInvoiceBaseUrl = invoiceBaseUrl.replace(/\/$/, '');
+          return `${normalizedInvoiceBaseUrl}/invoices/${invoiceFileName}`;
+        })();
 
         let invoiceDataUri = null;
         try {

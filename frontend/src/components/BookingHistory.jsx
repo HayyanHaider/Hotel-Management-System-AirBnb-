@@ -300,7 +300,7 @@ const BookingHistory = () => {
                               </button>
                             </>
                           )}
-                          {booking.status === 'confirmed' && booking.invoicePath && (
+                          {booking.status === 'confirmed' && (booking.invoicePath || booking.invoiceUrl) && (
                             <button
                               className="btn btn-success"
                               onClick={() => handleDownloadInvoice(booking._id || booking.id)}
@@ -326,7 +326,7 @@ const BookingHistory = () => {
                               >
                                 Leave Review
                               </button>
-                              {booking.invoicePath && (
+                              {(booking.invoicePath || booking.invoiceUrl) && (
                                 <button
                                   className="btn btn-success"
                                   onClick={() => handleDownloadInvoice(booking._id || booking.id)}
@@ -341,7 +341,7 @@ const BookingHistory = () => {
                               )}
                             </>
                           )}
-                          {booking.status === 'cancelled' && booking.invoicePath && (
+                          {booking.status === 'cancelled' && (booking.invoicePath || booking.invoiceUrl) && (
                             <button
                               className="btn btn-outline-secondary"
                               onClick={() => handleDownloadInvoice(booking._id || booking.id)}
