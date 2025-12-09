@@ -18,27 +18,27 @@ router.get('/verify', verifyToken, verifyTokenController);
 router.get('/verify-token', verifyToken, verifyTokenController);
 
 router.get('/customer-dashboard', verifyToken, authorize('customer'), (req, res) => {
-  res.json({
+    res.json({
     success: true,
-    message: 'Welcome to Customer Dashboard',
-    user: req.user
+     message: 'Welcome to Customer Dashboard',
+      user: req.user
   });
 });
 
 router.get('/admin-dashboard', verifyToken, authorize('admin'), (req, res) => {
-  res.json({
-    success: true,
+   res.json({
+      success: true,
     message: 'Welcome to Admin Dashboard',
-    user: req.user
-  });
+     user: req.user
+    });
 });
 
 router.get('/hotel-dashboard', verifyToken, authorize('hotel'), (req, res) => {
   res.json({
-    success: true,
-    message: 'Welcome to Hotel Dashboard',
+     success: true,
+      message: 'Welcome to Hotel Dashboard',
     user: req.user
-  });
+   });
 });
 
 module.exports = router;

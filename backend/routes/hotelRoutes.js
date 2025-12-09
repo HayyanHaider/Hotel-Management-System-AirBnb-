@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const {
-  createHotel,
-  getHotels,
+   createHotel,
+    getHotels,
   getHotelDetails,
-  getOwnerHotels,
-  updateHotel,
+   getOwnerHotels,
+    updateHotel,
   deleteHotel
 } = require('../controllers/hotelController');
 

@@ -2,187 +2,187 @@ const BaseController = require('./BaseController');
 const HotelService = require('../services/HotelService');
 
 class HotelController extends BaseController {
-  constructor() {
-    super();
+   constructor() {
+      super();
     this.hotelService = HotelService;
-  }
+   }
 
   createHotel = async (req, res) => {
-    try {
-      const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
+     try {
+        const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
       const ownerId = req.user.userId;
 
-      const normalizedImages = Array.isArray(images) 
+        const normalizedImages = Array.isArray(images) 
         ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
-        : [];
+         : [];
 
       const hotel = await this.hotelService.createHotel({
-        name,
-        description,
+         name,
+          description,
         location,
-        amenities,
-        images: normalizedImages,
+         amenities,
+          images: normalizedImages,
         contactInfo,
-        pricing,
-        capacity,
+         pricing,
+          capacity,
         totalRooms
-      }, ownerId);
+       }, ownerId);
 
       return this.created(res, {
-        message: 'Hotel created successfully and pending approval',
-        hotel
+         message: 'Hotel created successfully and pending approval',
+          hotel
       });
 
-    } catch (error) {
+      } catch (error) {
       console.error('Create hotel error:', error);
-      return this.fail(res, error.message.includes('required') || error.message.includes('Invalid') ? 400 : 500, 
-        error.message || 'Server error while creating hotel');
+       return this.fail(res, error.message.includes('required') || error.message.includes('Invalid') ? 400 : 500, 
+          error.message || 'Server error while creating hotel');
     }
-  };
+   };
 
   getHotels = async (req, res) => {
-    try {
-      const { location, checkIn, checkOut, guests, minPrice, maxPrice, amenities, minRating, sortBy, order = 'asc', page = 1, limit = 10 } = req.query;
+     try {
+        const { location, checkIn, checkOut, guests, minPrice, maxPrice, amenities, minRating, sortBy, order = 'asc', page = 1, limit = 10 } = req.query;
 
-      const filters = {
-        location,
+       const filters = {
+          location,
         checkIn,
-        checkOut,
-        guests,
+         checkOut,
+          guests,
         minPrice,
-        maxPrice,
-        amenities: amenities ? (Array.isArray(amenities) ? amenities : String(amenities).split(',')) : undefined,
+         maxPrice,
+          amenities: amenities ? (Array.isArray(amenities) ? amenities : String(amenities).split(',')) : undefined,
         minRating
-      };
+       };
 
       const options = {
-        sortBy: sortBy || 'popularity',
-        order,
+         sortBy: sortBy || 'popularity',
+          order,
         page: parseInt(page) || 1,
-        limit: parseInt(limit) || 50
-      };
+         limit: parseInt(limit) || 50
+        };
 
-      console.log('[HotelController] getHotels called with filters:', JSON.stringify(filters, null, 2));
-      console.log('[HotelController] getHotels called with options:', JSON.stringify(options, null, 2));
+       console.log('[HotelController] getHotels called with filters:', JSON.stringify(filters, null, 2));
+        console.log('[HotelController] getHotels called with options:', JSON.stringify(options, null, 2));
 
-      const result = await this.hotelService.getHotels(filters, options);
+       const result = await this.hotelService.getHotels(filters, options);
 
       console.log('[HotelController] getHotels result:', {
-        hotelsCount: result.hotels?.length || 0,
-        total: result.total,
+         hotelsCount: result.hotels?.length || 0,
+          total: result.total,
         count: result.count
-      });
+       });
 
       return this.ok(res, {
-        count: result.count,
-        total: result.total,
+         count: result.count,
+          total: result.total,
         hotels: result.hotels,
-        pagination: result.pagination
-      });
+         pagination: result.pagination
+        });
 
-    } catch (error) {
-      console.error('[HotelController] Get hotels error:', error);
+     } catch (error) {
+        console.error('[HotelController] Get hotels error:', error);
       console.error('[HotelController] Error stack:', error.stack);
-      return this.fail(res, 500, error.message || 'Server error while fetching hotels');
-    }
+       return this.fail(res, 500, error.message || 'Server error while fetching hotels');
+      }
   };
 
-  getHotelDetails = async (req, res) => {
+    getHotelDetails = async (req, res) => {
     try {
-      const { hotelId } = req.params;
+       const { hotelId } = req.params;
 
       const hotel = await this.hotelService.getHotelById(hotelId);
 
-      return this.ok(res, {
+        return this.ok(res, {
         hotel
-      });
+       });
 
     } catch (error) {
-      console.error('Get hotel details error:', error);
-      const status = error.message.includes('not found') ? 404 : 500;
+       console.error('Get hotel details error:', error);
+        const status = error.message.includes('not found') ? 404 : 500;
       return this.fail(res, status, error.message || 'Server error while fetching hotel details');
-    }
-  };
+     }
+    };
 
-  updateHotel = async (req, res) => {
-    try {
+   updateHotel = async (req, res) => {
+      try {
       const { hotelId } = req.params;
-      const ownerId = req.user.userId;
-      const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
+       const ownerId = req.user.userId;
+        const { name, description, location, amenities, images, contactInfo, pricing, capacity, totalRooms } = req.body;
 
-      const normalizedImages = images !== undefined
-        ? (Array.isArray(images) 
+       const normalizedImages = images !== undefined
+          ? (Array.isArray(images) 
           ? images.map(img => typeof img === 'string' ? img : (img?.url || String(img)))
-          : [])
-        : undefined;
+           : [])
+          : undefined;
 
-      const hotel = await this.hotelService.updateHotel(hotelId, {
-        name,
+       const hotel = await this.hotelService.updateHotel(hotelId, {
+          name,
         description,
-        location,
-        amenities,
+         location,
+          amenities,
         images: normalizedImages,
-        contactInfo,
-        pricing,
+         contactInfo,
+          pricing,
         capacity,
-        totalRooms
-      }, ownerId);
+         totalRooms
+        }, ownerId);
 
-      return this.ok(res, {
-        message: 'Hotel updated successfully',
+       return this.ok(res, {
+          message: 'Hotel updated successfully',
         hotel
-      });
+       });
 
     } catch (error) {
-      console.error('Update hotel error:', error);
-      const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
+       console.error('Update hotel error:', error);
+        const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
       return this.fail(res, status, error.message || 'Server error while updating hotel');
-    }
-  };
+     }
+    };
 
-  getOwnerHotels = async (req, res) => {
-    try {
+   getOwnerHotels = async (req, res) => {
+      try {
       const ownerId = req.user.userId;
 
-      const hotels = await this.hotelService.getOwnerHotels(ownerId);
+        const hotels = await this.hotelService.getOwnerHotels(ownerId);
 
-      return this.ok(res, {
-        count: hotels.length,
+       return this.ok(res, {
+          count: hotels.length,
         hotels
-      });
+       });
 
     } catch (error) {
-      console.error('Get owner hotels error:', error);
-      return this.fail(res, 500, error.message || 'Server error while fetching your hotels');
+       console.error('Get owner hotels error:', error);
+        return this.fail(res, 500, error.message || 'Server error while fetching your hotels');
     }
-  };
+   };
 
   deleteHotel = async (req, res) => {
-    try {
-      const { hotelId } = req.params;
+     try {
+        const { hotelId } = req.params;
       const ownerId = req.user.userId;
 
-      await this.hotelService.deleteHotel(hotelId, ownerId);
+        await this.hotelService.deleteHotel(hotelId, ownerId);
 
-      return this.ok(res, {
-        message: 'Hotel deleted successfully'
+       return this.ok(res, {
+          message: 'Hotel deleted successfully'
       });
 
-    } catch (error) {
+      } catch (error) {
       console.error('Delete hotel error:', error);
-      const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
-      return this.fail(res, status, error.message || 'Server error while deleting hotel');
+       const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
+        return this.fail(res, status, error.message || 'Server error while deleting hotel');
     }
-  };
+   };
 }
 
 const hotelController = new HotelController();
 
 module.exports = {
-  createHotel: hotelController.createHotel,
-  getHotels: hotelController.getHotels,
+   createHotel: hotelController.createHotel,
+    getHotels: hotelController.getHotels,
   getHotelDetails: hotelController.getHotelDetails,
-  getOwnerHotels: hotelController.getOwnerHotels,
-  updateHotel: hotelController.updateHotel,
+   getOwnerHotels: hotelController.getOwnerHotels,
+    updateHotel: hotelController.updateHotel,
   deleteHotel: hotelController.deleteHotel
 };

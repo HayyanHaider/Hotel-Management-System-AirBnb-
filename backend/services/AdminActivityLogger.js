@@ -2,31 +2,31 @@
 const AdminModel = require('../models/adminModel');
 
 class AdminActivityLogger {
-  async log(adminId, action, targetType, targetId, description, metadata = {}) {
-    try {
+   async log(adminId, action, targetType, targetId, description, metadata = {}) {
+      try {
       // Validate admin exists; do not persist activity
-      await AdminModel.findById(adminId).select('_id').lean().exec();
-      return null;
+       await AdminModel.findById(adminId).select('_id').lean().exec();
+        return null;
     } catch (error) {
-      console.error('Error validating admin during log:', error);
-      return null;
+       console.error('Error validating admin during log:', error);
+        return null;
     }
-  }
+   }
 
   async getActivities({ action, targetType, page = 1, limit = 50 }) {
-    return {
-      activities: [],
+     return {
+        activities: [],
       pagination: { total: 0, page: parseInt(page), limit: parseInt(limit), pages: 0 }
-    };
+     };
+    }
+
+   async getRecentActivitiesByAdmin(adminId, limit = 10) {
+      return [];
   }
 
-  async getRecentActivitiesByAdmin(adminId, limit = 10) {
-    return [];
-  }
-
-  async getAdminStats(adminId) {
+    async getAdminStats(adminId) {
     return { totalActions: 0, actionBreakdown: [] };
-  }
+   }
 }
 
 module.exports = new AdminActivityLogger();

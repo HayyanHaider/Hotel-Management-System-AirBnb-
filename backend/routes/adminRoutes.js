@@ -5,32 +5,32 @@ const { asyncHandler } = require('../utils/errors');
 const validate = require('../middleware/validate');
 const {
   // Dashboard
-  getDashboardStats,
+   getDashboardStats,
   
   // Hotel Management
-  getHotels,
-  approveHotel,
+   getHotels,
+    approveHotel,
   rejectHotel,
-  suspendHotel,
-  unsuspendHotel,
+   suspendHotel,
+    unsuspendHotel,
   
-  // User Management
-  getUsers,
+   // User Management
+    getUsers,
   suspendUser,
-  unsuspendUser,
+   unsuspendUser,
   
   // Monitoring
-  getLowRatedHotels,
+   getLowRatedHotels,
   
   // Refunds
-  getRefundRequests,
-  processRefund,
+   getRefundRequests,
+    processRefund,
   
-  // Reports
-  getReports,
+   // Reports
+    getReports,
   
-  // Activity Log
-  getActivityLog
+   // Activity Log
+    getActivityLog
 } = require('../controllers/adminController');
 
 // Apply admin authentication and authorization to all routes

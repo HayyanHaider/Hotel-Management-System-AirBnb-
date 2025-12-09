@@ -6,10 +6,10 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:5173',
+      origin: 'http://localhost:5173',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 const path = require('path');
@@ -47,35 +47,35 @@ app.use(errorMiddleware);
 
 const checkEmailConfig = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('⚠️  Email service not configured - booking confirmation emails will not be sent');
-    console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to your .env file to enable email sending');
+     console.warn('⚠️  Email service not configured - booking confirmation emails will not be sent');
+      console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to your .env file to enable email sending');
   } else {
-    console.log('✅ Email service configured');
-  }
+     console.log('✅ Email service configured');
+    }
 };
 
 const connectToDatabase = async () => {
   const uri = process.env.MONGO_URI;
 
-  if (!uri) {
+    if (!uri) {
     console.error('❌ MongoDB connection string (MONGO_URI) is not defined');
-    process.exit(1);
-  }
+     process.exit(1);
+    }
 
-  try {
-    await mongoose.connect(uri);
+   try {
+      await mongoose.connect(uri);
     console.log('✅ MongoDB Connected');
 
-    startAutoConfirmService();
+      startAutoConfirmService();
     startAutoFlagService();
-    checkEmailConfig();
+     checkEmailConfig();
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  } catch (err) {
+     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    } catch (err) {
     console.error('❌ MongoDB Connection Error:', err);
-    process.exit(1);
-  }
+     process.exit(1);
+    }
 };
 
 connectToDatabase();

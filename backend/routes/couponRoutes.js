@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const {
-  createCoupon,
-  getHotelCoupons,
+   createCoupon,
+    getHotelCoupons,
   getCouponDetails,
-  updateCoupon,
-  deleteCoupon
+   updateCoupon,
+    deleteCoupon
 } = require('../controllers/couponController');
 
 // Protected routes - Hotel only

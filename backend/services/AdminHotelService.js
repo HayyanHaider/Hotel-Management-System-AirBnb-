@@ -8,287 +8,287 @@ const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 class AdminHotelService extends BaseService {
   async getHotels({ status, search, page = 1, limit = 50 }) {
-    const skip = (page - 1) * limit;
-    const query = this._buildHotelQuery(status, search);
+     const skip = (page - 1) * limit;
+      const query = this._buildHotelQuery(status, search);
 
-    const [hotels, total] = await Promise.all([
-      HotelModel.find(query)
+     const [hotels, total] = await Promise.all([
+        HotelModel.find(query)
         .populate('ownerId', 'name email phone')
-        .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
+         .sort({ createdAt: -1 })
+          .limit(parseInt(limit))
         .skip(skip),
-      HotelModel.countDocuments(query)
-    ]);
+       HotelModel.countDocuments(query)
+      ]);
 
-    return {
-      hotels,
+     return {
+        hotels,
       pagination: {
-        total,
-        page: parseInt(page),
+         total,
+          page: parseInt(page),
         limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
-      }
+         pages: Math.ceil(total / limit)
+        }
     };
-  }
+   }
 
   async approveHotel(hotelId, adminId) {
-    const hotel = await HotelModel.findByIdAndUpdate(
-      hotelId,
+     const hotel = await HotelModel.findByIdAndUpdate(
+        hotelId,
       {
-        isApproved: true,
-        isSuspended: false,
+         isApproved: true,
+          isSuspended: false,
         rejectionReason: ''
-      },
-      { new: true }
+       },
+        { new: true }
     ).populate('ownerId', 'name email');
 
-    if (!hotel) {
+      if (!hotel) {
       throw new Error('Hotel not found');
-    }
+     }
 
     await AdminActivityLogger.log(
-      adminId,
-      'hotel_approved',
+       adminId,
+        'hotel_approved',
       'hotel',
-      hotelId,
-      `Approved hotel: ${hotel.name}`,
+       hotelId,
+        `Approved hotel: ${hotel.name}`,
       { hotelName: hotel.name }
-    );
+     );
 
     try {
-      if (hotel.ownerId && hotel.ownerId.email) {
-        const owner = hotel.ownerId;
+       if (hotel.ownerId && hotel.ownerId.email) {
+          const owner = hotel.ownerId;
         const emailTemplate = emailTemplates.hotelApprovalEmail(hotel, owner);
         
-        await sendEmail(
+          await sendEmail(
           owner.email,
-          emailTemplate.subject,
-          emailTemplate.html,
+           emailTemplate.subject,
+            emailTemplate.html,
           emailTemplate.text
-        );
+         );
         
         console.log(`✅ Hotel approval email sent to owner: ${owner.email}`);
-      } else {
-        console.warn(`⚠️  Could not send approval email - hotel owner email not found for hotel: ${hotel.name}`);
+       } else {
+          console.warn(`⚠️  Could not send approval email - hotel owner email not found for hotel: ${hotel.name}`);
       }
-    } catch (emailError) {
-      console.error('❌ Error sending hotel approval email:', emailError);
+     } catch (emailError) {
+        console.error('❌ Error sending hotel approval email:', emailError);
     }
 
-    return hotel;
+      return hotel;
   }
 
-  async rejectHotel(hotelId, adminId, reason = '') {
+    async rejectHotel(hotelId, adminId, reason = '') {
     const hotel = await HotelModel.findByIdAndUpdate(
-      hotelId,
-      {
+       hotelId,
+        {
         isApproved: false,
-        isSuspended: true,
-        rejectionReason: reason
+         isSuspended: true,
+          rejectionReason: reason
       },
-      { new: true }
-    );
+       { new: true }
+      );
 
-    if (!hotel) {
-      throw new Error('Hotel not found');
+     if (!hotel) {
+        throw new Error('Hotel not found');
     }
 
-    await AdminActivityLogger.log(
+      await AdminActivityLogger.log(
       adminId,
-      'hotel_rejected',
-      'hotel',
+       'hotel_rejected',
+        'hotel',
       hotelId,
-      `Rejected hotel: ${hotel.name}`,
-      { hotelName: hotel.name, reason }
+       `Rejected hotel: ${hotel.name}`,
+        { hotelName: hotel.name, reason }
     );
 
-    return hotel;
+      return hotel;
   }
 
-  async suspendHotel(hotelId, adminId, reason = '') {
+    async suspendHotel(hotelId, adminId, reason = '') {
     const hotel = await HotelModel.findByIdAndUpdate(
-      hotelId,
-      {
+       hotelId,
+        {
         isSuspended: true,
-        suspensionReason: reason
-      },
+         suspensionReason: reason
+        },
       { new: true }
-    ).populate('ownerId', 'name email');
+     ).populate('ownerId', 'name email');
 
     if (!hotel) {
-      throw new Error('Hotel not found');
-    }
+       throw new Error('Hotel not found');
+      }
 
-    await AdminActivityLogger.log(
-      adminId,
+     await AdminActivityLogger.log(
+        adminId,
       'hotel_suspended',
-      'hotel',
-      hotelId,
+       'hotel',
+        hotelId,
       `Suspended hotel: ${hotel.name}`,
-      { hotelName: hotel.name, reason }
-    );
+       { hotelName: hotel.name, reason }
+      );
 
-    // Send email notification to hotel owner
-    try {
+     // Send email notification to hotel owner
+      try {
       if (hotel.ownerId && hotel.ownerId.email) {
-        const owner = hotel.ownerId;
-        const emailTemplate = emailTemplates.hotelSuspensionEmail(hotel, owner, reason);
+         const owner = hotel.ownerId;
+          const emailTemplate = emailTemplates.hotelSuspensionEmail(hotel, owner, reason);
         
-        await sendEmail(
-          owner.email,
+         await sendEmail(
+            owner.email,
           emailTemplate.subject,
-          emailTemplate.html,
-          emailTemplate.text
+           emailTemplate.html,
+            emailTemplate.text
         );
         
-        console.log(`✅ Hotel suspension email sent to owner: ${owner.email}`);
+          console.log(`✅ Hotel suspension email sent to owner: ${owner.email}`);
       } else {
-        console.warn(`⚠️  Could not send suspension email - hotel owner email not found for hotel: ${hotel.name}`);
-      }
+         console.warn(`⚠️  Could not send suspension email - hotel owner email not found for hotel: ${hotel.name}`);
+        }
     } catch (emailError) {
-      console.error('❌ Error sending hotel suspension email:', emailError);
-      // Don't fail the suspension if email fails
+       console.error('❌ Error sending hotel suspension email:', emailError);
+        // Don't fail the suspension if email fails
     }
 
-    // Cancel all pending and confirmed bookings for this hotel
+      // Cancel all pending and confirmed bookings for this hotel
     try {
-      const bookingsToCancel = await BookingModel.find({
-        hotelId: hotelId,
+       const bookingsToCancel = await BookingModel.find({
+          hotelId: hotelId,
         status: { $in: ['pending', 'confirmed'] }
-      }).populate('userId', 'name email').populate('hotelId', 'name location');
+       }).populate('userId', 'name email').populate('hotelId', 'name location');
 
       console.log(`Found ${bookingsToCancel.length} bookings to cancel for suspended hotel: ${hotel.name}`);
 
-      for (const booking of bookingsToCancel) {
+        for (const booking of bookingsToCancel) {
         try {
-          // Update booking status to cancelled
-          await BookingModel.findByIdAndUpdate(booking._id, {
+           // Update booking status to cancelled
+            await BookingModel.findByIdAndUpdate(booking._id, {
             status: 'cancelled',
-            cancelledAt: new Date()
-          });
+             cancelledAt: new Date()
+            });
 
-          // Send cancellation email to customer
-          if (booking.userId && booking.userId.email) {
+           // Send cancellation email to customer
+            if (booking.userId && booking.userId.email) {
             const customer = booking.userId;
-            const refundAmount = booking.status === 'confirmed' 
-              ? (booking.priceSnapshot?.totalPrice || booking.totalPrice || 0)
+             const refundAmount = booking.status === 'confirmed' 
+                ? (booking.priceSnapshot?.totalPrice || booking.totalPrice || 0)
               : null;
 
-            const emailTemplate = emailTemplates.cancellationEmail(
+              const emailTemplate = emailTemplates.cancellationEmail(
               booking,
-              booking.hotelId || hotel,
-              { name: customer.name, email: customer.email },
+               booking.hotelId || hotel,
+                { name: customer.name, email: customer.email },
               refundAmount
-            );
+             );
 
             await sendEmail(
-              customer.email,
-              emailTemplate.subject,
+               customer.email,
+                emailTemplate.subject,
               emailTemplate.html,
-              emailTemplate.text
-            );
+               emailTemplate.text
+              );
 
-            console.log(`✅ Cancellation email sent to customer: ${customer.email} for booking ${booking._id}`);
-          }
+             console.log(`✅ Cancellation email sent to customer: ${customer.email} for booking ${booking._id}`);
+            }
         } catch (bookingError) {
-          console.error(`❌ Error cancelling booking ${booking._id}:`, bookingError);
-          // Continue with other bookings even if one fails
+           console.error(`❌ Error cancelling booking ${booking._id}:`, bookingError);
+            // Continue with other bookings even if one fails
         }
-      }
+       }
 
       console.log(`✅ Cancelled ${bookingsToCancel.length} bookings for suspended hotel: ${hotel.name}`);
-    } catch (bookingsError) {
-      console.error('❌ Error cancelling bookings for suspended hotel:', bookingsError);
+     } catch (bookingsError) {
+        console.error('❌ Error cancelling bookings for suspended hotel:', bookingsError);
       // Don't fail the suspension if booking cancellation fails
-    }
+     }
 
     return hotel;
-  }
+   }
 
   async unsuspendHotel(hotelId, adminId) {
-    const hotel = await HotelModel.findByIdAndUpdate(
-      hotelId,
+     const hotel = await HotelModel.findByIdAndUpdate(
+        hotelId,
       {
-        isSuspended: false,
-        suspensionReason: ''
+         isSuspended: false,
+          suspensionReason: ''
       },
-      { new: true }
-    );
+       { new: true }
+      );
 
-    if (!hotel) {
-      throw new Error('Hotel not found');
+     if (!hotel) {
+        throw new Error('Hotel not found');
     }
 
-    await AdminActivityLogger.log(
+      await AdminActivityLogger.log(
       adminId,
-      'hotel_unsuspended',
-      'hotel',
+       'hotel_unsuspended',
+        'hotel',
       hotelId,
-      `Unsuspended hotel: ${hotel.name}`,
-      { hotelName: hotel.name }
+       `Unsuspended hotel: ${hotel.name}`,
+        { hotelName: hotel.name }
     );
 
-    return hotel;
+      return hotel;
   }
 
-  async getLowRatedHotels({ page = 1, limit = 50 }) {
+    async getLowRatedHotels({ page = 1, limit = 50 }) {
     const skip = (page - 1) * limit;
 
-    const [hotels, total] = await Promise.all([
+      const [hotels, total] = await Promise.all([
       HotelModel.find({
-        rating: { $lt: 2.5 },
-        totalReviews: { $gte: 5 }
+         rating: { $lt: 2.5 },
+          totalReviews: { $gte: 5 }
       })
-        .populate('ownerId', 'name email phone')
-        .sort({ rating: 1 })
+         .populate('ownerId', 'name email phone')
+          .sort({ rating: 1 })
         .limit(parseInt(limit))
-        .skip(skip),
-      HotelModel.countDocuments({
+         .skip(skip),
+        HotelModel.countDocuments({
         rating: { $lt: 2.5 },
-        totalReviews: { $gte: 5 }
-      })
+         totalReviews: { $gte: 5 }
+        })
     ]);
 
-    return {
+      return {
       hotels,
-      pagination: {
-        total,
+       pagination: {
+          total,
         page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
+         limit: parseInt(limit),
+          pages: Math.ceil(total / limit)
       }
-    };
-  }
+     };
+    }
 
 
-  _buildHotelQuery(status, search) {
+    _buildHotelQuery(status, search) {
     const query = {};
 
-    // Filter by status
+      // Filter by status
     if (status === 'pending') {
-      query.isApproved = false;
-      query.isSuspended = false;
+       query.isApproved = false;
+        query.isSuspended = false;
     } else if (status === 'approved') {
-      query.isApproved = true;
-      query.isSuspended = false;
+       query.isApproved = true;
+        query.isSuspended = false;
     } else if (status === 'suspended') {
-      query.isSuspended = true;
-    } else if (status === 'flagged') {
+       query.isSuspended = true;
+      } else if (status === 'flagged') {
       query.isFlagged = true;
-    }
+     }
 
     // Search functionality
-    if (search) {
-      query.$or = [
+     if (search) {
+        query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { 'location.city': { $regex: search, $options: 'i' } },
+         { description: { $regex: search, $options: 'i' } },
+          { 'location.city': { $regex: search, $options: 'i' } },
         { 'location.state': { $regex: search, $options: 'i' } }
-      ];
-    }
+       ];
+      }
 
-    return query;
-  }
+     return query;
+    }
 }
 
 module.exports = new AdminHotelService();

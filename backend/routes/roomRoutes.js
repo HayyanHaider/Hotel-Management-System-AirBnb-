@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 const {
-  createRoom,
-  getHotelRooms,
+   createRoom,
+    getHotelRooms,
   getRoomDetails,
-  updateRoom,
-  deleteRoom,
+   updateRoom,
+    deleteRoom,
   toggleRoomAvailability,
-  getAvailableRooms
+   getAvailableRooms
 } = require('../controllers/roomController');
 
 // Public route - Get available rooms for hotel (for customers)

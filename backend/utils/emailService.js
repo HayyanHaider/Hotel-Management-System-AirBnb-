@@ -5,272 +5,272 @@ const UserModel = require('../models/userModel');
 
 // Create reusable transporter (configure with your email service)
 const createTransporter = () => {
-  // For development, you can use Gmail or a service like Mailtrap
-  // For production, use a service like SendGrid, AWS SES, or Mailgun
+   // For development, you can use Gmail or a service like Mailtrap
+    // For production, use a service like SendGrid, AWS SES, or Mailgun
   
-  // Gmail example (requires app password)
-  return nodemailer.createTransport({
+   // Gmail example (requires app password)
+    return nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
+     auth: {
+        user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD
-    }
-  });
+     }
+    });
 };
 
 const createGmailOAuth2Transporter = async (userId) => {
   try {
-    const oauth2Client = await getAuthenticatedClient(userId);
-    const user = await UserModel.findById(userId);
+     const oauth2Client = await getAuthenticatedClient(userId);
+      const user = await UserModel.findById(userId);
     
-    if (!user || !user.email) {
-      throw new Error('User email not found');
+     if (!user || !user.email) {
+        throw new Error('User email not found');
     }
 
-    return nodemailer.createTransport({
+      return nodemailer.createTransport({
       service: 'gmail',
-      auth: {
-        type: 'OAuth2',
+       auth: {
+          type: 'OAuth2',
         user: user.email,
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+         clientId: process.env.GMAIL_CLIENT_ID,
+          clientSecret: process.env.GMAIL_CLIENT_SECRET,
         refreshToken: user.gmailTokens.refresh_token,
-        accessToken: user.gmailTokens.access_token
-      }
+         accessToken: user.gmailTokens.access_token
+        }
     });
-  } catch (error) {
-    console.error('Error creating Gmail OAuth2 transporter:', error);
+   } catch (error) {
+      console.error('Error creating Gmail OAuth2 transporter:', error);
     throw error;
-  }
+   }
 };
 
 const sendEmail = async (to, subject, html, text = '', options = {}) => {
-  try {
+    try {
     console.log('📧 Attempting to send email:', { to, subject, hasAttachments: options.attachments?.length > 0 });
-    const { userId, useUserGmail = false, attachments = [] } = options;
+     const { userId, useUserGmail = false, attachments = [] } = options;
     
     if (useUserGmail && userId) {
-      try {
-        const user = await UserModel.findById(userId);
+       try {
+          const user = await UserModel.findById(userId);
         if (user && user.gmailAuthorized && user.gmailTokens) {
-          console.log('📧 User has Gmail authorized, attempting to send from user account');
-          const transporter = await createGmailOAuth2Transporter(userId);
+           console.log('📧 User has Gmail authorized, attempting to send from user account');
+            const transporter = await createGmailOAuth2Transporter(userId);
           
-          const mailOptions = {
-            from: `"${user.name}" <${user.email}>`,
+           const mailOptions = {
+              from: `"${user.name}" <${user.email}>`,
             to,
-            subject,
-            text,
+             subject,
+              text,
             html,
-            attachments
-          };
+             attachments
+            };
 
-          const info = await transporter.sendMail(mailOptions);
-          console.log('✅ Email sent from user Gmail account:', info.messageId);
+           const info = await transporter.sendMail(mailOptions);
+            console.log('✅ Email sent from user Gmail account:', info.messageId);
           return { success: true, messageId: info.messageId, sentFrom: 'user_gmail' };
-        } else {
-          console.log('⚠️  User Gmail not authorized, falling back to system email');
+         } else {
+            console.log('⚠️  User Gmail not authorized, falling back to system email');
         }
-      } catch (gmailError) {
-        console.error('❌ Failed to send from user Gmail:', gmailError);
+       } catch (gmailError) {
+          console.error('❌ Failed to send from user Gmail:', gmailError);
         console.warn('⚠️  Falling back to system email:', gmailError.message);
+       }
       }
-    }
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.error('❌ Email not sent - EMAIL_USER or EMAIL_PASSWORD not configured in environment variables');
+     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+        console.error('❌ Email not sent - EMAIL_USER or EMAIL_PASSWORD not configured in environment variables');
       console.log('📧 Email details that would have been sent:', { to, subject });
-      return { success: false, error: 'Email service not configured', message: 'EMAIL_USER and EMAIL_PASSWORD must be set in .env file' };
-    }
+       return { success: false, error: 'Email service not configured', message: 'EMAIL_USER and EMAIL_PASSWORD must be set in .env file' };
+      }
 
-    console.log('📧 Using system email account to send email');
-    const transporter = createTransporter();
+     console.log('📧 Using system email account to send email');
+      const transporter = createTransporter();
     
-    const mailOptions = {
-      from: `"Airbnb Booking" <${process.env.EMAIL_USER}>`,
+     const mailOptions = {
+        from: `"Airbnb Booking" <${process.env.EMAIL_USER}>`,
       to,
-      subject,
-      text,
+       subject,
+        text,
       html,
-      attachments
-    };
+       attachments
+      };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent from system account:', info.messageId);
+     const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent from system account:', info.messageId);
     return { success: true, messageId: info.messageId, sentFrom: 'system' };
-  } catch (error) {
-    console.error('❌ Error sending email:', error);
+   } catch (error) {
+      console.error('❌ Error sending email:', error);
     console.error('❌ Error details:', {
-      message: error.message,
-      code: error.code,
+       message: error.message,
+        code: error.code,
       response: error.response,
-      stack: error.stack
-    });
+       stack: error.stack
+      });
     return { success: false, error: error.message };
-  }
+   }
 };
 
 const emailTemplates = {
-  invoiceEmail: (
+    invoiceEmail: (
     payment,
-    booking,
-    hotel,
+     booking,
+      hotel,
     customer,
-    invoiceFileName = null,
-    invoiceDownloadUrl = null,
+     invoiceFileName = null,
+      invoiceDownloadUrl = null,
     invoiceDataUri = null
-  ) => {
-    const checkIn = new Date(booking.checkIn).toLocaleDateString();
+   ) => {
+      const checkIn = new Date(booking.checkIn).toLocaleDateString();
     const checkOut = new Date(booking.checkOut).toLocaleDateString();
-    const nights = booking.nights || 1;
-    const fallbackBaseUrl =
+     const nights = booking.nights || 1;
+      const fallbackBaseUrl =
       process.env.BACKEND_BASE_URL ||
-      process.env.API_BASE_URL ||
-      process.env.SERVER_URL ||
+       process.env.API_BASE_URL ||
+        process.env.SERVER_URL ||
       process.env.APP_URL ||
-      process.env.BASE_URL ||
-      'http://localhost:5000';
+       process.env.BASE_URL ||
+        'http://localhost:5000';
     const normalizedBaseUrl = fallbackBaseUrl.replace(/\/$/, '');
-    const invoiceUrl =
-      invoiceDownloadUrl ||
+     const invoiceUrl =
+        invoiceDownloadUrl ||
       (invoiceFileName && normalizedBaseUrl
-        ? `${normalizedBaseUrl}/api/payments/invoice/${booking.id || booking._id}`
-        : null);
+         ? `${normalizedBaseUrl}/api/payments/invoice/${booking.id || booking._id}`
+          : null);
     const downloadLink = invoiceDataUri || invoiceUrl;
-    const downloadCtaLabel = invoiceDataUri ? 'Open Attached Invoice' : 'Download PDF Invoice';
-    const currency = 'PKR';
+     const downloadCtaLabel = invoiceDataUri ? 'Open Attached Invoice' : 'Download PDF Invoice';
+      const currency = 'PKR';
     const formatCurrency = (amount) => `${currency} ${(Number(amount || 0)).toFixed(2)}`;
-    const paymentMethodLabel = payment.method || payment.paymentMethod;
-    const paypalEmail = payment.paypalEmail;
+     const paymentMethodLabel = payment.method || payment.paymentMethod;
+      const paypalEmail = payment.paypalEmail;
     
-    return {
-      subject: `Booking Confirmation & Invoice - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
+     return {
+        subject: `Booking Confirmation & Invoice - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
       html: `
-        <!DOCTYPE html>
-        <html>
+         <!DOCTYPE html>
+          <html>
         <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+           <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF385C; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
+             .header { background-color: #FF385C; color: white; padding: 20px; text-align: center; }
+              .content { padding: 20px; background-color: #f9f9f9; }
             .invoice-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .detail-row:last-child { border-bottom: none; }
+             .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+              .detail-row:last-child { border-bottom: none; }
             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .button { display: inline-block; padding: 12px 24px; background-color: #FF385C; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
-            .price-breakdown { margin: 15px 0; }
+             .button { display: inline-block; padding: 12px 24px; background-color: #FF385C; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+              .price-breakdown { margin: 15px 0; }
             .price-item { display: flex; justify-content: space-between; padding: 5px 0; }
-            .total { font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
-          </style>
+             .total { font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
+            </style>
         </head>
-        <body>
-          <div class="container">
+         <body>
+            <div class="container">
             <div class="header">
-              <h1>🎉 Booking Confirmed!</h1>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation is confirmed</p>
+               <h1>🎉 Booking Confirmed!</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation is confirmed</p>
             </div>
-            <div class="content">
-              <p>Dear ${customer.name},</p>
+             <div class="content">
+                <p>Dear ${customer.name},</p>
               <p style="font-size: 16px; color: #28a745; font-weight: bold;">✅ Your booking has been confirmed and payment has been processed successfully!</p>
-              <p>We're excited to host you! Please find your booking confirmation and invoice details below:</p>
+               <p>We're excited to host you! Please find your booking confirmation and invoice details below:</p>
               
               <div class="invoice-details">
-                <h2>Booking Information</h2>
-                <div class="detail-row">
+                 <h2>Booking Information</h2>
+                  <div class="detail-row">
                   <strong>Booking ID:</strong>
-                  <span>${booking.id || booking._id}</span>
-                </div>
+                   <span>${booking.id || booking._id}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Hotel:</strong>
-                  <span>${hotel.name || 'Hotel'}</span>
+                   <strong>Hotel:</strong>
+                    <span>${hotel.name || 'Hotel'}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Check-in:</strong>
+                 <div class="detail-row">
+                    <strong>Check-in:</strong>
                   <span>${checkIn}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Check-out:</strong>
-                  <span>${checkOut}</span>
-                </div>
+                   <span>${checkOut}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Nights:</strong>
-                  <span>${nights}</span>
+                   <strong>Nights:</strong>
+                    <span>${nights}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Guests:</strong>
+                 <div class="detail-row">
+                    <strong>Guests:</strong>
                   <span>${booking.guests || 1}</span>
-                </div>
+                 </div>
                 
                 <h3 style="margin-top: 20px;">Price Breakdown</h3>
-                <div class="price-breakdown">
-                  <div class="price-item">
+                 <div class="price-breakdown">
+                    <div class="price-item">
                     <span>Base Price (${nights} nights):</span>
-                    <span>${formatCurrency(booking.priceSnapshot?.basePriceTotal)}</span>
-                  </div>
+                     <span>${formatCurrency(booking.priceSnapshot?.basePriceTotal)}</span>
+                    </div>
                   ${booking.priceSnapshot?.cleaningFee ? `
-                  <div class="price-item">
-                    <span>Cleaning Fee:</span>
+                   <div class="price-item">
+                      <span>Cleaning Fee:</span>
                     <span>${formatCurrency(booking.priceSnapshot.cleaningFee)}</span>
-                  </div>
-                  ` : ''}
+                   </div>
+                    ` : ''}
                   ${booking.priceSnapshot?.serviceFee ? `
-                  <div class="price-item">
-                    <span>Service Fee:</span>
+                   <div class="price-item">
+                      <span>Service Fee:</span>
                     <span>${formatCurrency(booking.priceSnapshot.serviceFee)}</span>
-                  </div>
-                  ` : ''}
+                   </div>
+                    ` : ''}
                   ${booking.priceSnapshot?.discounts > 0 ? `
-                  <div class="price-item" style="color: #28a745;">
-                    <span>Discount (${booking.priceSnapshot.couponCode || 'Coupon'}):</span>
+                   <div class="price-item" style="color: #28a745;">
+                      <span>Discount (${booking.priceSnapshot.couponCode || 'Coupon'}):</span>
                     <span>- ${formatCurrency(booking.priceSnapshot.discounts)}</span>
-                  </div>
-                  ` : ''}
+                   </div>
+                    ` : ''}
                   <div class="price-item total">
-                    <span>Total:</span>
-                    <span>${formatCurrency(payment.amount)}</span>
+                     <span>Total:</span>
+                      <span>${formatCurrency(payment.amount)}</span>
                   </div>
-                </div>
+                 </div>
                 
                 <div class="detail-row" style="margin-top: 15px;">
-                  <strong>Payment Method:</strong>
-                  <span>${paymentMethodLabel}</span>
+                   <strong>Payment Method:</strong>
+                    <span>${paymentMethodLabel}</span>
                 </div>
-                ${paypalEmail ? `
-                <div class="detail-row">
+                 ${paypalEmail ? `
+                  <div class="detail-row">
                   <strong>PayPal Email:</strong>
-                  <span>${paypalEmail}</span>
-                </div>
+                   <span>${paypalEmail}</span>
+                  </div>
                 ` : ''}
-                <div class="detail-row">
-                  <strong>Transaction ID:</strong>
+                 <div class="detail-row">
+                    <strong>Transaction ID:</strong>
                   <span>${payment.transactionId || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Payment Date:</strong>
-                  <span>${new Date(payment.processedAt || Date.now()).toLocaleDateString()}</span>
-                </div>
+                   <span>${new Date(payment.processedAt || Date.now()).toLocaleDateString()}</span>
+                  </div>
               </div>
               
-              <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
+                <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
               
-              ${downloadLink ? `
-              <p style="text-align: center; margin: 20px 0;">
+               ${downloadLink ? `
+                <p style="text-align: center; margin: 20px 0;">
                 <a href="${downloadLink}" class="button">${downloadCtaLabel}</a>
-              </p>
-              ` : ''}
+               </p>
+                ` : ''}
               
-              <p>We look forward to hosting you!</p>
+               <p>We look forward to hosting you!</p>
               
               <p>Best regards,<br>The Airbnb Team</p>
-            </div>
-            <div class="footer">
+             </div>
+              <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
+             </div>
             </div>
-          </div>
         </body>
-        </html>
-      `,
+         </html>
+        `,
       text: `Invoice
 
 Dear ${customer.name},
@@ -305,110 +305,110 @@ We look forward to hosting you!
 
 Best regards,
 The Airbnb Team`
-    };
-  },
+     };
+    },
 
-  cancellationEmail: (booking, hotel, customer, refundAmount = null) => {
-    const checkIn = new Date(booking.checkIn).toLocaleDateString();
+   cancellationEmail: (booking, hotel, customer, refundAmount = null) => {
+      const checkIn = new Date(booking.checkIn).toLocaleDateString();
     const checkOut = new Date(booking.checkOut).toLocaleDateString();
-    const nights = booking.nights || 1;
-    const cancelledAt = booking.cancelledAt ? new Date(booking.cancelledAt).toLocaleDateString() : new Date().toLocaleDateString();
+     const nights = booking.nights || 1;
+      const cancelledAt = booking.cancelledAt ? new Date(booking.cancelledAt).toLocaleDateString() : new Date().toLocaleDateString();
     const currency = 'PKR';
-    const formatCurrency = (amount) => `${currency} ${(Number(amount || 0)).toFixed(2)}`;
+     const formatCurrency = (amount) => `${currency} ${(Number(amount || 0)).toFixed(2)}`;
     
     return {
-      subject: `Booking Cancelled - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
-      html: `
+       subject: `Booking Cancelled - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
+        html: `
         <!DOCTYPE html>
-        <html>
-        <head>
+         <html>
+          <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
-            .cancellation-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545; }
+             .content { padding: 20px; background-color: #f9f9f9; }
+              .cancellation-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545; }
             .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .detail-row:last-child { border-bottom: none; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+             .detail-row:last-child { border-bottom: none; }
+              .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
             .refund-box { background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 15px 0; }
-            .refund-amount { font-size: 24px; font-weight: bold; color: #155724; }
-          </style>
+             .refund-amount { font-size: 24px; font-weight: bold; color: #155724; }
+            </style>
         </head>
-        <body>
-          <div class="container">
+         <body>
+            <div class="container">
             <div class="header">
-              <h1>Booking Cancelled</h1>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation has been cancelled</p>
+               <h1>Booking Cancelled</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation has been cancelled</p>
             </div>
-            <div class="content">
-              <p>Dear ${customer.name},</p>
+             <div class="content">
+                <p>Dear ${customer.name},</p>
               <p>We're sorry to inform you that your booking has been cancelled. Please find the cancellation details below:</p>
               
-              <div class="cancellation-details">
+                <div class="cancellation-details">
                 <h2>Booking Information</h2>
-                <div class="detail-row">
-                  <strong>Booking ID:</strong>
+                 <div class="detail-row">
+                    <strong>Booking ID:</strong>
                   <span>${booking.id || booking._id}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Hotel:</strong>
-                  <span>${hotel.name || 'Hotel'}</span>
-                </div>
+                   <span>${hotel.name || 'Hotel'}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Check-in:</strong>
-                  <span>${checkIn}</span>
+                   <strong>Check-in:</strong>
+                    <span>${checkIn}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Check-out:</strong>
+                 <div class="detail-row">
+                    <strong>Check-out:</strong>
                   <span>${checkOut}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Nights:</strong>
-                  <span>${nights}</span>
-                </div>
+                   <span>${nights}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Guests:</strong>
-                  <span>${booking.guests || 1}</span>
+                   <strong>Guests:</strong>
+                    <span>${booking.guests || 1}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Cancelled On:</strong>
+                 <div class="detail-row">
+                    <strong>Cancelled On:</strong>
                   <span>${cancelledAt}</span>
-                </div>
-                ${booking.cancellationPolicyApplied ? `
+                 </div>
+                  ${booking.cancellationPolicyApplied ? `
                 <div class="detail-row">
-                  <strong>Cancellation Policy:</strong>
-                  <span>${booking.cancellationPolicyApplied}</span>
+                   <strong>Cancellation Policy:</strong>
+                    <span>${booking.cancellationPolicyApplied}</span>
                 </div>
-                ` : ''}
-              </div>
+                 ` : ''}
+                </div>
 
-              ${refundAmount !== null && refundAmount > 0 ? `
-              <div class="refund-box">
+               ${refundAmount !== null && refundAmount > 0 ? `
+                <div class="refund-box">
                 <h3 style="margin-top: 0; color: #155724;">Refund Information</h3>
-                <p>Your refund has been processed:</p>
-                <div class="refund-amount">${formatCurrency(refundAmount)}</div>
+                 <p>Your refund has been processed:</p>
+                  <div class="refund-amount">${formatCurrency(refundAmount)}</div>
                 <p style="margin-bottom: 0; font-size: 14px; color: #666;">
-                  The refund will be processed to your original payment method within 3-5 business days.
-                </p>
+                   The refund will be processed to your original payment method within 3-5 business days.
+                  </p>
               </div>
-              ` : ''}
+               ` : ''}
               
               <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
               
-              <p>If you have any questions or would like to make a new booking, please don't hesitate to contact us.</p>
+                <p>If you have any questions or would like to make a new booking, please don't hesitate to contact us.</p>
               
-              <p>We hope to serve you again in the future.</p>
+               <p>We hope to serve you again in the future.</p>
               
               <p>Best regards,<br>The Airbnb Team</p>
-            </div>
-            <div class="footer">
+             </div>
+              <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
+             </div>
             </div>
-          </div>
         </body>
-        </html>
-      `,
+         </html>
+        `,
       text: `Booking Cancelled
 
 Dear ${customer.name},
@@ -437,82 +437,82 @@ We hope to serve you again in the future.
 Best regards,
 The Airbnb Team`
     };
-  },
+   },
 
   hotelSuspensionEmail: (hotel, owner, reason = '') => {
-    return {
-      subject: `Hotel Suspended - ${hotel.name || 'Your Hotel'}`,
+     return {
+        subject: `Hotel Suspended - ${hotel.name || 'Your Hotel'}`,
       html: `
-        <!DOCTYPE html>
-        <html>
+         <!DOCTYPE html>
+          <html>
         <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+           <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
+             .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
+              .content { padding: 20px; background-color: #f9f9f9; }
             .suspension-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .detail-row:last-child { border-bottom: none; }
+             .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+              .detail-row:last-child { border-bottom: none; }
             .reason-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin: 15px 0; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          </style>
+             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+            </style>
         </head>
-        <body>
-          <div class="container">
+         <body>
+            <div class="container">
             <div class="header">
-              <h1>Hotel Suspended</h1>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">Your hotel listing has been suspended</p>
+               <h1>Hotel Suspended</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px;">Your hotel listing has been suspended</p>
             </div>
-            <div class="content">
-              <p>Dear ${owner.name || 'Hotel Owner'},</p>
+             <div class="content">
+                <p>Dear ${owner.name || 'Hotel Owner'},</p>
               <p>We regret to inform you that your hotel listing has been suspended by our administration team.</p>
               
-              <div class="suspension-details">
+                <div class="suspension-details">
                 <h2>Hotel Information</h2>
-                <div class="detail-row">
-                  <strong>Hotel Name:</strong>
+                 <div class="detail-row">
+                    <strong>Hotel Name:</strong>
                   <span>${hotel.name || 'Hotel'}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Hotel ID:</strong>
-                  <span>${hotel.id || hotel._id}</span>
-                </div>
+                   <span>${hotel.id || hotel._id}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Suspension Date:</strong>
-                  <span>${new Date().toLocaleDateString()}</span>
+                   <strong>Suspension Date:</strong>
+                    <span>${new Date().toLocaleDateString()}</span>
                 </div>
-              </div>
+               </div>
               
               ${reason ? `
-              <div class="reason-box">
-                <h3 style="margin-top: 0; color: #856404;">Reason for Suspension:</h3>
+               <div class="reason-box">
+                  <h3 style="margin-top: 0; color: #856404;">Reason for Suspension:</h3>
                 <p style="margin: 0; color: #856404; white-space: pre-wrap;">${reason}</p>
-              </div>
-              ` : ''}
+               </div>
+                ` : ''}
               
-              <p><strong>What this means:</strong></p>
-              <ul>
+               <p><strong>What this means:</strong></p>
+                <ul>
                 <li>Your hotel listing is no longer visible to customers</li>
-                <li>No new bookings can be made for your hotel</li>
-                <li>Existing confirmed bookings will remain valid</li>
+                 <li>No new bookings can be made for your hotel</li>
+                  <li>Existing confirmed bookings will remain valid</li>
               </ul>
               
-              <p><strong>Next Steps:</strong></p>
+                <p><strong>Next Steps:</strong></p>
               <p>If you believe this suspension was made in error, or if you have addressed the issues mentioned above, please contact our support team to discuss reinstatement of your hotel listing.</p>
               
-              <p>We appreciate your understanding and cooperation.</p>
+                <p>We appreciate your understanding and cooperation.</p>
               
-              <p>Best regards,<br>The Airbnb Administration Team</p>
-            </div>
+               <p>Best regards,<br>The Airbnb Administration Team</p>
+              </div>
             <div class="footer">
-              <p>This is an automated email. Please do not reply.</p>
-            </div>
+               <p>This is an automated email. Please do not reply.</p>
+              </div>
           </div>
-        </body>
-        </html>
+         </body>
+          </html>
       `,
-      text: `Hotel Suspended
+       text: `Hotel Suspended
 
 Dear ${owner.name || 'Hotel Owner'},
 
@@ -536,83 +536,83 @@ We appreciate your understanding and cooperation.
 
 Best regards,
 The Airbnb Administration Team`
-    };
-  },
+     };
+    },
 
-  hotelApprovalEmail: (hotel, owner) => {
-    return {
+   hotelApprovalEmail: (hotel, owner) => {
+      return {
       subject: `Hotel Approved - ${hotel.name || 'Your Hotel'}`,
-      html: `
-        <!DOCTYPE html>
+       html: `
+          <!DOCTYPE html>
         <html>
-        <head>
-          <style>
+         <head>
+            <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #28a745; color: white; padding: 20px; text-align: center; }
+             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #28a745; color: white; padding: 20px; text-align: center; }
             .content { padding: 20px; background-color: #f9f9f9; }
-            .approval-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+             .approval-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745; }
+              .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
             .detail-row:last-child { border-bottom: none; }
-            .success-box { background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 15px 0; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+             .success-box { background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 15px 0; }
+              .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
           </style>
-        </head>
-        <body>
+         </head>
+          <body>
           <div class="container">
-            <div class="header">
-              <h1>Hotel Approved!</h1>
+             <div class="header">
+                <h1>Hotel Approved!</h1>
               <p style="margin: 10px 0 0 0; font-size: 16px;">Your hotel listing has been approved</p>
-            </div>
-            <div class="content">
+             </div>
+              <div class="content">
               <p>Dear ${owner.name || 'Hotel Owner'},</p>
-              <p>Great news! Your hotel listing has been approved by our administration team and is now live on our platform.</p>
+               <p>Great news! Your hotel listing has been approved by our administration team and is now live on our platform.</p>
               
               <div class="success-box">
-                <h3 style="margin-top: 0; color: #155724;">✓ Your hotel is now visible to customers!</h3>
-                <p style="margin: 0; color: #155724;">Customers can now view and book your hotel.</p>
+                 <h3 style="margin-top: 0; color: #155724;">✓ Your hotel is now visible to customers!</h3>
+                  <p style="margin: 0; color: #155724;">Customers can now view and book your hotel.</p>
               </div>
               
-              <div class="approval-details">
+                <div class="approval-details">
                 <h2>Hotel Information</h2>
-                <div class="detail-row">
-                  <strong>Hotel Name:</strong>
+                 <div class="detail-row">
+                    <strong>Hotel Name:</strong>
                   <span>${hotel.name || 'Hotel'}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Hotel ID:</strong>
-                  <span>${hotel.id || hotel._id}</span>
-                </div>
+                   <span>${hotel.id || hotel._id}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Approval Date:</strong>
-                  <span>${new Date().toLocaleDateString()}</span>
+                   <strong>Approval Date:</strong>
+                    <span>${new Date().toLocaleDateString()}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Location:</strong>
+                 <div class="detail-row">
+                    <strong>Location:</strong>
                   <span>${hotel.location?.city || ''}, ${hotel.location?.country || ''}</span>
+                 </div>
                 </div>
-              </div>
               
-              <p><strong>What's next?</strong></p>
-              <ul>
+               <p><strong>What's next?</strong></p>
+                <ul>
                 <li>Your hotel is now searchable and bookable by customers</li>
-                <li>You can manage bookings, reviews, and earnings from your dashboard</li>
-                <li>Make sure to keep your hotel information and availability up to date</li>
+                 <li>You can manage bookings, reviews, and earnings from your dashboard</li>
+                  <li>Make sure to keep your hotel information and availability up to date</li>
                 <li>Respond promptly to booking requests and customer inquiries</li>
-              </ul>
+               </ul>
               
               <p>We're excited to have you on our platform and look forward to helping you grow your business!</p>
               
-              <p>Best regards,<br>The Airbnb Administration Team</p>
+                <p>Best regards,<br>The Airbnb Administration Team</p>
             </div>
-            <div class="footer">
-              <p>This is an automated email. Please do not reply.</p>
+             <div class="footer">
+                <p>This is an automated email. Please do not reply.</p>
             </div>
-          </div>
-        </body>
+           </div>
+          </body>
         </html>
-      `,
-      text: `Hotel Approved!
+       `,
+        text: `Hotel Approved!
 
 Dear ${owner.name || 'Hotel Owner'},
 
@@ -636,79 +636,79 @@ We're excited to have you on our platform and look forward to helping you grow y
 
 Best regards,
 The Airbnb Administration Team`
-    };
+      };
   },
 
-  userSuspensionEmail: (user, reason = '') => {
+    userSuspensionEmail: (user, reason = '') => {
     return {
-      subject: `Account Suspended - Airbnb`,
-      html: `
+       subject: `Account Suspended - Airbnb`,
+        html: `
         <!DOCTYPE html>
-        <html>
-        <head>
+         <html>
+          <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
-            .suspension-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545; }
+             .content { padding: 20px; background-color: #f9f9f9; }
+              .suspension-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545; }
             .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .detail-row:last-child { border-bottom: none; }
-            .reason-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin: 15px 0; }
+             .detail-row:last-child { border-bottom: none; }
+              .reason-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin: 15px 0; }
             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          </style>
-        </head>
+           </style>
+          </head>
         <body>
-          <div class="container">
-            <div class="header">
+           <div class="container">
+              <div class="header">
               <h1>Account Suspended</h1>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">Your account has been suspended</p>
-            </div>
+               <p style="margin: 10px 0 0 0; font-size: 16px;">Your account has been suspended</p>
+              </div>
             <div class="content">
-              <p>Dear ${user.name || 'User'},</p>
-              <p>We regret to inform you that your account has been suspended by our administration team.</p>
+               <p>Dear ${user.name || 'User'},</p>
+                <p>We regret to inform you that your account has been suspended by our administration team.</p>
               
-              <div class="suspension-details">
-                <h2>Account Information</h2>
+               <div class="suspension-details">
+                  <h2>Account Information</h2>
                 <div class="detail-row">
-                  <strong>Account Email:</strong>
-                  <span>${user.email || 'N/A'}</span>
+                   <strong>Account Email:</strong>
+                    <span>${user.email || 'N/A'}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Suspension Date:</strong>
+                 <div class="detail-row">
+                    <strong>Suspension Date:</strong>
                   <span>${new Date().toLocaleDateString()}</span>
+                 </div>
                 </div>
-              </div>
               
-              ${reason ? `
-              <div class="reason-box">
+               ${reason ? `
+                <div class="reason-box">
                 <h3 style="margin-top: 0; color: #856404;">Reason for Suspension:</h3>
-                <p style="margin: 0; color: #856404; white-space: pre-wrap;">${reason}</p>
-              </div>
+                 <p style="margin: 0; color: #856404; white-space: pre-wrap;">${reason}</p>
+                </div>
               ` : ''}
               
-              <p><strong>What this means:</strong></p>
+                <p><strong>What this means:</strong></p>
               <ul>
-                <li>You will not be able to log in to your account</li>
-                <li>You cannot make new bookings</li>
+                 <li>You will not be able to log in to your account</li>
+                  <li>You cannot make new bookings</li>
                 <li>You cannot create or manage hotel listings</li>
-                <li>Existing confirmed bookings may be affected</li>
-              </ul>
+                 <li>Existing confirmed bookings may be affected</li>
+                </ul>
               
-              <p><strong>Next Steps:</strong></p>
-              <p>If you believe this suspension was made in error, or if you have addressed the issues mentioned above, please contact our support team to discuss reinstatement of your account.</p>
+               <p><strong>Next Steps:</strong></p>
+                <p>If you believe this suspension was made in error, or if you have addressed the issues mentioned above, please contact our support team to discuss reinstatement of your account.</p>
               
-              <p>We appreciate your understanding and cooperation.</p>
+               <p>We appreciate your understanding and cooperation.</p>
               
               <p>Best regards,<br>The Airbnb Administration Team</p>
-            </div>
-            <div class="footer">
+             </div>
+              <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
+             </div>
             </div>
-          </div>
         </body>
-        </html>
-      `,
+         </html>
+        `,
       text: `Account Suspended
 
 Dear ${user.name || 'User'},
@@ -734,101 +734,101 @@ We appreciate your understanding and cooperation.
 Best regards,
 The Airbnb Administration Team`
     };
-  },
+   },
 
   accountCreatedEmail: (user, role) => {
-    const roleDisplayName = role === 'hotel' ? 'Hotel Owner' : role === 'customer' ? 'Customer' : role.charAt(0).toUpperCase() + role.slice(1);
-    const welcomeMessage = role === 'hotel' 
+     const roleDisplayName = role === 'hotel' ? 'Hotel Owner' : role === 'customer' ? 'Customer' : role.charAt(0).toUpperCase() + role.slice(1);
+      const welcomeMessage = role === 'hotel' 
       ? 'Welcome to Airbnb! We\'re excited to have you as a host. You can now start creating and managing your hotel listings.'
-      : 'Welcome to Airbnb! We\'re excited to have you join our community. Start exploring amazing places to stay!';
+       : 'Welcome to Airbnb! We\'re excited to have you join our community. Start exploring amazing places to stay!';
     
     const nextSteps = role === 'hotel'
-      ? [
-          'Complete your profile',
+       ? [
+            'Complete your profile',
           'Create your first hotel listing',
-          'Set up your pricing and availability',
-          'Start receiving bookings from travelers'
+           'Set up your pricing and availability',
+            'Start receiving bookings from travelers'
         ]
-      : [
-          'Complete your profile',
+       : [
+            'Complete your profile',
           'Browse amazing hotels and accommodations',
-          'Book your first stay',
-          'Share your experiences with reviews'
+           'Book your first stay',
+            'Share your experiences with reviews'
         ];
 
-    return {
+      return {
       subject: `Welcome to Airbnb - Your Account Has Been Created!`,
-      html: `
-        <!DOCTYPE html>
+       html: `
+          <!DOCTYPE html>
         <html>
-        <head>
-          <style>
+         <head>
+            <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF385C; color: white; padding: 20px; text-align: center; }
+             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #FF385C; color: white; padding: 20px; text-align: center; }
             .content { padding: 20px; background-color: #f9f9f9; }
-            .account-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF385C; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+             .account-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF385C; }
+              .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
             .detail-row:last-child { border-bottom: none; }
-            .next-steps { background-color: #e8f5e9; padding: 15px; margin: 20px 0; border-radius: 5px; }
-            .next-steps ul { margin: 10px 0; padding-left: 20px; }
+             .next-steps { background-color: #e8f5e9; padding: 15px; margin: 20px 0; border-radius: 5px; }
+              .next-steps ul { margin: 10px 0; padding-left: 20px; }
             .next-steps li { margin: 8px 0; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .button { display: inline-block; padding: 12px 24px; background-color: #FF385C; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+              .button { display: inline-block; padding: 12px 24px; background-color: #FF385C; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
           </style>
-        </head>
-        <body>
+         </head>
+          <body>
           <div class="container">
-            <div class="header">
-              <h1>🎉 Welcome to Airbnb!</h1>
+             <div class="header">
+                <h1>🎉 Welcome to Airbnb!</h1>
               <p style="margin: 10px 0 0 0; font-size: 16px;">Your account has been successfully created</p>
-            </div>
-            <div class="content">
+             </div>
+              <div class="content">
               <p>Dear ${user.name || 'User'},</p>
-              <p style="font-size: 16px; color: #28a745; font-weight: bold;">✅ Your account has been successfully created!</p>
-              <p>${welcomeMessage}</p>
+               <p style="font-size: 16px; color: #28a745; font-weight: bold;">✅ Your account has been successfully created!</p>
+                <p>${welcomeMessage}</p>
               
-              <div class="account-details">
-                <h2>Account Information</h2>
+               <div class="account-details">
+                  <h2>Account Information</h2>
                 <div class="detail-row">
-                  <strong>Name:</strong>
-                  <span>${user.name || 'N/A'}</span>
+                   <strong>Name:</strong>
+                    <span>${user.name || 'N/A'}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Email:</strong>
+                 <div class="detail-row">
+                    <strong>Email:</strong>
                   <span>${user.email || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Account Type:</strong>
-                  <span>${roleDisplayName}</span>
-                </div>
+                   <span>${roleDisplayName}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Account Created:</strong>
-                  <span>${new Date().toLocaleDateString()}</span>
+                   <strong>Account Created:</strong>
+                    <span>${new Date().toLocaleDateString()}</span>
                 </div>
-              </div>
+               </div>
               
               <div class="next-steps">
-                <h3 style="margin-top: 0; color: #2e7d32;">Next Steps:</h3>
-                <ul>
+                 <h3 style="margin-top: 0; color: #2e7d32;">Next Steps:</h3>
+                  <ul>
                   ${nextSteps.map(step => `<li>${step}</li>`).join('')}
-                </ul>
-              </div>
+                 </ul>
+                </div>
               
-              <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+               <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
               
               <p>We're thrilled to have you on board!</p>
               
-              <p>Best regards,<br>The Airbnb Team</p>
+                <p>Best regards,<br>The Airbnb Team</p>
             </div>
-            <div class="footer">
-              <p>This is an automated email. Please do not reply.</p>
+             <div class="footer">
+                <p>This is an automated email. Please do not reply.</p>
             </div>
-          </div>
-        </body>
+           </div>
+          </body>
         </html>
-      `,
-      text: `Welcome to Airbnb!
+       `,
+        text: `Welcome to Airbnb!
 
 Dear ${user.name || 'User'},
 
@@ -851,146 +851,146 @@ We're thrilled to have you on board!
 
 Best regards,
 The Airbnb Team`
-    };
-  },
+     };
+    },
 
-  rescheduleEmail: (booking, hotel, customer, oldCheckIn, oldCheckOut, oldNights) => {
-    const newCheckIn = new Date(booking.checkIn).toLocaleDateString();
+   rescheduleEmail: (booking, hotel, customer, oldCheckIn, oldCheckOut, oldNights) => {
+      const newCheckIn = new Date(booking.checkIn).toLocaleDateString();
     const newCheckOut = new Date(booking.checkOut).toLocaleDateString();
-    const newNights = booking.nights || 1;
-    const oldCheckInStr = new Date(oldCheckIn).toLocaleDateString();
+     const newNights = booking.nights || 1;
+      const oldCheckInStr = new Date(oldCheckIn).toLocaleDateString();
     const oldCheckOutStr = new Date(oldCheckOut).toLocaleDateString();
     
-    return {
+      return {
       subject: `Booking Rescheduled - ${hotel.name || 'Hotel'} (${booking.id || booking._id})`,
-      html: `
-        <!DOCTYPE html>
+       html: `
+          <!DOCTYPE html>
         <html>
-        <head>
-          <style>
+         <head>
+            <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF9800; color: white; padding: 20px; text-align: center; }
+             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #FF9800; color: white; padding: 20px; text-align: center; }
             .content { padding: 20px; background-color: #f9f9f9; }
-            .reschedule-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF9800; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+             .reschedule-details { background-color: white; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #FF9800; }
+              .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
             .detail-row:last-child { border-bottom: none; }
-            .change-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin: 15px 0; }
-            .old-dates { color: #856404; text-decoration: line-through; }
+             .change-box { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin: 15px 0; }
+              .old-dates { color: #856404; text-decoration: line-through; }
             .new-dates { color: #155724; font-weight: bold; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-            .price-breakdown { margin: 15px 0; }
+             .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+              .price-breakdown { margin: 15px 0; }
             .price-item { display: flex; justify-content: space-between; padding: 5px 0; }
-          </style>
-        </head>
+           </style>
+          </head>
         <body>
-          <div class="container">
-            <div class="header">
+           <div class="container">
+              <div class="header">
               <h1>📅 Booking Rescheduled</h1>
-              <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation dates have been updated</p>
-            </div>
+               <p style="margin: 10px 0 0 0; font-size: 16px;">Your reservation dates have been updated</p>
+              </div>
             <div class="content">
-              <p>Dear ${customer.name || 'Customer'},</p>
-              <p style="font-size: 16px; color: #FF9800; font-weight: bold;">✅ Your booking has been successfully rescheduled!</p>
+               <p>Dear ${customer.name || 'Customer'},</p>
+                <p style="font-size: 16px; color: #FF9800; font-weight: bold;">✅ Your booking has been successfully rescheduled!</p>
               <p>Your booking dates have been updated. Please find the details below:</p>
               
-              <div class="change-box">
+                <div class="change-box">
                 <h3 style="margin-top: 0; color: #856404;">Date Changes:</h3>
-                <p style="margin: 5px 0;"><strong>Previous Dates:</strong> <span class="old-dates">${oldCheckInStr} to ${oldCheckOutStr} (${oldNights} ${oldNights === 1 ? 'night' : 'nights'})</span></p>
-                <p style="margin: 5px 0;"><strong>New Dates:</strong> <span class="new-dates">${newCheckIn} to ${newCheckOut} (${newNights} ${newNights === 1 ? 'night' : 'nights'})</span></p>
+                 <p style="margin: 5px 0;"><strong>Previous Dates:</strong> <span class="old-dates">${oldCheckInStr} to ${oldCheckOutStr} (${oldNights} ${oldNights === 1 ? 'night' : 'nights'})</span></p>
+                  <p style="margin: 5px 0;"><strong>New Dates:</strong> <span class="new-dates">${newCheckIn} to ${newCheckOut} (${newNights} ${newNights === 1 ? 'night' : 'nights'})</span></p>
               </div>
               
-              <div class="reschedule-details">
+                <div class="reschedule-details">
                 <h2>Updated Booking Information</h2>
-                <div class="detail-row">
-                  <strong>Booking ID:</strong>
+                 <div class="detail-row">
+                    <strong>Booking ID:</strong>
                   <span>${booking.id || booking._id}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Hotel:</strong>
-                  <span>${hotel.name || 'Hotel'}</span>
-                </div>
+                   <span>${hotel.name || 'Hotel'}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Check-in:</strong>
-                  <span>${newCheckIn}</span>
+                   <strong>Check-in:</strong>
+                    <span>${newCheckIn}</span>
                 </div>
-                <div class="detail-row">
-                  <strong>Check-out:</strong>
+                 <div class="detail-row">
+                    <strong>Check-out:</strong>
                   <span>${newCheckOut}</span>
-                </div>
-                <div class="detail-row">
+                 </div>
+                  <div class="detail-row">
                   <strong>Nights:</strong>
-                  <span>${newNights} ${newNights === 1 ? 'night' : 'nights'}</span>
-                </div>
+                   <span>${newNights} ${newNights === 1 ? 'night' : 'nights'}</span>
+                  </div>
                 <div class="detail-row">
-                  <strong>Guests:</strong>
-                  <span>${booking.guests || 1} ${booking.guests === 1 ? 'guest' : 'guests'}</span>
+                   <strong>Guests:</strong>
+                    <span>${booking.guests || 1} ${booking.guests === 1 ? 'guest' : 'guests'}</span>
                 </div>
                 
-                ${booking.priceSnapshot ? `
+                  ${booking.priceSnapshot ? `
                 <h3 style="margin-top: 20px;">Updated Price Breakdown</h3>
-                <div class="price-breakdown">
-                  <div class="price-item">
+                 <div class="price-breakdown">
+                    <div class="price-item">
                     <span>Base Price (${newNights} nights):</span>
-                    <span>PKR ${(booking.priceSnapshot.basePriceTotal || 0).toFixed(2)}</span>
-                  </div>
+                     <span>PKR ${(booking.priceSnapshot.basePriceTotal || 0).toFixed(2)}</span>
+                    </div>
                   ${booking.priceSnapshot.cleaningFee > 0 ? `
-                  <div class="price-item">
-                    <span>Cleaning Fee:</span>
+                   <div class="price-item">
+                      <span>Cleaning Fee:</span>
                     <span>PKR ${(booking.priceSnapshot.cleaningFee || 0).toFixed(2)}</span>
-                  </div>
-                  ` : ''}
+                   </div>
+                    ` : ''}
                   ${booking.priceSnapshot.serviceFee > 0 ? `
-                  <div class="price-item">
-                    <span>Service Fee:</span>
+                   <div class="price-item">
+                      <span>Service Fee:</span>
                     <span>PKR ${(booking.priceSnapshot.serviceFee || 0).toFixed(2)}</span>
-                  </div>
-                  ` : ''}
+                   </div>
+                    ` : ''}
                   <div class="price-item">
-                    <span>Subtotal:</span>
-                    <span>PKR ${(booking.priceSnapshot.subtotal || 0).toFixed(2)}</span>
+                     <span>Subtotal:</span>
+                      <span>PKR ${(booking.priceSnapshot.subtotal || 0).toFixed(2)}</span>
                   </div>
-                  ${booking.priceSnapshot.discounts > 0 ? `
-                  <div class="price-item">
+                   ${booking.priceSnapshot.discounts > 0 ? `
+                    <div class="price-item">
                     <span>Discount:</span>
-                    <span>-PKR ${(booking.priceSnapshot.discounts || 0).toFixed(2)}</span>
-                  </div>
+                     <span>-PKR ${(booking.priceSnapshot.discounts || 0).toFixed(2)}</span>
+                    </div>
                   ` : ''}
-                  <div class="price-item" style="font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px;">
-                    <span>Total:</span>
+                   <div class="price-item" style="font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px;">
+                      <span>Total:</span>
                     <span>PKR ${(booking.priceSnapshot.totalPrice || booking.totalPrice || 0).toFixed(2)}</span>
+                   </div>
                   </div>
-                </div>
                 ` : `
-                <div class="detail-row">
-                  <strong>Total Price:</strong>
+                 <div class="detail-row">
+                    <strong>Total Price:</strong>
                   <span>PKR ${(booking.totalPrice || 0).toFixed(2)}</span>
-                </div>
-                `}
+                 </div>
+                  `}
               </div>
               
-              <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
+                <p><strong>Hotel Address:</strong><br>${hotel.location?.address || ''}, ${hotel.location?.city || ''}, ${hotel.location?.country || ''}</p>
               
-              <p><strong>Important Notes:</strong></p>
-              <ul>
+               <p><strong>Important Notes:</strong></p>
+                <ul>
                 <li>Your booking has been updated with the new dates</li>
-                ${booking.invoicePath ? '<li>A new invoice has been generated with the updated dates and pricing</li>' : ''}
-                <li>Please make a note of your new check-in and check-out dates</li>
+                 ${booking.invoicePath ? '<li>A new invoice has been generated with the updated dates and pricing</li>' : ''}
+                  <li>Please make a note of your new check-in and check-out dates</li>
                 <li>If you have any questions, please contact our support team</li>
-              </ul>
+               </ul>
               
               <p>We look forward to hosting you on your new dates!</p>
               
-              <p>Best regards,<br>The Airbnb Team</p>
+                <p>Best regards,<br>The Airbnb Team</p>
             </div>
-            <div class="footer">
-              <p>This is an automated email. Please do not reply.</p>
+             <div class="footer">
+                <p>This is an automated email. Please do not reply.</p>
             </div>
-          </div>
-        </body>
+           </div>
+          </body>
         </html>
-      `,
-      text: `Booking Rescheduled
+       `,
+        text: `Booking Rescheduled
 
 Dear ${customer.name || 'Customer'},
 
@@ -1020,11 +1020,11 @@ We look forward to hosting you on your new dates!
 
 Best regards,
 The Airbnb Team`
-    };
+      };
   }
 };
 
 module.exports = {
-  sendEmail,
-  emailTemplates
+   sendEmail,
+    emailTemplates
 };

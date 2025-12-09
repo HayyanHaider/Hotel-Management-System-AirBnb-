@@ -1,30 +1,30 @@
 class BaseEntity {
-  constructor(entityData = {}) {
-    const rawId = entityData._id || entityData.id;
+   constructor(entityData = {}) {
+      const rawId = entityData._id || entityData.id;
     this._id = rawId;
-    this.id = rawId;
-    this.createdAt = entityData.createdAt || new Date();
+     this.id = rawId;
+      this.createdAt = entityData.createdAt || new Date();
     this.updatedAt = entityData.updatedAt || new Date();
-  }
+   }
 
   touch() {
-    this.updatedAt = new Date();
-  }
+     this.updatedAt = new Date();
+    }
 
-  toJSON() {
-    return {
+   toJSON() {
+      return {
       id: this.id,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+       createdAt: this.createdAt,
+        updatedAt: this.updatedAt
     };
-  }
+   }
 
   clone(overrides = {}) {
-    return new this.constructor({
-      ...this.toJSON(),
+     return new this.constructor({
+        ...this.toJSON(),
       ...overrides
-    });
-  }
+     });
+    }
 }
 
 module.exports = BaseEntity;

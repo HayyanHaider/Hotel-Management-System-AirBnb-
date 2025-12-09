@@ -8,214 +8,214 @@ const Admin = require('../classes/Admin');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 class AuthController extends BaseController {
-  constructor() {
-    super();
+   constructor() {
+      super();
     this.authService = AuthenticationService;
-    this.userRepository = UserRepository;
-  }
-
-  createUserInstance(userData) {
-    switch (userData.role) {
-      case 'customer':
-        return new Customer(userData);
-      case 'hotel':
-        return new HotelOwner(userData);
-      case 'admin':
-        return new Admin(userData);
-      default:
-        return new Customer(userData);
+     this.userRepository = UserRepository;
     }
+
+   createUserInstance(userData) {
+      switch (userData.role) {
+      case 'customer':
+         return new Customer(userData);
+        case 'hotel':
+        return new HotelOwner(userData);
+       case 'admin':
+          return new Admin(userData);
+      default:
+         return new Customer(userData);
+      }
   }
 
-  signup = async (req, res) => {
+    signup = async (req, res) => {
     try {
-      const { name, email, password, phone, role } = req.body;
+       const { name, email, password, phone, role } = req.body;
 
       if (!name || !email || !password) {
-        return this.fail(res, 400, 'Name, email, and password are required');
+         return this.fail(res, 400, 'Name, email, and password are required');
+        }
+
+       if (password.length < 6) {
+          return this.fail(res, 400, 'Password must be at least 6 characters long');
       }
 
-      if (password.length < 6) {
-        return this.fail(res, 400, 'Password must be at least 6 characters long');
-      }
-
-      const validRoles = ['customer', 'hotel', 'admin'];
+        const validRoles = ['customer', 'hotel', 'admin'];
       const userRole = role || 'customer';
-      if (!validRoles.includes(userRole)) {
-        return this.fail(res, 400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
+       if (!validRoles.includes(userRole)) {
+          return this.fail(res, 400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
       }
 
-      const trimmedName = name?.trim() || '';
+        const trimmedName = name?.trim() || '';
       const trimmedEmail = email?.trim().toLowerCase() || '';
-      const trimmedPhone = phone?.trim() || '';
+       const trimmedPhone = phone?.trim() || '';
 
       if (!trimmedName || !trimmedEmail) {
-        return this.fail(res, 400, 'Name and email are required');
-      }
+         return this.fail(res, 400, 'Name and email are required');
+        }
 
-      const result = await this.authService.register({
-        name: trimmedName,
+       const result = await this.authService.register({
+          name: trimmedName,
         email: trimmedEmail,
-        password,
-        phone: trimmedPhone,
+         password,
+          phone: trimmedPhone,
         role: userRole
-      });
+       });
 
       if (result.user.role === 'customer') {
-        const CustomerModel = require('../models/customerModel');
-        const existingCustomer = await CustomerModel.findOne({ user: result.user.id });
+         const CustomerModel = require('../models/customerModel');
+          const existingCustomer = await CustomerModel.findOne({ user: result.user.id });
         if (!existingCustomer) {
-          await CustomerModel.create({
-            user: result.user.id,
+           await CustomerModel.create({
+              user: result.user.id,
             loyaltyPoints: 0,
-            bookingHistory: [],
-            reviewsGiven: []
+             bookingHistory: [],
+              reviewsGiven: []
           });
+         }
         }
-      }
 
-      sendEmail(
-        result.user.email,
+       sendEmail(
+          result.user.email,
         emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).subject,
-        emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).html,
-        emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).text
+         emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).html,
+          emailTemplates.accountCreatedEmail({ name: result.user.name, email: result.user.email }, result.user.role).text
       ).catch(err => console.error('Email send error:', err));
 
-      return this.created(res, {
+        return this.created(res, {
         message: 'User created successfully',
-        token: result.token,
-        user: result.user
+         token: result.token,
+          user: result.user
       });
 
-    } catch (error) {
+      } catch (error) {
       console.error('Signup error:', error);
       
-      if (error.name === 'ValidationError') {
+        if (error.name === 'ValidationError') {
         const validationErrors = Object.values(error.errors).map(err => err.message);
-        return this.fail(res, 400, validationErrors.join(', '));
+         return this.fail(res, 400, validationErrors.join(', '));
+        }
+      
+       if (error.code === 11000 || error.message.includes('already exists')) {
+          return this.fail(res, 400, 'User already exists with this email');
       }
       
-      if (error.code === 11000 || error.message.includes('already exists')) {
-        return this.fail(res, 400, 'User already exists with this email');
-      }
-      
-      return this.fail(res, 500, error.message || 'Server error during signup');
+        return this.fail(res, 500, error.message || 'Server error during signup');
     }
-  };
+   };
 
   login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
+     try {
+        const { email, password } = req.body;
 
-      if (!email || !password) {
-        return this.fail(res, 400, 'Email and password are required');
+       if (!email || !password) {
+          return this.fail(res, 400, 'Email and password are required');
       }
 
-      const result = await this.authService.login(email, password);
+        const result = await this.authService.login(email, password);
 
-      return this.ok(res, {
-        message: 'Login successful',
+       return this.ok(res, {
+          message: 'Login successful',
         token: result.token,
-        user: result.user
-      });
+         user: result.user
+        });
 
-    } catch (error) {
-      console.error('Login error:', error);
+     } catch (error) {
+        console.error('Login error:', error);
       const status = error.message.includes('Invalid') || error.message.includes('suspended') ? 401 : 500;
-      return this.fail(res, status, error.message || 'Server error during login');
-    }
+       return this.fail(res, status, error.message || 'Server error during login');
+      }
   };
 
-  getProfile = async (req, res) => {
+    getProfile = async (req, res) => {
     try {
-      const userData = await this.userRepository.findById(req.user.userId);
+       const userData = await this.userRepository.findById(req.user.userId);
       
       if (!userData) {
-        return this.fail(res, 404, 'User not found');
-      }
+         return this.fail(res, 404, 'User not found');
+        }
 
-      const userInstance = this.createUserInstance(userData);
+       const userInstance = this.createUserInstance(userData);
 
       return this.ok(res, {
-        user: userInstance.getPublicInfo()
-      });
+         user: userInstance.getPublicInfo()
+        });
 
-    } catch (error) {
-      console.error('Get profile error:', error);
+     } catch (error) {
+        console.error('Get profile error:', error);
       return this.fail(res, 500, 'Server error while fetching profile');
-    }
-  };
+     }
+    };
 
-  verifyTokenController = async (req, res) => {
-    try {
+   verifyTokenController = async (req, res) => {
+      try {
       const userData = await this.userRepository.findById(req.user.userId);
       
-      if (!userData) {
+        if (!userData) {
         return this.fail(res, 404, 'User not found');
-      }
+       }
 
       if (userData.isSuspended) {
-        return this.fail(res, 403, 'Account is suspended');
-      }
+         return this.fail(res, 403, 'Account is suspended');
+        }
 
-      const userInstance = this.createUserInstance(userData);
+       const userInstance = this.createUserInstance(userData);
 
       return this.ok(res, {
-        valid: true,
-        user: userInstance.getPublicInfo()
+         valid: true,
+          user: userInstance.getPublicInfo()
       });
 
-    } catch (error) {
+      } catch (error) {
       console.error('Verify token error:', error);
-      return this.fail(res, 500, 'Server error while verifying token');
-    }
+       return this.fail(res, 500, 'Server error while verifying token');
+      }
   };
 
-  updateProfile = async (req, res) => {
+    updateProfile = async (req, res) => {
     try {
-      const { name, phone } = req.body;
-      const userId = req.user.userId;
+       const { name, phone } = req.body;
+        const userId = req.user.userId;
 
-      const userData = await this.userRepository.findById(userId);
+       const userData = await this.userRepository.findById(userId);
       
       if (!userData) {
-        return this.fail(res, 404, 'User not found');
-      }
-
-      const updates = {};
-      if (name !== undefined) {
-        const trimmedName = name.trim();
-        if (trimmedName.length < 2) {
-          return this.fail(res, 400, 'Name must be at least 2 characters long');
+         return this.fail(res, 404, 'User not found');
         }
-        updates.name = trimmedName;
+
+       const updates = {};
+        if (name !== undefined) {
+        const trimmedName = name.trim();
+         if (trimmedName.length < 2) {
+            return this.fail(res, 400, 'Name must be at least 2 characters long');
+        }
+         updates.name = trimmedName;
+        }
+
+       if (phone !== undefined) {
+          updates.phone = phone.trim();
       }
 
-      if (phone !== undefined) {
-        updates.phone = phone.trim();
-      }
-
-      const updatedUser = await this.userRepository.updateById(userId, updates);
+        const updatedUser = await this.userRepository.updateById(userId, updates);
       const userInstance = this.createUserInstance(updatedUser);
 
-      return this.ok(res, {
+        return this.ok(res, {
         message: 'Profile updated successfully',
-        user: userInstance.getPublicInfo()
-      });
+         user: userInstance.getPublicInfo()
+        });
 
-    } catch (error) {
-      console.error('Update profile error:', error);
+     } catch (error) {
+        console.error('Update profile error:', error);
       return this.fail(res, 500, 'Server error while updating profile');
-    }
-  };
+     }
+    };
 }
 
 const authController = new AuthController();
 
 module.exports = {
-  signup: authController.signup,
+    signup: authController.signup,
   login: authController.login,
-  getProfile: authController.getProfile,
-  verifyTokenController: authController.verifyTokenController,
+   getProfile: authController.getProfile,
+    verifyTokenController: authController.verifyTokenController,
   updateProfile: authController.updateProfile
 };

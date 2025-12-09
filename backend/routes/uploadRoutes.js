@@ -5,56 +5,56 @@ const { upload, uploadImage, uploadMultipleImages, deleteImage } = require('../c
 
 // Error handling middleware for multer errors (must have 4 parameters)
 const multerErrorHandler = (err, req, res, next) => {
-  if (err) {
-    console.error('Multer error:', err);
+   if (err) {
+      console.error('Multer error:', err);
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
+       return res.status(400).json({
+          success: false,
         message: 'File size too large. Maximum size is 10MB.',
-        error: err.message
-      });
+         error: err.message
+        });
     }
-    if (err.message && err.message.includes('Only image files are allowed')) {
-      return res.status(400).json({
+     if (err.message && err.message.includes('Only image files are allowed')) {
+        return res.status(400).json({
         success: false,
-        message: err.message,
-        error: err.message
+         message: err.message,
+          error: err.message
       });
-    }
-    return res.status(500).json({
+     }
+      return res.status(500).json({
       success: false,
-      message: 'Error uploading file',
-      error: err.message || 'Unknown error'
+       message: 'Error uploading file',
+        error: err.message || 'Unknown error'
     });
-  }
-  next();
+   }
+    next();
 };
 
 // Single image upload
 router.post('/image', 
-  authenticateToken, 
-  (req, res, next) => {
+   authenticateToken, 
+    (req, res, next) => {
     upload.single('image')(req, res, (err) => {
-      if (err) {
-        return multerErrorHandler(err, req, res, next);
+       if (err) {
+          return multerErrorHandler(err, req, res, next);
       }
-      next();
-    });
+       next();
+      });
   },
-  uploadImage
+   uploadImage
 );
 
 // Multiple images upload (up to 10 images)
 router.post('/images', 
   authenticateToken, 
-  (req, res, next) => {
-    upload.array('images', 10)(req, res, (err) => {
+   (req, res, next) => {
+      upload.array('images', 10)(req, res, (err) => {
       if (err) {
-        return multerErrorHandler(err, req, res, next);
-      }
+         return multerErrorHandler(err, req, res, next);
+        }
       next();
-    });
-  },
+     });
+    },
   uploadMultipleImages
 );
 

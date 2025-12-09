@@ -2,125 +2,125 @@ const BaseController = require('./BaseController');
 const CouponService = require('../services/CouponService');
 
 class CouponController extends BaseController {
-  constructor() {
-    super();
+   constructor() {
+      super();
     this.couponService = CouponService;
-  }
+   }
 
   createCoupon = async (req, res) => {
-    try {
-      const ownerId = req.user.userId;
+     try {
+        const ownerId = req.user.userId;
       const { hotelId, code, discountPercentage, validFrom, validTo, maxUses } = req.body;
 
-      if (!hotelId || !code || discountPercentage === undefined || !validFrom || !validTo) {
+        if (!hotelId || !code || discountPercentage === undefined || !validFrom || !validTo) {
         return this.fail(res, 400, 'hotelId, code, discountPercentage, validFrom, and validTo are required');
-      }
+       }
 
       const coupon = await this.couponService.createCoupon({
-        hotelId,
-        code,
+         hotelId,
+          code,
         discountPercentage,
-        validFrom: new Date(validFrom),
-        validTo: new Date(validTo),
+         validFrom: new Date(validFrom),
+          validTo: new Date(validTo),
         maxUses: maxUses || null
-      }, ownerId);
+       }, ownerId);
 
       return this.created(res, {
-        message: 'Coupon created successfully',
-        coupon
+         message: 'Coupon created successfully',
+          coupon
       });
-    } catch (error) {
-      console.error('Create coupon error:', error);
+     } catch (error) {
+        console.error('Create coupon error:', error);
       const status = error.message.includes('not found') || error.message.includes('permission') ? 404 :
-        error.message.includes('already exists') || error.message.includes('Invalid') ? 400 :
-          error.message.includes('suspended') ? 403 : 500;
+         error.message.includes('already exists') || error.message.includes('Invalid') ? 400 :
+            error.message.includes('suspended') ? 403 : 500;
       return this.fail(res, status, error.message || 'Server error while creating coupon');
-    }
-  };
+     }
+    };
 
-  getHotelCoupons = async (req, res) => {
-    try {
+   getHotelCoupons = async (req, res) => {
+      try {
       const ownerId = req.user.userId;
-      const { hotelId } = req.params;
+       const { hotelId } = req.params;
 
       const coupons = await this.couponService.getHotelCoupons(hotelId, ownerId);
 
-      return this.ok(res, {
+        return this.ok(res, {
         count: coupons.length,
-        coupons
-      });
+         coupons
+        });
     } catch (error) {
-      console.error('Get hotel coupons error:', error);
-      const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
+       console.error('Get hotel coupons error:', error);
+        const status = error.message.includes('not found') || error.message.includes('permission') ? 404 : 500;
       return this.fail(res, status, error.message || 'Server error while fetching coupons');
-    }
-  };
+     }
+    };
 
-  getCouponDetails = async (req, res) => {
-    try {
+   getCouponDetails = async (req, res) => {
+      try {
       const ownerId = req.user.userId;
-      const { couponId } = req.params;
-      const coupon = await this.couponService.getCoupon(couponId, ownerId);
+       const { couponId } = req.params;
+        const coupon = await this.couponService.getCoupon(couponId, ownerId);
       return this.ok(res, { coupon });
-    } catch (error) {
-      console.error('Get coupon details error:', error);
+     } catch (error) {
+        console.error('Get coupon details error:', error);
       return this.fail(res, 500, error.message || 'Server error while fetching coupon details');
-    }
-  };
+     }
+    };
 
-  updateCoupon = async (req, res) => {
-    try {
+   updateCoupon = async (req, res) => {
+      try {
       const ownerId = req.user.userId;
-      const { couponId } = req.params;
-      const { discountPercentage, validFrom, validTo, maxUses, isActive } = req.body;
+       const { couponId } = req.params;
+        const { discountPercentage, validFrom, validTo, maxUses, isActive } = req.body;
 
-      const updateData = {};
-      if (discountPercentage !== undefined) updateData.discountPercentage = discountPercentage;
+       const updateData = {};
+        if (discountPercentage !== undefined) updateData.discountPercentage = discountPercentage;
       if (validFrom) updateData.validFrom = new Date(validFrom);
-      if (validTo) updateData.validTo = new Date(validTo);
-      if (maxUses !== undefined) updateData.maxUses = maxUses;
+       if (validTo) updateData.validTo = new Date(validTo);
+        if (maxUses !== undefined) updateData.maxUses = maxUses;
       if (isActive !== undefined) updateData.isActive = isActive;
 
-      const coupon = await this.couponService.updateCoupon(couponId, updateData, ownerId);
+        const coupon = await this.couponService.updateCoupon(couponId, updateData, ownerId);
 
-      return this.ok(res, {
-        message: 'Coupon updated successfully',
+       return this.ok(res, {
+          message: 'Coupon updated successfully',
         coupon
-      });
-    } catch (error) {
+       });
+      } catch (error) {
       console.error('Update coupon error:', error);
-      const status = error.message.includes('not found') ? 404 :
-        error.message.includes('authorized') ? 403 : 500;
+       const status = error.message.includes('not found') ? 404 :
+          error.message.includes('authorized') ? 403 : 500;
       return this.fail(res, status, error.message || 'Server error while updating coupon');
-    }
-  };
+     }
+    };
 
-  deleteCoupon = async (req, res) => {
-    try {
+   deleteCoupon = async (req, res) => {
+      try {
       const ownerId = req.user.userId;
-      const { couponId } = req.params;
+       const { couponId } = req.params;
 
       await this.couponService.deleteCoupon(couponId, ownerId);
 
-      return this.ok(res, {
+        return this.ok(res, {
         message: 'Coupon deleted successfully'
-      });
-    } catch (error) {
+       });
+      } catch (error) {
       console.error('Delete coupon error:', error);
-      const status = error.message.includes('not found') ? 404 :
-        error.message.includes('authorized') ? 403 : 500;
+       const status = error.message.includes('not found') ? 404 :
+          error.message.includes('authorized') ? 403 : 500;
       return this.fail(res, status, error.message || 'Server error while deleting coupon');
-    }
-  };
+     }
+    };
 }
 
 const couponController = new CouponController();
 
 module.exports = {
-  createCoupon: couponController.createCoupon,
+    createCoupon: couponController.createCoupon,
   getHotelCoupons: couponController.getHotelCoupons,
-  getCouponDetails: couponController.getCouponDetails,
-  updateCoupon: couponController.updateCoupon,
+   getCouponDetails: couponController.getCouponDetails,
+    updateCoupon: couponController.updateCoupon,
   deleteCoupon: couponController.deleteCoupon
 };
 
