@@ -39,7 +39,7 @@ class ReviewController extends BaseController {
       const { hotelId } = req.params;
 
       const reviews = await this.reviewService.getHotelReviews(hotelId, {
-        populate: 'userId'
+        populate: { path: 'userId', select: 'email name' }
       });
 
       const normalizedReviews = reviews.map((review) => {

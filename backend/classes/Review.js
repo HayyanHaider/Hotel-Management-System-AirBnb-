@@ -159,12 +159,15 @@ class Review extends BaseEntity {
   getPublicInfo() {
     return {
       id: this.id,
+      _id: this.id,
       rating: this.rating,
       comment: this.comment,
       replyText: this.replyText,
       repliedAt: this.repliedAt,
       hasOwnerResponse: this.hasOwnerResponse(),
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
+      userId: this.userId,
+      customer: this.userId
     };
   }
 

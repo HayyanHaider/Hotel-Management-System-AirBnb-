@@ -61,11 +61,7 @@ const ReplyToReviews = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (reviewsResponse.data.success) {
-        const pendingReviews = (reviewsResponse.data.reviews || []).filter((review) => {
-          const replyText = review.reply?.text || review.replyText;
-          return !replyText;
-        });
-        setReviews(pendingReviews);
+        setReviews(reviewsResponse.data.reviews || []);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
@@ -155,7 +151,7 @@ const ReplyToReviews = () => {
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <h5>{review.userId?.name || review.customer?.name || 'Guest'}</h5>
+                        <h5>{review.userId?.email || review.customer?.email || 'Guest'}</h5>
                         <p className="text-warning">⭐ {review.rating}/5</p>
                         <p>{review.comment || 'No comment'}</p>
                         <p className="text-muted small">

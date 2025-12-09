@@ -93,6 +93,9 @@ const CreateBooking = () => {
         setIsAvailable(true);
       } else {
         setIsAvailable(false);
+        if (checkIn && checkOut) {
+          toast.error('Hotel is fully booked for these dates/guests. Please adjust and try again.');
+        }
       }
       setAvailabilityChecked(true);
     } catch (error) {
@@ -115,8 +118,8 @@ const CreateBooking = () => {
       return;
     }
 
-    if (!isAvailable) {
-      toast.error('Hotel is not available for the selected dates and number of guests. Please select different dates or reduce the number of guests.');
+    if (!isAvailable || !availabilityChecked) {
+      toast.error('Hotel is fully booked or unavailable for those dates/guests. Please pick different dates or reduce guests.');
       return;
     }
 
@@ -163,7 +166,7 @@ const CreateBooking = () => {
           navigate('/booking-history');
         }
       } else {
-        toast.error('Failed to create booking. Please try again.');
+        toast.error(response.data.message || 'Failed to create booking. Please try again.');
       }
     } catch (error) {
       console.error('Error creating booking:', error);

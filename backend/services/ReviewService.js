@@ -106,7 +106,7 @@ class ReviewService extends BaseService {
 
       const reviews = await this.reviewRepository.findByHotel(hotelId, {
         sort: { createdAt: -1 },
-        populate: 'userId',
+        populate: { path: 'userId', select: 'email name' },
         ...options
       });
 
@@ -114,7 +114,12 @@ class ReviewService extends BaseService {
 
       return filteredReviews.map(review => {
         const reviewInstance = new Review(review);
-        return reviewInstance.getPublicInfo();
+        const publicInfo = reviewInstance.getPublicInfo();
+        if (review.userId && typeof review.userId === 'object') {
+          publicInfo.userId = review.userId;
+          publicInfo.customer = review.userId;
+        }
+        return publicInfo;
       });
     } catch (error) {
       this.handleError(error, 'Failed to fetch hotel reviews');

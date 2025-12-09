@@ -37,8 +37,7 @@ class EarningsService extends BaseService {
   }
 
   #calculateNetEarnings(grossAmount, commissionRate = 0.10) {
-    const commission = grossAmount * commissionRate;
-    return grossAmount - commission;
+    return grossAmount;
   }
 
   async getEarningsDashboard(ownerId, period = 'month') {
@@ -68,69 +67,57 @@ class EarningsService extends BaseService {
       // Get all bookings for owner's hotels
       const allBookings = await this.bookingRepository.find({
         hotelId: { $in: hotelIds },
-        status: { $in: ['confirmed', 'checked-in', 'checked-out', 'completed'] }
+        status: { $in: ['checked-in', 'checked-out', 'completed'] }
       });
 
-      // Get all payments for these bookings
-      const bookingIds = allBookings.map(b => b._id);
-      const payments = await this.paymentRepository.findCompleted({
-        bookingId: { $in: bookingIds }
-      });
-
-      // Calculate total earnings (all time)
-      const totalEarnings = payments.reduce((sum, payment) => {
-        const booking = allBookings.find(b => String(b._id) === String(payment.bookingId));
+      const totalEarnings = allBookings.reduce((sum, booking) => {
         if (booking && booking.hotelId) {
           const hotelIdStr = booking.hotelId._id ? String(booking.hotelId._id) : String(booking.hotelId);
           const hotel = hotels.find(h => String(h._id) === hotelIdStr);
           const commissionRate = hotel ? (hotel.commissionRate || 0.10) : 0.10;
-          return sum + this.#calculateNetEarnings(payment.amount || 0, commissionRate);
+          const discountedTotal = booking.priceSnapshot?.totalPrice || booking.totalPrice || 0;
+          return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
         }
         return sum;
       }, 0);
 
-      // Calculate period earnings
-      const periodPayments = payments.filter(payment => {
-        const paymentDate = new Date(payment.processedAt || payment.createdAt);
-        return paymentDate >= startDate;
+      const periodBookings = allBookings.filter(booking => {
+        const checkInDate = booking.checkedInAt ? new Date(booking.checkedInAt) : new Date(booking.updatedAt);
+        return checkInDate >= startDate;
       });
 
-      const periodEarnings = periodPayments.reduce((sum, payment) => {
-        const booking = allBookings.find(b => String(b._id) === String(payment.bookingId));
+      const periodEarnings = periodBookings.reduce((sum, booking) => {
         if (booking && booking.hotelId) {
           const hotelIdStr = booking.hotelId._id ? String(booking.hotelId._id) : String(booking.hotelId);
           const hotel = hotels.find(h => String(h._id) === hotelIdStr);
           const commissionRate = hotel ? (hotel.commissionRate || 0.10) : 0.10;
-          return sum + this.#calculateNetEarnings(payment.amount || 0, commissionRate);
+          const discountedTotal = booking.priceSnapshot?.totalPrice || booking.totalPrice || 0;
+          return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
         }
         return sum;
       }, 0);
 
-      // Calculate earnings per hotel
       const hotelEarnings = hotels.map(hotel => {
         const hotelBookings = allBookings.filter(b => {
           const bookingHotelId = b.hotelId?._id ? String(b.hotelId._id) : String(b.hotelId || b.hotel);
           return bookingHotelId === String(hotel._id);
         });
 
-        const hotelBookingIds = hotelBookings.map(b => b._id);
-        const hotelPayments = payments.filter(p => 
-          hotelBookingIds.some(bId => String(bId) === String(p.bookingId))
-        );
-
-        const hotelNetEarnings = hotelPayments.reduce((sum, p) => {
+        const hotelNetEarnings = hotelBookings.reduce((sum, booking) => {
           const commissionRate = hotel.commissionRate || 0.10;
-          return sum + this.#calculateNetEarnings(p.amount || 0, commissionRate);
+          const discountedTotal = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
+          return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
         }, 0);
 
-        const hotelPeriodPayments = hotelPayments.filter(p => {
-          const paymentDate = new Date(p.processedAt || p.createdAt);
-          return paymentDate >= startDate;
+        const hotelPeriodBookings = hotelBookings.filter(booking => {
+          const checkInDate = booking.checkedInAt ? new Date(booking.checkedInAt) : new Date(booking.updatedAt);
+          return checkInDate >= startDate;
         });
         
-        const hotelPeriodEarnings = hotelPeriodPayments.reduce((sum, p) => {
+        const hotelPeriodEarnings = hotelPeriodBookings.reduce((sum, booking) => {
           const commissionRate = hotel.commissionRate || 0.10;
-          return sum + this.#calculateNetEarnings(p.amount || 0, commissionRate);
+          const discountedTotal = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
+          return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
         }, 0);
 
         return {
@@ -145,12 +132,8 @@ class EarningsService extends BaseService {
         };
       });
 
-      // Calculate statistics
       const totalBookings = allBookings.length;
-      const periodBookings = allBookings.filter(b => {
-        const bookingDate = new Date(b.createdAt);
-        return bookingDate >= startDate;
-      }).length;
+      const periodBookingsCount = periodBookings.length;
 
       const averageBookingValue = totalBookings > 0 ? totalEarnings / totalBookings : 0;
 
@@ -159,7 +142,7 @@ class EarningsService extends BaseService {
         totalBookings,
         averageBookingValue: averageBookingValue.toFixed(2),
         periodEarnings: periodEarnings.toFixed(2),
-        periodBookings,
+        periodBookings: periodBookingsCount,
         period,
         hotels: hotelEarnings
       };
@@ -179,31 +162,26 @@ class EarningsService extends BaseService {
       // Calculate date range
       const startDate = this.#calculateDateRange(period);
 
-      // Get bookings for this hotel
       const bookings = await this.bookingRepository.find({
         hotelId: hotelId,
-        status: { $in: ['confirmed', 'checked-in', 'checked-out', 'completed'] }
+        status: { $in: ['checked-in', 'checked-out', 'completed'] }
       });
 
-      const bookingIds = bookings.map(b => b._id);
-      const payments = await this.paymentRepository.findCompleted({
-        bookingId: { $in: bookingIds }
-      });
-
-      // Calculate earnings
-      const totalEarnings = payments.reduce((sum, payment) => {
+      const totalEarnings = bookings.reduce((sum, booking) => {
         const commissionRate = hotel.commissionRate || 0.10;
-        return sum + this.#calculateNetEarnings(payment.amount || 0, commissionRate);
+        const discountedTotal = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
+        return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
       }, 0);
 
-      const periodPayments = payments.filter(payment => {
-        const paymentDate = new Date(payment.processedAt || payment.createdAt);
-        return paymentDate >= startDate;
+      const periodBookings = bookings.filter(booking => {
+        const checkInDate = booking.checkedInAt ? new Date(booking.checkedInAt) : new Date(booking.updatedAt);
+        return checkInDate >= startDate;
       });
 
-      const periodEarnings = periodPayments.reduce((sum, payment) => {
+      const periodEarnings = periodBookings.reduce((sum, booking) => {
         const commissionRate = hotel.commissionRate || 0.10;
-        return sum + this.#calculateNetEarnings(payment.amount || 0, commissionRate);
+        const discountedTotal = booking?.priceSnapshot?.totalPrice || booking?.totalPrice || 0;
+        return sum + this.#calculateNetEarnings(discountedTotal, commissionRate);
       }, 0);
 
       return {
@@ -212,7 +190,7 @@ class EarningsService extends BaseService {
         totalBookings: bookings.length,
         totalEarnings: totalEarnings.toFixed(2),
         periodEarnings: periodEarnings.toFixed(2),
-        periodBookings: periodPayments.length,
+        periodBookings: periodBookings.length,
         averageBookingValue: bookings.length > 0 
           ? (totalEarnings / bookings.length).toFixed(2)
           : '0.00',

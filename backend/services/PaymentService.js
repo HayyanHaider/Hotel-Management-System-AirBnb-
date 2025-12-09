@@ -239,7 +239,10 @@ class PaymentService extends BaseService {
       const customerId = customerDoc._id;
 
       const booking = await this.bookingRepository.findById(bookingId, {
-        populate: [{ path: 'hotelId', select: 'name' }]
+        populate: [
+          { path: 'hotelId', select: 'name location address' },
+          { path: 'couponId', select: 'code discountPercentage' }
+        ]
       });
 
       if (!booking) {
@@ -250,34 +253,134 @@ class PaymentService extends BaseService {
         throw new Error('Not authorized to access this invoice');
       }
 
-      if (!booking.invoiceUrl) {
-        throw new Error('Invoice not found for this booking');
+      // Check if local invoice exists and matches the booking's invoicePath
+      if (booking.invoicePath) {
+        const localPath = path.join(__dirname, '../invoices', booking.invoicePath);
+        if (fs.existsSync(localPath)) {
+          // Check if invoice file is recent (created after booking was last updated)
+          // If booking was rescheduled, the invoice should have been regenerated with new path
+          const fileStats = fs.statSync(localPath);
+          const bookingUpdated = new Date(booking.updatedAt || booking.createdAt);
+          // If invoice is older than booking update, regenerate it
+          if (fileStats.mtime < bookingUpdated) {
+            console.log('Invoice file is older than booking update, regenerating...');
+            return await this.#regenerateInvoiceForDownload(bookingId, userId, booking);
+          }
+          return localPath;
+        }
       }
 
-      // If using Cloudinary, download the invoice to a temp location
-      if (booking.invoiceUrl.includes('cloudinary.com')) {
+      // If using Cloudinary, try to download but always regenerate to ensure latest format
+      if (booking.invoiceUrl && booking.invoiceUrl.includes('cloudinary.com')) {
+        // For rescheduled bookings, always regenerate to ensure new format
+        // Check if booking was recently updated (likely rescheduled)
+        const bookingUpdated = new Date(booking.updatedAt || booking.createdAt);
+        const now = new Date();
+        const hoursSinceUpdate = (now - bookingUpdated) / (1000 * 60 * 60);
+        
+        // If booking was updated in last 24 hours, regenerate to ensure latest format
+        if (hoursSinceUpdate < 24) {
+          console.log('Booking recently updated, regenerating invoice to ensure latest format...');
+          return await this.#regenerateInvoiceForDownload(bookingId, userId, booking);
+        }
+        
+        // Otherwise try to download from Cloudinary
         const tempDir = path.join(__dirname, '../temp_invoices');
         if (!fs.existsSync(tempDir)) {
           fs.mkdirSync(tempDir, { recursive: true });
         }
         
         const tempFilePath = path.join(tempDir, `temp-invoice-${bookingId}.pdf`);
-        const buffer = await downloadInvoiceFromCloudinary(booking.invoiceUrl);
-        fs.writeFileSync(tempFilePath, buffer);
-        
-        return tempFilePath;
+        try {
+          const buffer = await downloadInvoiceFromCloudinary(booking.invoiceUrl);
+          fs.writeFileSync(tempFilePath, buffer);
+          return tempFilePath;
+        } catch (downloadErr) {
+          console.warn('Failed to download invoice from Cloudinary, regenerating invoice:', downloadErr.message);
+          return await this.#regenerateInvoiceForDownload(bookingId, userId, booking);
+        }
       }
 
-      // Legacy: Local file system path
+      // If no invoice exists, regenerate it
+      if (!booking.invoiceUrl && !booking.invoicePath) {
+        return await this.#regenerateInvoiceForDownload(bookingId, userId, booking);
+      }
+
+      // Legacy: Try local file system path
       const invoicePath = path.join(__dirname, '../invoices', booking.invoicePath || booking.invoiceUrl);
-
-      if (!fs.existsSync(invoicePath)) {
-        throw new Error('Invoice file not found');
+      if (fs.existsSync(invoicePath)) {
+        return invoicePath;
       }
+
+      // Last resort: regenerate invoice
+      return await this.#regenerateInvoiceForDownload(bookingId, userId, booking);
+    } catch (error) {
+      this.handleError(error, 'Failed to get invoice path');
+    }
+  }
+
+  async #regenerateInvoiceForDownload(bookingId, userId, booking) {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const PaymentModel = require('../models/paymentModel');
+      const payment = await PaymentModel.findOne({ bookingId: bookingId, status: 'completed' })
+        .sort({ createdAt: -1 });
+
+      const invoiceDir = path.join(__dirname, '../invoices');
+      if (!fs.existsSync(invoiceDir)) {
+        fs.mkdirSync(invoiceDir, { recursive: true });
+      }
+
+      const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;
+      const invoicePath = path.join(invoiceDir, invoiceFileName);
+
+      const invoiceData = {
+        invoiceNumber: `INV-${bookingId}-${Date.now()}`,
+        date: new Date(),
+        bookingId: bookingId,
+        customer: {
+          name: user.name || 'Customer',
+          email: user.email || '',
+          phone: user.phone || ''
+        },
+        hotel: {
+          name: booking.hotelId?.name || 'Hotel',
+          address: booking.hotelId?.location?.address || ''
+        },
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        nights: booking.nights || 1,
+        guests: booking.guests || 1,
+        basePrice: booking.priceSnapshot?.basePriceTotal || 0,
+        cleaningFee: booking.priceSnapshot?.cleaningFee || 0,
+        serviceFee: booking.priceSnapshot?.serviceFee || 0,
+        discount: booking.priceSnapshot?.discounts || 0,
+        couponCode: booking.couponId?.code || booking.priceSnapshot?.couponCode,
+        total: booking.priceSnapshot?.totalPrice || booking.totalPrice,
+        currency: 'PKR',
+        payment: payment ? {
+          method: payment.method || payment.paymentMethod || 'N/A',
+          transactionId: payment.transactionId || 'N/A',
+          date: payment.createdAt || payment.processedAt || new Date()
+        } : undefined
+      };
+
+      await generateInvoicePDF(invoiceData, invoicePath);
+      console.log('✅ Invoice regenerated for download:', invoiceFileName);
+
+      // Update booking with new invoice path
+      await this.bookingRepository.updateById(bookingId, {
+        invoicePath: invoiceFileName
+      });
 
       return invoicePath;
     } catch (error) {
-      this.handleError(error, 'Failed to get invoice path');
+      console.error('Error regenerating invoice for download:', error);
+      throw new Error('Failed to generate invoice');
     }
   }
 

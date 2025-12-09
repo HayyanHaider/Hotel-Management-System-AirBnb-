@@ -263,6 +263,43 @@ const BookingHistory = () => {
                             </div>
                           </div>
                         </div>
+                        {booking.review && (
+                          <div className="mt-3 p-3" style={{ 
+                            backgroundColor: '#f8f9fa', 
+                            borderRadius: '8px',
+                            border: '1px solid #e0e0e0'
+                          }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
+                              Your Review
+                            </div>
+                            <div className="mb-2">
+                              <span className="text-warning">⭐ {booking.review.rating}/5</span>
+                              <span style={{ fontSize: '12px', color: '#717171', marginLeft: '8px' }}>
+                                {new Date(booking.review.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '14px', color: '#222', marginBottom: '12px' }}>
+                              {booking.review.comment || 'No comment'}
+                            </p>
+                            {(booking.review.reply?.text || booking.review.replyText) && (
+                              <div className="mt-2 p-2" style={{ 
+                                backgroundColor: '#e3f2fd', 
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #2196f3'
+                              }}>
+                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1976d2', marginBottom: '4px' }}>
+                                  Hotel Owner's Reply
+                                </div>
+                                <p style={{ fontSize: '14px', color: '#222', marginBottom: '4px' }}>
+                                  {booking.review.reply?.text || booking.review.replyText}
+                                </p>
+                                <small style={{ fontSize: '12px', color: '#717171' }}>
+                                  {new Date(booking.review.reply?.repliedAt || booking.review.repliedAt).toLocaleDateString()}
+                                </small>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="col-md-4 mt-3 mt-md-0">
@@ -315,17 +352,32 @@ const BookingHistory = () => {
                           )}
                           {(booking.status === 'completed' || booking.status === 'checked-out') && (
                             <>
-                              <button
-                                className="btn btn-primary"
-                                onClick={() => handleReview(booking._id || booking.id)}
-                                style={{ 
-                                  borderRadius: '8px',
-                                  fontWeight: '500',
-                                  padding: '10px 16px'
-                                }}
-                              >
-                                Leave Review
-                              </button>
+                              {!booking.review ? (
+                                <button
+                                  className="btn btn-primary"
+                                  onClick={() => handleReview(booking._id || booking.id)}
+                                  style={{ 
+                                    borderRadius: '8px',
+                                    fontWeight: '500',
+                                    padding: '10px 16px'
+                                  }}
+                                >
+                                  Leave Review
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-outline-primary"
+                                  onClick={() => handleReview(booking._id || booking.id)}
+                                  style={{ 
+                                    borderRadius: '8px',
+                                    fontWeight: '500',
+                                    padding: '10px 16px',
+                                    borderWidth: '1.5px'
+                                  }}
+                                >
+                                  View Review
+                                </button>
+                              )}
                               {(booking.invoicePath || booking.invoiceUrl) && (
                                 <button
                                   className="btn btn-success"

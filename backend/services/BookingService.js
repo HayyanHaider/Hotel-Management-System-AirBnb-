@@ -73,11 +73,9 @@ class BookingService extends BaseService {
     const taxes = 0;
     
     let discounts = 0;
-    if (appliedCoupon) {
-      const couponInstance = new Coupon(appliedCoupon);
-      if (couponInstance.isValid()) {
-        discounts = couponInstance.calculateDiscount(subtotal);
-      }
+    if (appliedCoupon && appliedCoupon.discountPercentage) {
+      // Calculate discount directly - coupon already validated in #findAndApplyCoupon
+      discounts = subtotal * (appliedCoupon.discountPercentage / 100);
     }
     
     const totalPrice = subtotal + taxes - discounts;
@@ -93,21 +91,40 @@ class BookingService extends BaseService {
     };
   }
 
-  async #findAndApplyCoupon(hotelId) {
-    const now = new Date();
-    const availableCoupons = await this.couponRepository.findActive(
-      { hotelId },
-      { sort: { createdAt: 1 } }
-    );
+  async #findAndApplyCoupon(hotelId, couponCode = null) {
+    let couponDoc = null;
 
-    if (availableCoupons.length === 0) {
-      return null;
+    if (couponCode) {
+      // Find coupon by code
+      couponDoc = await this.couponRepository.findByCode(couponCode.toUpperCase());
+      
+      // Verify it belongs to this hotel
+      if (!couponDoc || String(couponDoc.hotelId) !== String(hotelId)) {
+        throw new Error(`Coupon code "${couponCode}" not found or not valid for this hotel`);
+      }
+    } else {
+      // If no code provided, find first available coupon for hotel
+      const now = new Date();
+      const availableCoupons = await this.couponRepository.findActive(
+        { hotelId },
+        { sort: { createdAt: 1 } }
+      );
+
+      if (availableCoupons.length === 0) {
+        return null;
+      }
+
+      couponDoc = availableCoupons[0];
+    }
+    
+    // Check if coupon has reached max uses
+    if (couponDoc.maxUses && couponDoc.currentUses >= couponDoc.maxUses) {
+      throw new Error(`Coupon code "${couponDoc.code}" has reached its maximum usage limit`);
     }
 
-    const couponDoc = availableCoupons[0];
-    
-    if (couponDoc.maxUses && couponDoc.currentUses >= couponDoc.maxUses) {
-      return null;
+    // Check if coupon is active
+    if (!couponDoc.isActive) {
+      throw new Error(`Coupon code "${couponDoc.code}" is not active`);
     }
 
     const couponData = {
@@ -122,15 +139,21 @@ class BookingService extends BaseService {
 
     const couponInstance = new Coupon(couponData);
     if (!couponInstance.isValid()) {
-      return null;
+      throw new Error(`Coupon code "${couponDoc.code}" is not valid (expired or not yet active)`);
     }
 
     await this.couponRepository.incrementUsage(couponDoc._id);
 
     return {
       id: couponDoc._id,
+      hotelId: couponDoc.hotelId,
       code: couponDoc.code,
       discountPercentage: couponDoc.discountPercentage,
+      validFrom: couponDoc.validFrom,
+      validTo: couponDoc.validTo,
+      maxUses: couponDoc.maxUses,
+      currentUses: couponDoc.currentUses,
+      isActive: couponDoc.isActive,
       discountAmount: 0
     };
   }
@@ -185,7 +208,19 @@ class BookingService extends BaseService {
         throw new Error(`Hotel is fully booked on ${availability.date}. Only ${totalRooms} room(s) available.`);
       }
 
-      const appliedCoupon = await this.#findAndApplyCoupon(bookingData.hotelId);
+      // Find and apply coupon if couponCode is provided
+      let appliedCoupon = null;
+      if (bookingData.couponCode) {
+        try {
+          appliedCoupon = await this.#findAndApplyCoupon(bookingData.hotelId, bookingData.couponCode);
+        } catch (couponError) {
+          // If coupon is invalid, continue without coupon (don't fail the booking)
+          console.warn('Coupon application failed:', couponError.message);
+        }
+      } else {
+        // Try to auto-apply first available coupon if no code provided
+        appliedCoupon = await this.#findAndApplyCoupon(bookingData.hotelId);
+      }
       
       const priceData = this.#calculatePrice(hotel, nights, appliedCoupon);
       
@@ -272,9 +307,37 @@ class BookingService extends BaseService {
         booking.hotelId !== null && booking.status !== 'pending'
       );
 
+      const ReviewRepository = require('../repositories/ReviewRepository');
+      const bookingsWithReviews = await Promise.all(
+        filteredBookings.map(async (booking) => {
+          const reviewData = await ReviewRepository.findByBooking(booking._id || booking.id);
+          let review = null;
+          if (reviewData) {
+            const populatedReview = await ReviewRepository.model.findById(reviewData._id || reviewData.id)
+              .populate('userId', 'email name')
+              .lean();
+            review = populatedReview ? {
+              _id: populatedReview._id || populatedReview.id,
+              rating: populatedReview.rating,
+              comment: populatedReview.comment,
+              reply: populatedReview.reply,
+              replyText: populatedReview.replyText,
+              repliedAt: populatedReview.repliedAt,
+              createdAt: populatedReview.createdAt,
+              userId: populatedReview.userId
+            } : null;
+          }
+          const bookingObj = booking.toObject ? booking.toObject() : booking;
+          return {
+            ...bookingObj,
+            review
+          };
+        })
+      );
+
       return {
-        count: filteredBookings.length,
-        bookings: filteredBookings
+        count: bookingsWithReviews.length,
+        bookings: bookingsWithReviews
       };
     } catch (error) {
       this.handleError(error, 'Get user bookings');
@@ -563,6 +626,19 @@ class BookingService extends BaseService {
       const invoiceDir = path.join(__dirname, '../invoices');
       if (!fs.existsSync(invoiceDir)) {
         fs.mkdirSync(invoiceDir, { recursive: true });
+      }
+
+      // Delete old invoice file if it exists
+      if (booking.invoicePath) {
+        const oldInvoicePath = path.join(invoiceDir, booking.invoicePath);
+        if (fs.existsSync(oldInvoicePath)) {
+          try {
+            fs.unlinkSync(oldInvoicePath);
+            console.log('🗑️  Deleted old invoice file:', booking.invoicePath);
+          } catch (deleteErr) {
+            console.warn('⚠️  Could not delete old invoice file:', deleteErr.message);
+          }
+        }
       }
 
       const invoiceFileName = `invoice-${bookingId}-${Date.now()}.pdf`;

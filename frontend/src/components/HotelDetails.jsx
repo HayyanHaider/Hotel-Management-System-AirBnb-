@@ -450,7 +450,7 @@ const HotelDetails = () => {
                   <div key={review._id} className="review-item">
                     <div className="review-header">
                       <div>
-                        <div className="reviewer-name">{review.userId?.name || review.customer?.name || 'Anonymous'}</div>
+                        <div className="reviewer-name">{review.userId?.email || review.customer?.email || 'Anonymous'}</div>
                         <div className="review-date">{new Date(review.createdAt).toLocaleDateString()}</div>
                       </div>
                       <div className="review-rating">
