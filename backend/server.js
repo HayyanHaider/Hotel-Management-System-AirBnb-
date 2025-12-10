@@ -27,6 +27,7 @@ const couponRoutes = require('./routes/couponRoutes');
 const earningsRoutes = require('./routes/earningsRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const geocodeRoutes = require('./routes/geocodeRoutes');
 const errorMiddleware = require('./middleware/errorMiddleware');
 const { startAutoConfirmService } = require('./utils/autoConfirmService');
 const { startAutoFlagService } = require('./utils/autoFlagService');
@@ -42,6 +43,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/earnings', earningsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/geocode', geocodeRoutes);
 
 app.use(errorMiddleware);
 

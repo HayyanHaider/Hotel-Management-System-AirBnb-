@@ -112,6 +112,28 @@ class CouponController extends BaseController {
       return this.fail(res, status, error.message || 'Server error while deleting coupon');
      }
     };
+
+  validateCoupon = async (req, res) => {
+    try {
+      const { code, hotelId } = req.query;
+
+      if (!code || !hotelId) {
+        return this.fail(res, 400, 'Coupon code and hotel ID are required');
+      }
+
+      const coupon = await this.couponService.validateCouponForBooking(code, hotelId);
+
+      return this.ok(res, {
+        message: 'Coupon is valid',
+        coupon
+      });
+    } catch (error) {
+      console.error('Validate coupon error:', error);
+      const status = error.message.includes('not found') || error.message.includes('not valid') ? 404 :
+        error.message.includes('expired') || error.message.includes('maximum') || error.message.includes('not active') ? 400 : 500;
+      return this.fail(res, status, error.message || 'Server error while validating coupon');
+    }
+  };
 }
 
 const couponController = new CouponController();
@@ -121,6 +143,7 @@ module.exports = {
   getHotelCoupons: couponController.getHotelCoupons,
    getCouponDetails: couponController.getCouponDetails,
     updateCoupon: couponController.updateCoupon,
-  deleteCoupon: couponController.deleteCoupon
+  deleteCoupon: couponController.deleteCoupon,
+  validateCoupon: couponController.validateCoupon
 };
 

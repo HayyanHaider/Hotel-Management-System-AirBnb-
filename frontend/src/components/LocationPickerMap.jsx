@@ -75,20 +75,16 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
        try {
         console.log('Geocoding address:', trimmedAddress);
          const response = await fetch(
-         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmedAddress)}&limit=1`,
-        {
-          headers: {
-           'User-Agent': 'HotelManagementApp/1.0'
-          }
-         }
+         `http://localhost:5000/api/geocode/search?address=${encodeURIComponent(trimmedAddress)}`
        );
         const data = await response.json();
-       if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-         const lng = parseFloat(data[0].lon);
+       const results = data.results || [];
+       if (results && results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+         const lng = parseFloat(results[0].lon);
         const position = [lat, lng];
         
-        console.log('Geocoding result:', { lat, lng, address: data[0].display_name });
+        console.log('Geocoding result:', { lat, lng, address: results[0].display_name });
         
         // Always update marker position when geocoding succeeds (overrides manual selection)
         setMarkerPosition(position);

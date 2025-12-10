@@ -187,36 +187,56 @@ class HotelService extends BaseService {
       if (filters.checkIn && filters.checkOut) {
          const checkInDate = new Date(filters.checkIn);
           const checkOutDate = new Date(filters.checkOut);
-        const hotelIds = filteredHotels
-           .map(h => {
-              const id = h.id;
-            return id ? (id.toString ? id.toString() : String(id)) : null;
-           })
-            .filter(Boolean);
+        
+        console.log(`[HotelService] Filtering by dates - CheckIn: ${checkInDate.toISOString()}, CheckOut: ${checkOutDate.toISOString()}`);
+         console.log(`[HotelService] Date validation - CheckIn valid: ${!isNaN(checkInDate.getTime())}, CheckOut valid: ${!isNaN(checkOutDate.getTime())}`);
+        
+        // Validate dates
+         if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+            console.log('[HotelService] Invalid dates provided, skipping date filtering');
+        } else if (checkInDate >= checkOutDate) {
+           console.log('[HotelService] CheckIn date is after or equal to CheckOut date, skipping date filtering');
+          } else {
+          const hotelIds = filteredHotels
+             .map(h => {
+                const id = h.id;
+              return id ? (id.toString ? id.toString() : String(id)) : null;
+             })
+              .filter(Boolean);
 
-         const availabilityChecks = await Promise.all(
-            hotelIds.map(async (hotelId) => {
-            const hotel = filteredHotels.find(h => {
-               const hId = h.id ? (h.id.toString ? h.id.toString() : String(h.id)) : null;
-                return hId === hotelId;
-            });
-             if (!hotel) return false;
+           const availabilityChecks = await Promise.all(
+              hotelIds.map(async (hotelId) => {
+              const hotel = filteredHotels.find(h => {
+                 const hId = h.id ? (h.id.toString ? h.id.toString() : String(h.id)) : null;
+                  return hId === hotelId;
+              });
+               if (!hotel) {
+                console.log(`[HotelService] Hotel not found for ID: ${hotelId}`);
+                 return false;
+                }
 
-            const isAvailable = await this.#isHotelAvailableForRange(
-               hotelId,
-                hotel.totalRooms,
-              checkInDate,
-               checkOutDate
-              );
+              const isAvailable = await this.#isHotelAvailableForRange(
+                 hotelId,
+                  hotel.totalRooms,
+                checkInDate,
+                 checkOutDate
+                );
 
-             return isAvailable && hotel.hasAvailableRooms(checkInDate, checkOutDate, filters.guests || 1);
-            })
-        );
+               const hasRooms = hotel.hasAvailableRooms(checkInDate, checkOutDate, filters.guests || 1);
+              
+                console.log(`[HotelService] Hotel "${hotel.name}" - Available in range: ${isAvailable}, Has rooms: ${hasRooms}, Result: ${isAvailable && hasRooms}`);
 
+               return isAvailable && hasRooms;
+              })
+          );
+
+            const beforeDateFilter = filteredHotels.length;
           filteredHotels = filteredHotels.filter((_, index) => 
-          availabilityChecks[index]
-         );
+            availabilityChecks[index]
+           );
+            console.log(`[HotelService] After date filter: ${beforeDateFilter} -> ${filteredHotels.length} hotels`);
         }
+      }
 
        if (filters.minPrice || filters.maxPrice) {
           filteredHotels = filteredHotels.filter(hotel => {

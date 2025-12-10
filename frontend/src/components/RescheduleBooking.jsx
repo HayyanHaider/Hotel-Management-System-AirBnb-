@@ -156,7 +156,7 @@ const RescheduleBooking = () => {
              className="form-control"
           value={checkOut}
            onChange={(e) => setCheckOut(e.target.value)}
-          min={checkIn || new Date().toISOString().split('T')[0]}
+          min={(checkIn && checkIn !== '') ? checkIn : new Date().toISOString().split('T')[0]}
            required
          />
         </div>

@@ -259,13 +259,26 @@ const CreateBooking = () => {
                   <button
                     className="btn btn-outline-secondary"
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!promoCode) {
                         setPromoCodeError('Please enter a promo code');
                         return;
                       }
-                      setAppliedCoupon({ code: promoCode, discountPercentage: 0 });
-                      setPromoCodeError('');
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.get(
+                          `http://localhost:5000/api/coupons/validate?code=${promoCode}&hotelId=${hotelId}`,
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        if (response.data.success) {
+                          setAppliedCoupon(response.data.coupon);
+                          setPromoCodeError('');
+                          toast.success(`Coupon "${response.data.coupon.code}" applied successfully!`);
+                        }
+                      } catch (error) {
+                        setPromoCodeError(error.response?.data?.message || 'Invalid coupon code');
+                        setAppliedCoupon(null);
+                      }
                     }}
                   >
                     Apply

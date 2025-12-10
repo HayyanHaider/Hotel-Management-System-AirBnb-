@@ -324,29 +324,45 @@ class Hotel extends BaseEntity {
     }
 
    hasAvailableRooms(checkIn, checkOut, guests) {
+      console.log(`[Hotel.hasAvailableRooms] Checking "${this.name}" - CheckIn: ${checkIn}, CheckOut: ${checkOut}, Guests: ${guests}`);
+      
       if (!this.isBookable()) {
-      return false;
+      console.log(`[Hotel.hasAvailableRooms] "${this.name}" is not bookable`);
+        return false;
      }
 
     if (this.capacity && this.capacity.guests) {
        if (this.capacity.guests < guests) {
+          console.log(`[Hotel.hasAvailableRooms] "${this.name}" - Not enough capacity (has: ${this.capacity.guests}, needs: ${guests})`);
           return false;
       }
      }
 
     if (this.totalRooms && this.totalRooms <= 0) {
-       return false;
+       console.log(`[Hotel.hasAvailableRooms] "${this.name}" - No rooms available (totalRooms: ${this.totalRooms})`);
+        return false;
       }
 
      if (!checkIn || !checkOut) {
+        console.log(`[Hotel.hasAvailableRooms] "${this.name}" - Missing dates (checkIn: ${checkIn}, checkOut: ${checkOut})`);
         return false;
     }
 
-      if (new Date(checkIn) >= new Date(checkOut)) {
-      return false;
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      
+      if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+        console.log(`[Hotel.hasAvailableRooms] "${this.name}" - Invalid date format`);
+        return false;
+      }
+
+      if (checkInDate >= checkOutDate) {
+      console.log(`[Hotel.hasAvailableRooms] "${this.name}" - CheckIn must be before CheckOut`);
+        return false;
      }
 
-    return true;
+    console.log(`[Hotel.hasAvailableRooms] "${this.name}" - All checks passed ✓`);
+      return true;
    }
 
   getPriceRange() {

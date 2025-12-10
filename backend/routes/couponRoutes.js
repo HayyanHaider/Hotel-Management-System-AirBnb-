@@ -6,8 +6,12 @@ const {
     getHotelCoupons,
   getCouponDetails,
    updateCoupon,
-    deleteCoupon
+    deleteCoupon,
+  validateCoupon
 } = require('../controllers/couponController');
+
+// Public route for customers to validate coupons
+router.get('/validate', authenticateToken, validateCoupon);
 
 // Protected routes - Hotel only
 router.post('/', authenticateToken, authorizeRoles(['hotel']), createCoupon);

@@ -106,12 +106,15 @@ class AuthController extends BaseController {
   login = async (req, res) => {
      try {
         const { email, password } = req.body;
+        console.log('Login attempt for email:', email);
 
        if (!email || !password) {
+          console.log('Missing credentials');
           return this.fail(res, 400, 'Email and password are required');
       }
 
         const result = await this.authService.login(email, password);
+        console.log('Login successful for:', email);
 
        return this.ok(res, {
           message: 'Login successful',
@@ -120,7 +123,7 @@ class AuthController extends BaseController {
         });
 
      } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login error:', error.message);
       const status = error.message.includes('Invalid') || error.message.includes('suspended') ? 401 : 500;
        return this.fail(res, status, error.message || 'Server error during login');
       }

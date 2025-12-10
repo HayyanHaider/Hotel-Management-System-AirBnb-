@@ -350,7 +350,8 @@ const ManageCoupons = () => {
    </div>
   </div>
  </div>
-))}
+ ))
+ )}
 </div>
 </div>
 </div>

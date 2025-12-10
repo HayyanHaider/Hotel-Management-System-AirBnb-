@@ -181,6 +181,46 @@ class CouponService extends BaseService {
       this.handleError(error, 'Failed to delete coupon');
      }
     }
+
+  async validateCouponForBooking(couponCode, hotelId) {
+    try {
+      if (!couponCode || !hotelId) {
+        throw new Error('Coupon code and hotel ID are required');
+      }
+
+      const couponDoc = await this.couponRepository.findByCode(couponCode.toUpperCase());
+      
+      if (!couponDoc) {
+        throw new Error('Coupon code not found');
+      }
+
+      if (String(couponDoc.hotelId) !== String(hotelId)) {
+        throw new Error('Coupon is not valid for this hotel');
+      }
+
+      if (couponDoc.maxUses && couponDoc.currentUses >= couponDoc.maxUses) {
+        throw new Error('Coupon has reached its maximum usage limit');
+      }
+
+      if (!couponDoc.isActive) {
+        throw new Error('Coupon is not active');
+      }
+
+      const couponInstance = new Coupon(couponDoc);
+      if (!couponInstance.isValid()) {
+        throw new Error('Coupon is expired or not yet active');
+      }
+
+      return {
+        code: couponDoc.code,
+        discountPercentage: couponDoc.discountPercentage,
+        validFrom: couponDoc.validFrom,
+        validTo: couponDoc.validTo
+      };
+    } catch (error) {
+      this.handleError(error, 'Failed to validate coupon');
+    }
+  }
 }
 
 module.exports = new CouponService();

@@ -460,7 +460,7 @@ const BrowseHotels = () => {
      const checkInDate = new Date(filters.checkIn)
       checkInDate.setDate(checkInDate.getDate() + 1)
     return checkInDate.toISOString().split("T")[0]
-   })
+   })()
    : new Date().toISOString().split("T")[0]
  }
  disabled={!filters.checkIn}
