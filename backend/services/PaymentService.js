@@ -44,6 +44,14 @@ class PaymentService extends BaseService {
         throw new Error('Payment already completed for this booking');
       }
 
+      const existingPendingOrProcessingPayment = await this.paymentRepository.find(
+        { bookingId: booking._id, status: { $in: ['pending', 'processing'] } }
+      );
+
+      if (existingPendingOrProcessingPayment.length > 0) {
+        throw new Error('Payment is already initiated for this booking');
+      }
+
       if (paymentData.paymentMethod === 'paypal') {
         if (!paymentData.paypalDetails?.email || !paymentData.paypalDetails?.password) {
           throw new Error('PayPal email and password are required');
@@ -113,7 +121,7 @@ class PaymentService extends BaseService {
         amount: paymentInstance.amount,
         method: paymentData.paymentMethod,
         type: paymentInstance.type,
-        status: 'completed',
+        status: paymentData.paymentMethod === 'cash_on_arrival' ? 'pending' : 'completed',
         processedAt: new Date()
       };
       
@@ -131,13 +139,15 @@ class PaymentService extends BaseService {
         confirmedAt: new Date()
       });
 
-      this.#generateAndSendInvoice(
-        paymentData.bookingId,
-        userId,
-        successfulPayment,
-        paymentData.paymentMethod,
-        paymentData.paypalDetails?.email
-      ).catch(err => console.error('Error generating invoice:', err));
+      if (paymentData.paymentMethod !== 'cash_on_arrival') {
+        this.#generateAndSendInvoice(
+          paymentData.bookingId,
+          userId,
+          successfulPayment,
+          paymentData.paymentMethod,
+          paymentData.paypalDetails?.email
+        ).catch(err => console.error('Error generating invoice:', err));
+      }
 
       return {
         payment: {
@@ -145,7 +155,7 @@ class PaymentService extends BaseService {
           transactionId: paymentResult.transactionId,
           amount: paymentInstance.amount,
           method: paymentData.paymentMethod,
-          status: 'completed'
+          status: paymentData.paymentMethod === 'cash_on_arrival' ? 'pending' : 'completed'
         },
         booking: {
           id: paymentData.bookingId,
@@ -401,6 +411,7 @@ class PaymentService extends BaseService {
       const paymentMethodLabelMap = {
         card: 'Credit/Debit Card',
         paypal: 'PayPal',
+        cash_on_arrival: 'Cash on Arrival',
         wallet: 'Wallet',
         bank_transfer: 'Bank Transfer',
       };

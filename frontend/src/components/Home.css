@@ -108,6 +108,20 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Keep single-result cards compact instead of stretching full width */
+.hotels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.hotels-grid > .hotel-card {
+  width: 100%;
+  max-width: 520px;
+  justify-self: center;
+}
+
 /* Hotel Card Image Container */
 .hotel-card-image {
   position: relative;
@@ -286,6 +300,7 @@
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   align-items: end;
+  width: 100%;
 }
 
 @media (max-width: 1200px) {
@@ -367,7 +382,7 @@
   .hotels-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 16px !important;
-    padding: 0 16px !important;
+    padding: 0 !important;
     display: grid !important;
   }
 
@@ -428,7 +443,7 @@
   .hotels-grid {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
-    padding: 0 12px !important;
+    padding: 0 !important;
   }
 
   /* Hotel Card Image - Mobile */
@@ -481,7 +496,7 @@
   }
 
   .hotels-grid {
-    padding: 8px !important;
+    padding: 0 !important;
     gap: 16px !important;
   }
 

@@ -39,7 +39,7 @@ if (hasCloudinaryConfig) {
       storage = new CloudinaryStorage({
       cloudinary: cloudinary,
        params: {
-          folder: 'airbnb/hotels', // Folder in Cloudinary
+          folder: 'BookSmart/hotels', // Folder in Cloudinary
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
          transformation: [
             { width: 1000, height: 1000, crop: 'limit' }, // Limit image size

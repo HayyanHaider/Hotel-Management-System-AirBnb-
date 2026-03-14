@@ -12,7 +12,7 @@ const ReportsSection = () => {
  const [endDate, setEndDate] = useState('');
   const [reportData, setReportData] = useState(null);
  const [loading, setLoading] = useState(false);
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = '/api';
 
  const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
 
@@ -75,7 +75,7 @@ const ReportsSection = () => {
    doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
    doc.setFont('helvetica', 'bold');
-    doc.text('Airbnb Admin Report', 14, 20);
+    doc.text('BookSmart Admin Report', 14, 20);
    
    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');

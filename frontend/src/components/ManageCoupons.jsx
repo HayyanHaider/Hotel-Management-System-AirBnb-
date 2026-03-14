@@ -36,7 +36,7 @@ const ManageCoupons = () => {
      setLoading(true);
     const token = sessionStorage.getItem('token');
 
-     const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
+     const response = await axios.get('/api/hotels/owner/my-hotels', {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -60,7 +60,7 @@ const ManageCoupons = () => {
   const fetchCoupons = async () => {
    try {
      const token = sessionStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/coupons/hotel/${selectedHotel}`, {
+      const response = await axios.get(`/api/coupons/hotel/${selectedHotel}`, {
        headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -103,7 +103,7 @@ const ManageCoupons = () => {
     
     if (editingCoupon) {
      await axios.put(
-      `http://localhost:5000/api/coupons/${editingCoupon._id || editingCoupon.id}`,
+      `/api/coupons/${editingCoupon._id || editingCoupon.id}`,
        couponData,
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -112,7 +112,7 @@ const ManageCoupons = () => {
      toast.success('Coupon updated successfully!');
     } else {
      await axios.post(
-      'http://localhost:5000/api/coupons',
+      '/api/coupons',
        couponData,
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -158,7 +158,7 @@ const ManageCoupons = () => {
 
     try {
      const token = sessionStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/coupons/${couponId}`, {
+      await axios.delete(`/api/coupons/${couponId}`, {
        headers: { Authorization: `Bearer ${token}` }
      });
     toast.success('Coupon deleted successfully!');
@@ -295,13 +295,13 @@ const ManageCoupons = () => {
       placeholder="Leave empty for unlimited"
     />
    </div>
-   <div className="d-flex gap-2">
-    <button type="submit" className="btn btn-primary">
+   <div className="d-flex gap-2 coupon-form-actions">
+    <button type="submit" className="btn btn-primary coupon-form-action-btn">
      {editingCoupon ? 'Update Coupon' : 'Create Coupon'}
     </button>
     <button
      type="button"
-      className="btn btn-secondary"
+      className="btn btn-secondary coupon-form-action-btn"
     onClick={() => {
      setShowForm(false);
       setEditingCoupon(null);

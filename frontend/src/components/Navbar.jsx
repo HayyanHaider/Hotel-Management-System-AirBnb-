@@ -1,19 +1,25 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import brandLogo from '../assets/brand.svg';
 
 const Navbar = () => {
  const [user, setUser] = useState(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
  const [hovered, setHovered] = useState(false);
+  const [hostHovered, setHostHovered] = useState(false);
   const [userHovered, setUserHovered] = useState(false);
  const navigate = useNavigate();
   const location = useLocation();
   
  const [isCompact, setIsCompact] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 992 : false);
+ const [isVerySmallScreen, setIsVerySmallScreen] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 450 : false);
 
   useEffect(() => {
-   const onResize = () => setIsCompact(window.innerWidth < 992);
+    const onResize = () => {
+     setIsCompact(window.innerWidth < 992);
+     setIsVerySmallScreen(window.innerWidth < 450);
+    };
     window.addEventListener('resize', onResize);
    return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -88,8 +94,22 @@ const Navbar = () => {
 
  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
+ const hostButtonStyle = {
+  fontSize: '14px',
+  borderRadius: '22px',
+  border: '1.5px solid #212529',
+  backgroundColor: hostHovered ? '#212529' : 'transparent',
+  color: hostHovered ? '#ffffff' : '#212529',
+  fontWeight: '500',
+  padding: '8px 18px',
+  lineHeight: '1.2',
+  whiteSpace: 'nowrap',
+  boxShadow: 'none',
+  transition: 'all 0.2s ease'
+ };
+
  return (
-   <nav className="navbar navbar-expand-lg border-bottom sticky-top">
+  <nav className="navbar navbar-expand-lg border-bottom sticky-top m-0 p-0">
     <div className="container-fluid">
      <Link
       to={
@@ -100,16 +120,23 @@ const Navbar = () => {
        className="navbar-brand d-flex align-items-center text-decoration-none"
      onClick={handleLogoClick}
      >
-      <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-       <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>
-      </svg>
+      <img
+       src={brandLogo}
+       alt="BookSmart logo"
+        width="60"
+        height="60"
+        className="brand-logo"
+       style={{ objectFit: 'contain' }}
+      />
        <span className="ms-2" style={{ 
-        color: '#FF385C', 
          fontSize: '26px', 
         fontWeight: '700',
          fontFamily: 'Circular, -apple-system, system-ui, Roboto, "Helvetica Neue", sans-serif',
         letterSpacing: '-0.02em'
-       }}>airbnb</span>
+       }}>
+        <span style={{ color: '#FF385C' }}>Book</span>
+        <span style={{ color: '#0c2569' }}>Smart</span>
+       </span>
      </Link>
 
      <div className="navbar-nav d-none d-lg-flex align-items-center ms-auto">
@@ -149,7 +176,7 @@ const Navbar = () => {
         </svg>
        </button>
 
-       <ul className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4" style={{ minWidth: "280px" }}>
+      <ul className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4 account-dropdown-menu" style={{ minWidth: "280px" }}>
         <li className="dropdown-header">
          <div className="d-flex align-items-center mb-2">
           <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style={{ width: "40px", height: "40px" }}>
@@ -211,8 +238,12 @@ const Navbar = () => {
         <>
          <button
           onClick={handleBecomeHost}
-           className="btn btn-outline-dark me-3"
-         style={{ fontSize: '14px', borderRadius: '22px' }}
+           className="btn me-3"
+         style={hostButtonStyle}
+         onMouseEnter={() => setHostHovered(true)}
+         onMouseLeave={() => setHostHovered(false)}
+         onFocus={() => setHostHovered(true)}
+         onBlur={() => setHostHovered(false)}
         >
          Become a Host
         </button>
@@ -270,7 +301,7 @@ const Navbar = () => {
     </svg>
    </button>
    <ul
-    className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4"
+    className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4 account-dropdown-menu"
      style={{ minWidth: "280px", right: 0, left: "auto", zIndex: 1080 }}
    >
     <li className="px-2 py-1 text-muted small">Signed in as <span className="fw-semibold text-dark">{user.name}</span></li>
@@ -304,42 +335,7 @@ const Navbar = () => {
      </>
     )}
     
-    {user.role === 'hotel' && (
-     <>
-      <li>
-       <Link className="dropdown-item py-2" to="/hotel-dashboard">
-        <span className="me-2">🏠</span> Dashboard
-       </Link>
-      </li>
-      <li>
-       <Link className="dropdown-item py-2" to="/manage-hotel-profile">
-        <span className="me-2">🏨</span> Manage Hotel
-       </Link>
-      </li>
-      <li>
-       <Link className="dropdown-item py-2" to="/manage-coupons">
-        <span className="me-2">🎫</span> Coupons
-       </Link>
-      </li>
-      <li>
-       <Link className="dropdown-item py-2" to="/owner-bookings">
-        <span className="me-2">📋</span> Reservations
-       </Link>
-      </li>
-      <li>
-       <Link className="dropdown-item py-2" to="/reply-reviews">
-        <span className="me-2">⭐</span> Reviews
-       </Link>
-      </li>
-      <li>
-       <Link className="dropdown-item py-2" to="/earnings-dashboard">
-        <span className="me-2">💰</span> Earnings
-       </Link>
-      </li>
-     </>
-    )}
-    
-    <li><hr className="dropdown-divider" /></li>
+    {(user.role === 'admin' || user.role === 'customer') && <li><hr className="dropdown-divider" /></li>}
      <li>
      <button className="dropdown-item py-2" onClick={handleLogout}>Logout</button>
     </li>
@@ -347,15 +343,21 @@ const Navbar = () => {
   </div>
    </>
   ) : (
-   !isAuthPage && (
-    <div className="d-flex align-items-center gap-2">
+  !isAuthPage && (
+   <div className="d-flex align-items-center gap-2 mobile-auth-actions">
+     {!isVerySmallScreen && (
      <button
       onClick={handleBecomeHost}
-       className="btn btn-outline-dark btn-sm me-2"
-     style={{ fontSize: '12px', borderRadius: '22px' }}
+     className="btn me-2 mobile-host-cta"
+     style={hostButtonStyle}
+     onMouseEnter={() => setHostHovered(true)}
+     onMouseLeave={() => setHostHovered(false)}
+     onFocus={() => setHostHovered(true)}
+     onBlur={() => setHostHovered(false)}
     >
      Become a Host
     </button>
+     )}
     <div className="dropdown">
      <button
       className="btn d-flex align-items-center"
@@ -368,7 +370,15 @@ const Navbar = () => {
       <path d="M19.14,12.936c.036-.303,.06-.612,.06-.936s-.024-.633-.072-.936l2.055-1.605c.183-.144,.231-.411,.111-.624l-1.947-3.369c-.12-.213-.372-.297-.585-.213l-2.427,.978c-.507-.393-1.059-.717-1.659-.951l-.369-2.58c-.036-.231-.231-.408-.471-.408h-3.894c-.24,0-.435,.177-.471,.408l-.369,2.58c-.6,.234-1.152,.558-1.659,.951l-2.427-.978c-.219-.084-.465,0-.585,.213l-1.947,3.369c-.12,.213-.072,.48,.111,.624l2.055,1.605c-.048,.303-.075,.612-.075,.936s.027,.633,.075,.936l-2.055,1.605c-.183,.144-.231,.411-.111,.624l1.947,3.369c.12,.213,.372,.297,.585,.213l2.427-.978c.507,.393,1.059,.717,1.659,.951l.369,2.58c.036,.231,.231,.408,.471,.408h3.894c.24,0,.435-.177,.471-.408l.369-2.58c.6-.234,1.152-.558,1.659-.951l2.427,.978c.213,.081,.465,0,.585-.213l1.947-3.369c.12-.213,.072-.48-.111-.624l-2.055-1.605Zm-7.14,2.064c-1.656,0-3-1.344-3-3s1.344-3,3-3,3,1.344,3,3-1.344,3-3,3Z"/>
      </svg>
     </button>
-    <ul className="dropdown-menu dropdown-menu-end mt-3 p-2 shadow border-0 rounded-4" style={{ minWidth: "220px", right: 0, left: "auto", zIndex: 1080 }}>
+    <ul className="dropdown-menu dropdown-menu-end mt-4 p-2 shadow border-0 rounded-4" style={{ minWidth: "220px", right: 0, left: "auto", zIndex: 1080 }}>
+     {isVerySmallScreen && (
+      <>
+       <li>
+        <button type="button" className="dropdown-item py-2 mobile-host-dropdown-item" onClick={handleBecomeHost}>Become a Host</button>
+       </li>
+       <li className="mobile-host-dropdown-item"><hr className="dropdown-divider" /></li>
+      </>
+     )}
      <li><Link className="dropdown-item py-2" to="/login">Log in</Link></li>
       <li><Link className="dropdown-item py-2" to="/signup">Sign up</Link></li>
     </ul>
@@ -378,7 +388,6 @@ const Navbar = () => {
   )}
  </div>
 
- {/* Removed 3-dot mobile toggler and slide-out mobile menu */}
     </div>
    </nav>
   );

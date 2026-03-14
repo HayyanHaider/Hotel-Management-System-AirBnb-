@@ -21,7 +21,7 @@ const LeaveReview = () => {
    try {
      setLoading(true);
     const token = sessionStorage.getItem('token');
-     const response = await axios.get(`http://localhost:5000/api/bookings/${bookingId}`, {
+     const response = await axios.get(`/api/bookings/${bookingId}`, {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -48,7 +48,7 @@ const LeaveReview = () => {
     const token = sessionStorage.getItem('token');
 
      const response = await axios.post(
-      'http://localhost:5000/api/reviews',
+      '/api/reviews',
        {
         bookingId,
        rating,

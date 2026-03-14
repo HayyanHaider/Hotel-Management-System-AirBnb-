@@ -10,9 +10,9 @@
   --color-gray-800: #1F2937;
   --color-gray-900: #111827;
   
-  /* Primary Colors (Airbnb Red) */
-  --color-airbnb-primary: #FF385C;
-  --color-airbnb-primary-dark: #E31C5D;
+  /* Primary Colors (BookSmart Red) */
+  --color-BookSmart-primary: #FF385C;
+  --color-BookSmart-primary-dark: #E31C5D;
   
   /* Purple/Blue Gradient (legacy) */
   --color-primary-500: #667eea;
@@ -173,13 +173,13 @@
 }
 
 .edit-profile-btn-submit {
-  background: var(--color-airbnb-primary);
+  background: var(--color-BookSmart-primary);
   color: white;
   border: none;
 }
 
 .edit-profile-btn-submit:hover:not(:disabled) {
-  background: var(--color-airbnb-primary-dark);
+  background: var(--color-BookSmart-primary-dark);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 56, 92, 0.25);
 }

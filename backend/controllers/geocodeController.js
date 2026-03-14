@@ -21,7 +21,7 @@ class GeocodeController extends BaseController {
           limit: 1
         },
         headers: {
-          'User-Agent': 'AirbnbClone/1.0',
+          'User-Agent': 'BookSmartClone/1.0',
           'Accept': 'application/json'
         },
         timeout: 10000
@@ -57,7 +57,7 @@ class GeocodeController extends BaseController {
           lon
         },
         headers: {
-          'User-Agent': 'AirbnbClone/1.0',
+          'User-Agent': 'BookSmartClone/1.0',
           'Accept': 'application/json'
         },
         timeout: 10000

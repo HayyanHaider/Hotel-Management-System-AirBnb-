@@ -6,9 +6,15 @@ import { toast } from "react-toastify"
 import { useHotels } from "../hooks/useHotels"
 import { useAuth } from "../hooks/useAuth"
 import UserApiService from "../services/api/UserApiService"
+import { resolveAssetUrl } from "../services/urlResolver"
 import { MapPin } from "lucide-react"
 import BrowseHotelImage from "./BrowseHotelImage.jpg.png"
 import "./Home.css"
+
+const normalizeGuests = (value) => {
+ const parsed = parseInt(value, 10)
+  return !isNaN(parsed) && parsed > 0 ? parsed : 1
+}
 
 const BrowseHotels = () => {
  const [favorites, setFavorites] = useState([])
@@ -25,11 +31,7 @@ const BrowseHotels = () => {
    location: searchParams.get("location") || "",
     checkIn: searchParams.get("checkIn") || "",
    checkOut: searchParams.get("checkOut") || "",
-    guests: (() => {
-     const guestsParam = searchParams.get("guests");
-      const parsed = parseInt(guestsParam, 10);
-     return (!isNaN(parsed) && parsed > 0) ? parsed : 1;
-    })(),
+   guests: normalizeGuests(searchParams.get("guests")),
    minPrice: searchParams.get("minPrice") || "",
     maxPrice: searchParams.get("maxPrice") || "",
    minRating: searchParams.get("minRating") || "",
@@ -72,10 +74,6 @@ const BrowseHotels = () => {
    fetchFavorites()
   }, [fetchFavorites])
 
- useEffect(() => {
-   refetch()
-  }, [filters, refetch])
-
  const toggleFavorite = async (hotelId, e) => {
    e.stopPropagation()
 
@@ -106,51 +104,62 @@ const BrowseHotels = () => {
    return favorites.includes(String(hotelId))
   }
 
-  const handleFilterChange = (key, value) => {
+  const handleFiltersChange = useCallback((updates) => {
    setFilters((prev) => {
-     if (key === "guests") {
-      const numValue = parseInt(value, 10);
-       const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
-      console.log(`[BrowseHotels] Guest filter changed to: ${validGuests}`)
-       return { ...prev, [key]: validGuests }
-     }
-     return { ...prev, [key]: value }
+     const next = { ...prev }
+
+     Object.entries(updates).forEach(([key, rawValue]) => {
+      if (key === "guests") {
+       const validGuests = normalizeGuests(rawValue)
+        console.log(`[BrowseHotels] Guest filter changed to: ${validGuests}`)
+       next.guests = validGuests
+      } else {
+       next[key] = rawValue
+      }
+     })
+
+     return next
     })
-   const newParams = new URLSearchParams(searchParams)
-    if (value !== null && value !== undefined && value !== "") {
-     if (key === "guests") {
-      const numValue = parseInt(value, 10);
-       const validGuests = (!isNaN(numValue) && numValue > 0) ? numValue : 1;
-      newParams.set(key, String(validGuests))
-       console.log(`[BrowseHotels] Setting guests filter in URL: ${validGuests}`)
-     } else {
-      newParams.set(key, value)
-     }
-   } else {
-    newParams.delete(key)
+  }, [])
+
+ useEffect(() => {
+   const newParams = new URLSearchParams()
+
+    if (filters.location) newParams.set("location", filters.location)
+   if (filters.checkIn) newParams.set("checkIn", filters.checkIn)
+    if (filters.checkOut) newParams.set("checkOut", filters.checkOut)
+   if (filters.guests) newParams.set("guests", String(normalizeGuests(filters.guests)))
+    if (filters.minPrice) newParams.set("minPrice", String(filters.minPrice))
+   if (filters.maxPrice) newParams.set("maxPrice", String(filters.maxPrice))
+    if (filters.minRating) newParams.set("minRating", String(filters.minRating))
+   if (Array.isArray(filters.amenities) && filters.amenities.length > 0) {
+    newParams.set("amenities", filters.amenities.join(","))
    }
-   if (key === "amenities" && Array.isArray(value)) {
-    if (value.length > 0) {
-     newParams.set("amenities", value.join(","))
-    } else {
-     newParams.delete("amenities")
-    }
+    if (filters.sortBy) newParams.set("sortBy", filters.sortBy)
+   if (filters.order) newParams.set("order", filters.order)
+
+    const current = searchParams.toString()
+   const next = newParams.toString()
+    if (current !== next) {
+    setSearchParams(newParams, { replace: true })
    }
-   setSearchParams(newParams)
+  }, [filters, searchParams, setSearchParams])
+
+  const handleFilterChange = (key, value) => {
+   handleFiltersChange({ [key]: value })
   }
 
  const handleSort = (sortBy) => {
-   let defaultOrder = "desc";
+   let defaultOrder = "desc"
     if (sortBy === "price") {
-     defaultOrder = "asc";
+     defaultOrder = "asc"
     }
    
    const order = filters.sortBy === sortBy && filters.order === defaultOrder 
      ? (defaultOrder === "desc" ? "asc" : "desc")
-      : defaultOrder;
+      : defaultOrder
    
-   handleFilterChange("sortBy", sortBy)
-    handleFilterChange("order", order)
+   handleFiltersChange({ sortBy, order })
   }
 
  const formatDate = (dateString) => {
@@ -177,7 +186,7 @@ const BrowseHotels = () => {
   }
 
  return (
-   <div className="home-container" style={{ minHeight: "100vh" }}>
+   <div className="home-container container-fluid px-2 px-sm-3 px-lg-4" style={{ minHeight: "100vh" }}>
     <div
      className="hero-section"
       style={{
@@ -193,8 +202,8 @@ const BrowseHotels = () => {
      flexDirection: "column",
       justifyContent: "flex-start",
        alignItems: "center",
-     borderRadius: "24px",
-      margin: "20px 20px 0 20px",
+    borderRadius: "24px",
+     margin: "12px 0 0 0",
      }}
    >
     <div
@@ -288,6 +297,7 @@ const BrowseHotels = () => {
   }}
  >
   {option}
+    {filters.sortBy === option.toLowerCase() ? (filters.order === "asc" ? " ↑" : " ↓") : ""}
  </button>
 ))}
 </div>
@@ -305,15 +315,7 @@ const BrowseHotels = () => {
  margin: "0 auto",
 }}
 >
- <div
-  className="search-form-grid"
-   style={{
-  display: "grid",
-   gridTemplateColumns: "repeat(6, 1fr)",
-  gap: "8px",
-   alignItems: "end",
- }}
->
+ <div className="search-form-grid">
  <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
   <label
    style={{
@@ -650,13 +652,7 @@ Search
  <div className="py-3" style={{ width: "100%" }}>
   <div
    className="hotels-grid"
-    style={{
-   display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-   gap: "20px",
-    padding: "0 20px",
-   width: "100%",
-  }}
+   style={{ width: "100%" }}
  >
   {hotels.map((hotel) => (
    <div
@@ -678,13 +674,7 @@ Search
       imageUrl = String(firstImage)
      }
 
-     if (imageUrl && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
-      if (imageUrl.startsWith("/uploads/")) {
-       imageUrl = `http://localhost:5000${imageUrl}`
-      } else if (!imageUrl.startsWith("/")) {
-       imageUrl = `http://localhost:5000/uploads/${imageUrl}`
-      }
-     }
+      imageUrl = resolveAssetUrl(imageUrl)
     }
 
      return imageUrl ? (

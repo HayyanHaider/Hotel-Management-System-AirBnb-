@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import { resolveAssetUrl } from '../services/urlResolver';
 import 'leaflet/dist/leaflet.css';
 import './HotelDetails.css';
 
@@ -75,7 +76,7 @@ const HotelDetails = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/hotels/${hotelId}`, {
+      const response = await axios.get(`/api/hotels/${hotelId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (response.data.success) {
@@ -90,7 +91,7 @@ const HotelDetails = () => {
 
   const fetchReviews = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`);
+      const response = await axios.get(`/api/reviews/hotel/${hotelId}`);
       if (response.data.success) {
         setReviews(response.data.reviews || []);
       }
@@ -103,7 +104,7 @@ const HotelDetails = () => {
     try {
       const token = sessionStorage.getItem('token');
       if (!token) return;
-      const response = await axios.get('http://localhost:5000/api/users/favorites', {
+      const response = await axios.get('/api/users/favorites', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
@@ -131,13 +132,13 @@ const HotelDetails = () => {
       }
 
       if (isFavorite) {
-        await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
+        await axios.delete(`/api/users/favorites/${hotelId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsFavorite(false);
         toast.info('Removed from favorites');
       } else {
-        await axios.post('http://localhost:5000/api/users/favorites', { hotelId }, {
+        await axios.post('/api/users/favorites', { hotelId }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsFavorite(true);
@@ -197,12 +198,8 @@ const HotelDetails = () => {
         url = String(img).trim();
       }
       if (!url || url === 'undefined' || url === 'null' || url === '') return null;
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = url.startsWith('/uploads/') || url.startsWith('/') 
-          ? `http://localhost:5000${url}` 
-          : `http://localhost:5000/uploads/${url}`;
-      }
-      return url;
+
+      return resolveAssetUrl(url);
     }).filter(Boolean);
   };
 

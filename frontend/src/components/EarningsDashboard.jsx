@@ -18,7 +18,7 @@ const EarningsDashboard = () => {
    try {
      setLoading(true);
     const token = sessionStorage.getItem('token');
-     const response = await axios.get(`http://localhost:5000/api/earnings/dashboard?period=${period}`, {
+     const response = await axios.get(`/api/earnings/dashboard?period=${period}`, {
       headers: { Authorization: `Bearer ${token}` }
      });
 

@@ -16,6 +16,11 @@ const HotelDashboard = () => {
  const [activeSection, setActiveSection] = useState('home');
   const [loading, setLoading] = useState(false);
  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileSidebarLayout, setIsMobileSidebarLayout] = useState(
+    typeof window !== 'undefined'
+      ? window.innerWidth <= 1200 || window.matchMedia('(hover: none) and (pointer: coarse)').matches
+      : false
+  );
   const navigate = useNavigate();
  const location = useLocation();
 
@@ -85,13 +90,13 @@ const HotelDashboard = () => {
     
     const hotelsResponse = await HotelApiService.getOwnerHotels();
 
-     const bookingsResponse = await axios.get('http://localhost:5000/api/owner/bookings', {
+     const bookingsResponse = await axios.get('/api/owner/bookings', {
       headers: { Authorization: `Bearer ${token}` }
      });
 
     let earningsData = { total: 0, monthly: 0 };
    try {
-     const earningsResponse = await axios.get('http://localhost:5000/api/earnings/dashboard?period=month', {
+     const earningsResponse = await axios.get('/api/earnings/dashboard?period=month', {
       headers: { Authorization: `Bearer ${token}` }
      });
     
@@ -144,6 +149,9 @@ const HotelDashboard = () => {
 
  const changeSection = (section) => {
    setActiveSection(section);
+    if (isMobileSidebarLayout) {
+      setMobileMenuOpen(false);
+    }
     const pathMap = {
     'home': '/hotel-dashboard',
      'properties': '/manage-hotel-profile',
@@ -157,80 +165,101 @@ const HotelDashboard = () => {
    }
   };
 
+ useEffect(() => {
+   if (typeof window === 'undefined') return;
+
+   const handleResize = () => {
+    const isTouchLayout = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const mobileMode = window.innerWidth <= 1200 || isTouchLayout;
+    setIsMobileSidebarLayout(mobileMode);
+    if (!mobileMode) {
+      setMobileMenuOpen(false);
+    }
+   };
+
+   handleResize();
+   window.addEventListener('resize', handleResize);
+
+   return () => {
+    window.removeEventListener('resize', handleResize);
+   };
+  }, []);
+
+ useEffect(() => {
+   if (isMobileSidebarLayout && mobileMenuOpen) {
+    document.body.style.overflow = 'hidden';
+   } else {
+    document.body.style.overflow = '';
+   }
+
+   return () => {
+    document.body.style.overflow = '';
+   };
+  }, [isMobileSidebarLayout, mobileMenuOpen]);
+
   if (!user) {
    return <div className="owner-loading">Loading...</div>;
   }
 
  return (
-   <div className="owner-dashboard">
-    <button 
-     className="mobile-menu-toggle"
-      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-    aria-label="Toggle menu"
-   >
-   {mobileMenuOpen ? '✕' : '☰'}
-  </button>
+   <div className={`owner-dashboard ${isMobileSidebarLayout ? 'mobile-sidebar-layout' : ''}`}>
+    <div className="owner-mobile-nav">
+     <button
+      type="button"
+      className={`owner-menu-toggle ${mobileMenuOpen ? 'open' : ''}`}
+      onClick={() => setMobileMenuOpen((prev) => !prev)}
+      aria-label="Toggle sidebar menu"
+      aria-expanded={mobileMenuOpen}
+     >
+      <span></span>
+      <span></span>
+      <span></span>
+     </button>
+     <span className="owner-mobile-nav-title">Menu</span>
+    </div>
 
-  {mobileMenuOpen && (
-   <div 
-    className="mobile-menu-overlay"
-     onClick={() => setMobileMenuOpen(false)}
-  />
- )}
+    {mobileMenuOpen && isMobileSidebarLayout && (
+     <div
+      className="owner-sidebar-backdrop"
+      onClick={() => setMobileMenuOpen(false)}
+     />
+    )}
 
  <div className={`owner-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
   <nav className="owner-nav">
    <button 
     className={activeSection === 'home' ? 'active' : ''}
-     onClick={() => {
-    changeSection('home');
-     setMobileMenuOpen(false);
-   }}
+     onClick={() => changeSection('home')}
   >
   🏠 Home
  </button>
  <button 
   className={activeSection === 'properties' ? 'active' : ''}
-   onClick={() => {
-  changeSection('properties');
-   setMobileMenuOpen(false);
- }}
+   onClick={() => changeSection('properties')}
 >
 🏨 My Properties
 </button>
 <button 
  className={activeSection === 'coupons' ? 'active' : ''}
-  onClick={() => {
- changeSection('coupons');
-  setMobileMenuOpen(false);
-}}
+  onClick={() => changeSection('coupons')}
 >
 🎫 Coupons
 </button>
 <button 
  className={activeSection === 'bookings' ? 'active' : ''}
-  onClick={() => {
- changeSection('bookings');
-  setMobileMenuOpen(false);
-}}
+  onClick={() => changeSection('bookings')}
 >
 📋 Reservations
 </button>
 <button 
  className={activeSection === 'reviews' ? 'active' : ''}
-  onClick={() => {
- changeSection('reviews');
-  setMobileMenuOpen(false);
-}}
+  onClick={() => changeSection('reviews')}
 >
 ⭐ Reviews
 </button>
 <button 
  className={activeSection === 'earnings' ? 'active' : ''}
-  onClick={() => {
- changeSection('earnings');
-  setMobileMenuOpen(false);
-}}
+  onClick={() => changeSection('earnings')}
 >
 💰 Earnings
 </button>

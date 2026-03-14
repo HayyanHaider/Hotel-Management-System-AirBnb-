@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import brandLogo from '../assets/brand.svg';
 
 const Signup = () => {
  const [formData, setFormData] = useState({
@@ -140,7 +141,7 @@ const Signup = () => {
 
      console.log('Request data being sent:', { ...requestData, password: '***' });
 
-    const response = await axios.post('http://localhost:5000/api/auth/signup', requestData);
+    const response = await axios.post('/api/auth/signup', requestData);
 
      console.log('Signup response:', response.data);
 
@@ -149,7 +150,7 @@ const Signup = () => {
       sessionStorage.setItem('user', JSON.stringify(response.data.user));
      window.dispatchEvent(new Event('userStatusChanged'));
       
-      toast.success('Account created successfully! Welcome to Airbnb!');
+      toast.success('Account created successfully! Welcome to BookSmart!');
       
      if (response.data.user.role === 'customer') {
       navigate('/');
@@ -201,16 +202,21 @@ const Signup = () => {
        }}>
         <div className="card-body p-4">
          <div className="text-center mb-3">
-          <svg width="40" height="40" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="mb-2" aria-hidden="true">
-           <path fill="#FF385C" d="M16 2c7.732 0 14 6.268 14 14s-6.268 14-14 14S2 23.732 2 16 8.268 2 16 2zm0 6a8 8 0 100 16 8 8 0 000-16z"/>
-          </svg>
+          <img
+           src={brandLogo}
+           alt="BookSmart logo"
+           width="64"
+           height="64"
+           className="mb-2"
+           style={{ objectFit: 'contain' }}
+          />
           <h2 className="h5 fw-bold mb-1" style={{ color: '#222222' }}>
            {signupType === 'host' ? 'Become a Host' : 'Create Account'}
           </h2>
            <p className="text-muted small mb-0">
             {signupType === 'host' 
              ? 'Start your hosting journey with us' 
-              : 'Join our Airbnb community'
+              : 'Join our BookSmart community'
             }
            </p>
          </div>

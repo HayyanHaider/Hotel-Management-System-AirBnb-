@@ -87,7 +87,7 @@ const sendEmail = async (to, subject, html, text = '', options = {}) => {
       const transporter = createTransporter();
     
      const mailOptions = {
-        from: `"Airbnb Booking" <${process.env.EMAIL_USER}>`,
+        from: `"BookSmart Booking" <${process.env.EMAIL_USER}>`,
       to,
        subject,
         text,
@@ -262,7 +262,7 @@ const emailTemplates = {
               
                <p>We look forward to hosting you!</p>
               
-              <p>Best regards,<br>The Airbnb Team</p>
+              <p>Best regards,<br>The BookSmart Team</p>
              </div>
               <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
@@ -304,7 +304,7 @@ ${downloadLink ? `${downloadCtaLabel}: ${downloadLink}` : ''}
 We look forward to hosting you!
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
      };
     },
 
@@ -400,7 +400,7 @@ The Airbnb Team`
               
                <p>We hope to serve you again in the future.</p>
               
-              <p>Best regards,<br>The Airbnb Team</p>
+              <p>Best regards,<br>The BookSmart Team</p>
              </div>
               <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
@@ -435,7 +435,7 @@ If you have any questions or would like to make a new booking, please don't hesi
 We hope to serve you again in the future.
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
     };
    },
 
@@ -503,7 +503,7 @@ The Airbnb Team`
               
                 <p>We appreciate your understanding and cooperation.</p>
               
-               <p>Best regards,<br>The Airbnb Administration Team</p>
+               <p>Best regards,<br>The BookSmart Administration Team</p>
               </div>
             <div class="footer">
                <p>This is an automated email. Please do not reply.</p>
@@ -535,7 +535,7 @@ If you believe this suspension was made in error, or if you have addressed the i
 We appreciate your understanding and cooperation.
 
 Best regards,
-The Airbnb Administration Team`
+The BookSmart Administration Team`
      };
     },
 
@@ -603,7 +603,7 @@ The Airbnb Administration Team`
               
               <p>We're excited to have you on our platform and look forward to helping you grow your business!</p>
               
-                <p>Best regards,<br>The Airbnb Administration Team</p>
+                <p>Best regards,<br>The BookSmart Administration Team</p>
             </div>
              <div class="footer">
                 <p>This is an automated email. Please do not reply.</p>
@@ -635,13 +635,13 @@ What's next?
 We're excited to have you on our platform and look forward to helping you grow your business!
 
 Best regards,
-The Airbnb Administration Team`
+The BookSmart Administration Team`
       };
   },
 
     userSuspensionEmail: (user, reason = '') => {
     return {
-       subject: `Account Suspended - Airbnb`,
+       subject: `Account Suspended - BookSmart`,
         html: `
         <!DOCTYPE html>
          <html>
@@ -700,7 +700,7 @@ The Airbnb Administration Team`
               
                <p>We appreciate your understanding and cooperation.</p>
               
-              <p>Best regards,<br>The Airbnb Administration Team</p>
+              <p>Best regards,<br>The BookSmart Administration Team</p>
              </div>
               <div class="footer">
               <p>This is an automated email. Please do not reply.</p>
@@ -732,15 +732,15 @@ If you believe this suspension was made in error, or if you have addressed the i
 We appreciate your understanding and cooperation.
 
 Best regards,
-The Airbnb Administration Team`
+The BookSmart Administration Team`
     };
    },
 
   accountCreatedEmail: (user, role) => {
      const roleDisplayName = role === 'hotel' ? 'Hotel Owner' : role === 'customer' ? 'Customer' : role.charAt(0).toUpperCase() + role.slice(1);
       const welcomeMessage = role === 'hotel' 
-      ? 'Welcome to Airbnb! We\'re excited to have you as a host. You can now start creating and managing your hotel listings.'
-       : 'Welcome to Airbnb! We\'re excited to have you join our community. Start exploring amazing places to stay!';
+      ? 'Welcome to BookSmart! We\'re excited to have you as a host. You can now start creating and managing your hotel listings.'
+       : 'Welcome to BookSmart! We\'re excited to have you join our community. Start exploring amazing places to stay!';
     
     const nextSteps = role === 'hotel'
        ? [
@@ -757,7 +757,7 @@ The Airbnb Administration Team`
         ];
 
       return {
-      subject: `Welcome to Airbnb - Your Account Has Been Created!`,
+      subject: `Welcome to BookSmart - Your Account Has Been Created!`,
        html: `
           <!DOCTYPE html>
         <html>
@@ -780,7 +780,7 @@ The Airbnb Administration Team`
           <body>
           <div class="container">
              <div class="header">
-                <h1>🎉 Welcome to Airbnb!</h1>
+                <h1>🎉 Welcome to BookSmart!</h1>
               <p style="margin: 10px 0 0 0; font-size: 16px;">Your account has been successfully created</p>
              </div>
               <div class="content">
@@ -819,7 +819,7 @@ The Airbnb Administration Team`
               
               <p>We're thrilled to have you on board!</p>
               
-                <p>Best regards,<br>The Airbnb Team</p>
+                <p>Best regards,<br>The BookSmart Team</p>
             </div>
              <div class="footer">
                 <p>This is an automated email. Please do not reply.</p>
@@ -828,7 +828,7 @@ The Airbnb Administration Team`
           </body>
         </html>
        `,
-        text: `Welcome to Airbnb!
+        text: `Welcome to BookSmart!
 
 Dear ${user.name || 'User'},
 
@@ -850,7 +850,7 @@ If you have any questions or need assistance, please don't hesitate to contact o
 We're thrilled to have you on board!
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
      };
     },
 
@@ -981,7 +981,7 @@ The Airbnb Team`
               
               <p>We look forward to hosting you on your new dates!</p>
               
-                <p>Best regards,<br>The Airbnb Team</p>
+                <p>Best regards,<br>The BookSmart Team</p>
             </div>
              <div class="footer">
                 <p>This is an automated email. Please do not reply.</p>
@@ -1019,7 +1019,7 @@ ${booking.invoicePath ? '- A new invoice has been generated with the updated dat
 We look forward to hosting you on your new dates!
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
       };
   }
 };

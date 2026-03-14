@@ -35,7 +35,7 @@ const uploadInvoiceToCloudinary = async (localFilePath, bookingId) => {
 
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(localFilePath, {
-      folder: 'airbnb/invoices',
+      folder: 'BookSmart/invoices',
       resource_type: 'raw', // For non-image files like PDFs
       public_id: `invoice-${bookingId}-${Date.now()}`,
       format: 'pdf',
@@ -103,7 +103,7 @@ const getInvoiceUrl = (publicId) => {
  */
 const extractPublicIdFromUrl = (url) => {
   try {
-    // Extract public_id from URL like: https://res.cloudinary.com/xxx/raw/upload/v123/airbnb/invoices/invoice-xxx.pdf
+    // Extract public_id from URL like: https://res.cloudinary.com/xxx/raw/upload/v123/BookSmart/invoices/invoice-xxx.pdf
     // Pattern: /upload/[version]/[folder]/[filename]
     const match = url.match(/\/upload\/[^\/]+\/(.+)$/);
     if (match && match[1]) {

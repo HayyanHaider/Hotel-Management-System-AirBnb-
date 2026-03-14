@@ -21,7 +21,7 @@ const RescheduleBooking = () => {
    try {
      setLoading(true);
     const token = sessionStorage.getItem('token');
-     const response = await axios.get(`http://localhost:5000/api/bookings/${bookingId}`, {
+     const response = await axios.get(`/api/bookings/${bookingId}`, {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -81,7 +81,7 @@ const RescheduleBooking = () => {
     const token = sessionStorage.getItem('token');
      
      const response = await axios.put(
-      `http://localhost:5000/api/bookings/${bookingId}/reschedule`,
+      `/api/bookings/${bookingId}/reschedule`,
        { checkInDate: checkIn, checkOutDate: checkOut },
      {
        headers: { Authorization: `Bearer ${token}` }

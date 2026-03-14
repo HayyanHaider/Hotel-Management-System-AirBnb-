@@ -75,7 +75,7 @@ const LocationPickerMap = ({ onLocationSelect, initialLat = null, initialLng = n
        try {
         console.log('Geocoding address:', trimmedAddress);
          const response = await fetch(
-         `http://localhost:5000/api/geocode/search?address=${encodeURIComponent(trimmedAddress)}`
+         `/api/geocode/search?address=${encodeURIComponent(trimmedAddress)}`
        );
         const data = await response.json();
        const results = data.results || [];

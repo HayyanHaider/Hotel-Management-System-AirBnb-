@@ -19,6 +19,7 @@
 
 .dashboard-container {
   min-height: 70vh;
+  width: 100%;
   background-color: var(--color-gray-50);
   padding: 20px;
 }
@@ -269,13 +270,206 @@
   padding-left: 24px;
 }
 
+.booking-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-meta-item {
+  min-width: 0;
+}
+
+.booking-status-badge {
+  white-space: nowrap;
+}
+
+.amenity-input-row {
+  align-items: stretch;
+}
+
+.amenity-input-field {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.amenity-add-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-width: 72px;
+}
+
+.hotel-form-actions {
+  flex-wrap: nowrap;
+}
+
+.hotel-form-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.hotel-card-top {
+  gap: 0.75rem;
+}
+
+.hotel-card-title-row {
+  flex-wrap: wrap;
+}
+
+.hotel-card-actions {
+  flex: 0 0 auto;
+}
+
+.hotel-card-action-btn {
+  white-space: nowrap;
+}
+
+.coupon-form-actions {
+  flex-wrap: nowrap;
+}
+
+.coupon-form-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.owner-booking-details {
+  min-width: 0;
+}
+
+.owner-booking-title {
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.owner-booking-actions {
+  flex: 0 0 auto;
+}
+
+.reply-form-actions {
+  flex-wrap: nowrap;
+}
+
+.reply-form-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
 @media (max-width: 767px) {
+  .hotel-card-top {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .hotel-card-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem !important;
+  }
+
+  .hotel-card-action-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hotel-card-actions > .hotel-card-action-btn:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .owner-booking-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .owner-booking-actions {
+    width: 100%;
+  }
+
+  .owner-booking-actions .btn {
+    width: 100%;
+  }
+
+  .reply-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem !important;
+  }
+
+  .reply-form-action-btn {
+    width: 100%;
+    font-size: 0.98rem;
+    padding: 0.8rem 0.7rem;
+    min-height: 48px;
+  }
+
+  .booking-history-card {
+    border-radius: 10px !important;
+  }
+
+  .booking-card-body {
+    padding: 16px !important;
+  }
+
+  .booking-title-row {
+    gap: 10px;
+    margin-bottom: 12px !important;
+  }
+
+  .booking-hotel-name {
+    font-size: 1.35rem !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2;
+  }
+
+  .booking-hotel-address {
+    margin-bottom: 0 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.25;
+  }
+
+  .booking-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin-bottom: 10px !important;
+  }
+
+  .booking-meta-item > div:first-child {
+    margin-bottom: 2px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .booking-meta-item > div:last-child {
+    font-size: 0.95rem !important;
+    line-height: 1.2;
+  }
+
+  .booking-status-badge {
+    font-size: 0.68rem !important;
+    padding: 5px 9px !important;
+    margin-top: 1px;
+  }
+
   .booking-actions {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid #e0e0e0;
-    padding-top: 16px;
-    margin-top: 16px;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+
+  .booking-actions .btn {
+    padding: 8px 12px !important;
+    font-size: 0.86rem;
+    line-height: 1.2;
   }
 }
 
@@ -332,7 +526,7 @@
 
   .dashboard-container .table {
     font-size: 0.85rem;
-    min-width: 600px;
+    min-width: 520px;
   }
 
   .dashboard-container .table th,
@@ -358,6 +552,42 @@
 }
 
 @media (max-width: 480px) {
+  .amenity-input-row {
+    gap: 0.5rem !important;
+  }
+
+  .amenity-add-btn {
+    min-width: 68px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .hotel-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem !important;
+  }
+
+  .hotel-form-action-btn {
+    width: 100%;
+    font-size: 0.98rem;
+    padding: 0.8rem 0.7rem;
+    min-height: 48px;
+  }
+
+  .coupon-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem !important;
+  }
+
+  .coupon-form-action-btn {
+    width: 100%;
+    font-size: 0.98rem;
+    padding: 0.8rem 0.7rem;
+    min-height: 48px;
+  }
+
   .dashboard-header .d-flex {
     gap: 0.75rem;
   }
@@ -380,7 +610,7 @@
 
   .dashboard-container .table {
     font-size: 0.75rem;
-    min-width: 500px;
+    min-width: 440px;
   }
 
   .dashboard-container .table th,

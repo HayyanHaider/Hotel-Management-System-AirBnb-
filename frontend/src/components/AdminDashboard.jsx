@@ -10,6 +10,12 @@ const AdminDashboard = () => {
   const [user, setUser] = useState(null);
    const [stats, setStats] = useState(null);
     const [activeSection, setActiveSection] = useState('home');
+   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+   const [isMobileSidebarLayout, setIsMobileSidebarLayout] = useState(
+      typeof window !== 'undefined'
+         ? window.innerWidth <= 1200 || window.matchMedia('(hover: none) and (pointer: coarse)').matches
+         : false
+   );
   const [hotels, setHotels] = useState([]);
    const [users, setUsers] = useState([]);
     const [refundRequests, setRefundRequests] = useState([]);
@@ -21,7 +27,7 @@ const AdminDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
   
    const navigate = useNavigate();
-    const API_URL = 'http://localhost:5000/api';
+    const API_URL = '/api';
 
    useEffect(() => {
       if (typeof window !== 'undefined') {
@@ -248,6 +254,9 @@ const AdminDashboard = () => {
 
     const changeSection = (section) => {
     setActiveSection(section);
+      if (isMobileSidebarLayout) {
+         setIsSidebarOpen(false);
+      }
      setFilterStatus('all');
       setSearchQuery('');
     
@@ -276,6 +285,38 @@ const AdminDashboard = () => {
       }
   }, [filterStatus, searchQuery]);
 
+   useEffect(() => {
+      if (typeof window === 'undefined') return;
+
+      const handleResize = () => {
+         const isTouchLayout = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+         const mobileMode = window.innerWidth <= 1200 || isTouchLayout;
+         setIsMobileSidebarLayout(mobileMode);
+         if (!mobileMode) {
+            setIsSidebarOpen(false);
+         }
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+         window.removeEventListener('resize', handleResize);
+      };
+   }, []);
+
+   useEffect(() => {
+      if (isMobileSidebarLayout && isSidebarOpen) {
+         document.body.style.overflow = 'hidden';
+      } else {
+         document.body.style.overflow = '';
+      }
+
+      return () => {
+         document.body.style.overflow = '';
+      };
+   }, [isMobileSidebarLayout, isSidebarOpen]);
+
     useEffect(() => {
     if (activeSection === 'users' && filterStatus) {
        fetchUsers(filterStatus);
@@ -287,8 +328,23 @@ const AdminDashboard = () => {
    }
 
   return (
-     <div className="admin-dashboard">
-        <div className="admin-sidebar">
+     <div className={`admin-dashboard ${isMobileSidebarLayout ? 'mobile-sidebar-layout' : ''}`}>
+         <div className="admin-mobile-nav">
+            <button
+               type="button"
+               className={`admin-menu-toggle ${isSidebarOpen ? 'open' : ''}`}
+               onClick={() => setIsSidebarOpen((prev) => !prev)}
+               aria-label="Toggle sidebar menu"
+               aria-expanded={isSidebarOpen}
+            >
+               <span></span>
+               <span></span>
+               <span></span>
+            </button>
+            <span className="admin-mobile-nav-title">Menu</span>
+         </div>
+
+            <div className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <nav className="admin-nav">
            <button 
               className={activeSection === 'home' ? 'active' : ''}
@@ -328,6 +384,8 @@ const AdminDashboard = () => {
           </button>
          </nav>
         </div>
+
+         {isSidebarOpen && <div className="admin-sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
 
        <div className="admin-main">
           <div className="admin-header">

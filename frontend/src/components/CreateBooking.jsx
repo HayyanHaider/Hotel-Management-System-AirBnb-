@@ -71,7 +71,7 @@ const CreateBooking = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/hotels/${hotelId}`, {
+      const response = await axios.get(`/api/hotels/${hotelId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
@@ -141,7 +141,7 @@ const CreateBooking = () => {
       };
 
       const response = await axios.post(
-        'http://localhost:5000/api/bookings',
+        '/api/bookings',
         bookingData,
         {
           headers: { 
@@ -267,7 +267,7 @@ const CreateBooking = () => {
                       try {
                         const token = localStorage.getItem('token');
                         const response = await axios.get(
-                          `http://localhost:5000/api/coupons/validate?code=${promoCode}&hotelId=${hotelId}`,
+                          `/api/coupons/validate?code=${promoCode}&hotelId=${hotelId}`,
                           { headers: { Authorization: `Bearer ${token}` } }
                         );
                         if (response.data.success) {

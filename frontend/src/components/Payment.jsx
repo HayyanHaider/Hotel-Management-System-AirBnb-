@@ -30,7 +30,7 @@ const Payment = () => {
    try {
      setLoading(true);
     const token = sessionStorage.getItem('token');
-     const response = await axios.get(`http://localhost:5000/api/bookings/${bookingId}`, {
+     const response = await axios.get(`/api/bookings/${bookingId}`, {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -69,7 +69,7 @@ const Payment = () => {
     const token = sessionStorage.getItem('token');
 
      const response = await axios.post(
-      'http://localhost:5000/api/payments/process',
+      '/api/payments/process',
        {
         bookingId,
        paymentMethod,
@@ -82,7 +82,11 @@ const Payment = () => {
      );
 
      if (response.data.success) {
-      toast.success('Payment processed successfully!');
+      if (paymentMethod === 'cash_on_arrival') {
+        toast.success('Booking confirmed. You can pay cash on arrival.');
+      } else {
+        toast.success('Payment processed successfully!');
+      }
        navigate('/booking-history');
      }
    } catch (error) {
@@ -202,7 +206,7 @@ const Payment = () => {
          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="on">
          <div className="mb-3">
           <label className="form-label">Payment Method</label>
            <select
@@ -212,6 +216,7 @@ const Payment = () => {
           >
            <option value="card">Credit/Debit Card</option>
             <option value="paypal">PayPal</option>
+              <option value="cash_on_arrival">Cash on Arrival</option>
           </select>
          </div>
 
@@ -221,12 +226,15 @@ const Payment = () => {
             <label className="form-label">Card Number</label>
              <input
               type="text"
+                id="cc-number"
+                name="cc-number"
                className="form-control"
             value={cardDetails.cardNumber}
              onChange={(e) => setCardDetails({...cardDetails, cardNumber: e.target.value})}
             placeholder="1234 5678 9012 3456"
              maxLength="19"
-            autoComplete="off"
+              inputMode="numeric"
+              autoComplete="cc-number"
            />
           </div>
 
@@ -235,24 +243,30 @@ const Payment = () => {
             <label className="form-label">Expiry Date</label>
              <input
               type="text"
+              id="cc-exp"
+              name="cc-exp"
                className="form-control"
             value={cardDetails.expiryDate}
              onChange={(e) => setCardDetails({...cardDetails, expiryDate: e.target.value})}
             placeholder="MM/YY"
              maxLength="5"
-            autoComplete="off"
+            inputMode="numeric"
+            autoComplete="cc-exp"
            />
           </div>
           <div className="col-md-6 mb-3">
            <label className="form-label">CVV</label>
             <input
              type="text"
+             id="cc-csc"
+             name="cc-csc"
               className="form-control"
            value={cardDetails.cvv}
             onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
            placeholder="123"
             maxLength="3"
-           autoComplete="off"
+           inputMode="numeric"
+           autoComplete="cc-csc"
           />
          </div>
         </div>
@@ -261,15 +275,25 @@ const Payment = () => {
          <label className="form-label">Card Holder Name</label>
           <input
            type="text"
+             id="cc-name"
+             name="cc-name"
             className="form-control"
          value={cardDetails.cardHolderName}
           onChange={(e) => setCardDetails({...cardDetails, cardHolderName: e.target.value})}
          placeholder="John Doe"
-          autoComplete="off"
+            autoComplete="cc-name"
         />
        </div>
       </>
      )}
+
+        {paymentMethod === 'cash_on_arrival' && (
+          <div className="alert alert-info">
+            <small>
+              <strong>Note:</strong> Your booking will be confirmed now and payment will be collected at check-in.
+            </small>
+          </div>
+        )}
 
      {paymentMethod === 'paypal' && (
       <>
@@ -319,7 +343,7 @@ const Payment = () => {
            className="btn btn-primary"
          disabled={processing}
         >
-         {processing ? 'Processing...' : 'Pay Now'}
+           {processing ? 'Processing...' : paymentMethod === 'cash_on_arrival' ? 'Confirm Booking' : 'Pay Now'}
         </button>
        </div>
       </form>

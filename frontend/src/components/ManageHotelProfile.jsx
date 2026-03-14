@@ -39,6 +39,71 @@ const ManageHotelProfile = () => {
     const [availableProvinces, setAvailableProvinces] = useState([]);
   const [availableCities, setAvailableCities] = useState([]);
    const [availableSocieties, setAvailableSocieties] = useState([]);
+   const [validationErrors, setValidationErrors] = useState({});
+
+   const clearValidationError = (field) => {
+      setValidationErrors((prev) => {
+         if (!prev[field]) {
+            return prev;
+         }
+
+         const next = { ...prev };
+         delete next[field];
+         return next;
+      });
+   };
+
+   const validateHotelForm = () => {
+      const errors = {};
+
+      if (!formData.name.trim()) errors.name = 'Hotel name is required.';
+      if (!formData.description.trim()) errors.description = 'Description is required.';
+      if (!selectedCountry) errors.country = 'Country is required.';
+
+      if (selectedCountry === 'PK') {
+         if (!selectedProvince) errors.province = 'Province is required.';
+         if (!selectedCity) errors.city = 'City is required.';
+      } else if (selectedCountry) {
+         if (!formData.province.trim()) errors.province = 'State/Province is required.';
+         if (!formData.city.trim()) errors.city = 'City is required.';
+      }
+
+      const shouldRequireStreetAddress =
+         (selectedCountry === 'PK' && selectedCity) || (selectedCountry && selectedCountry !== 'PK');
+      if (shouldRequireStreetAddress && !formData.streetAddress.trim()) {
+         errors.streetAddress = 'Street address is required.';
+      }
+
+      if (!formData.zipCode.trim()) {
+         errors.zipCode = 'Zip/Postal code is required.';
+      }
+
+      if (!formData.latitude || !formData.longitude) {
+         errors.location = 'Please select a location on the map.';
+      }
+
+      if (!formData.totalRooms || Number(formData.totalRooms) < 1) {
+         errors.totalRooms = 'Total rooms must be at least 1.';
+      }
+      if (!formData.capacityGuests || Number(formData.capacityGuests) < 1) {
+         errors.capacityGuests = 'Maximum guests must be at least 1.';
+      }
+      if (!formData.capacityBedrooms || Number(formData.capacityBedrooms) < 1) {
+         errors.capacityBedrooms = 'Bedrooms must be at least 1.';
+      }
+      if (!formData.capacityBathrooms || Number(formData.capacityBathrooms) < 1) {
+         errors.capacityBathrooms = 'Bathrooms must be at least 1.';
+      }
+      if (formData.basePrice === '' || Number(formData.basePrice) < 0) {
+         errors.basePrice = 'Price per night is required.';
+      }
+
+      if (formData.images.length === 0) {
+         errors.images = 'Please upload at least one image.';
+      }
+
+      return errors;
+   };
 
   useEffect(() => {
      fetchHotels();
@@ -139,7 +204,7 @@ const ManageHotelProfile = () => {
         return;
        }
 
-      const response = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
+      const response = await axios.get('/api/hotels/owner/my-hotels', {
          headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -165,6 +230,7 @@ const ManageHotelProfile = () => {
 
   const handleEdit = (hotel) => {
      setEditingHotel(hotel);
+      setValidationErrors({});
       const country = hotel.location?.country || '';
     const state = hotel.location?.state || '';
      const city = hotel.location?.city || '';
@@ -214,6 +280,7 @@ const ManageHotelProfile = () => {
   const handleCreateNew = () => {
      setEditingHotel(null);
       setShowCreateForm(true);
+      setValidationErrors({});
     setSelectedCountry('');
      setSelectedProvince('');
       setSelectedCity('');
@@ -243,12 +310,16 @@ const ManageHotelProfile = () => {
 
   const handleHotelSubmit = async (e) => {
      e.preventDefault();
+      const errors = validateHotelForm();
+      if (Object.keys(errors).length > 0) {
+         setValidationErrors(errors);
+         toast.warning('Please complete the required fields.');
+         return;
+      }
+
+      setValidationErrors({});
       try {
       const token = sessionStorage.getItem('token');
-       if (!formData.latitude || !formData.longitude) {
-          toast.warning('Please select a location on the map by clicking on it');
-        return;
-       }
 
       let fullAddress = addressString;
        if (!fullAddress || fullAddress.trim() === '') {
@@ -303,14 +374,14 @@ const ManageHotelProfile = () => {
 
       if (editingHotel) {
          await axios.put(
-            `http://localhost:5000/api/hotels/${editingHotel._id || editingHotel.id}`,
+            `/api/hotels/${editingHotel._id || editingHotel.id}`,
           hotelData,
            { headers: { Authorization: `Bearer ${token}` } }
           );
         toast.success('Hotel updated successfully!');
        } else {
           await axios.post(
-          'http://localhost:5000/api/hotels',
+          '/api/hotels',
            hotelData,
             { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -358,7 +429,7 @@ const ManageHotelProfile = () => {
 
      try {
         const token = sessionStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/hotels/${hotelId}`, {
+      await axios.delete(`/api/hotels/${hotelId}`, {
          headers: { Authorization: `Bearer ${token}` }
         });
       toast.success('Hotel deleted successfully!');
@@ -413,7 +484,7 @@ const ManageHotelProfile = () => {
        });
 
       const response = await axios.post(
-         'http://localhost:5000/api/upload/images',
+         '/api/upload/images',
           uploadFormData,
         {
            headers: {
@@ -429,6 +500,7 @@ const ManageHotelProfile = () => {
             ...prev,
           images: [...prev.images, ...uploadedUrls]
          }));
+            clearValidationError('images');
           e.target.value = '';
         console.log(`${uploadedUrls.length} image(s) uploaded successfully to Cloudinary!`);
        }
@@ -443,10 +515,18 @@ const ManageHotelProfile = () => {
    };
 
   const removeImage = (index) => {
-     setFormData({
-        ...formData,
-      images: formData.images.filter((_, i) => i !== index)
-     });
+      const updatedImages = formData.images.filter((_, i) => i !== index);
+      setFormData({
+         ...formData,
+         images: updatedImages
+      });
+
+      if (updatedImages.length === 0) {
+         setValidationErrors((prev) => ({
+            ...prev,
+            images: 'Please upload at least one image.'
+         }));
+      }
     };
 
 
@@ -508,9 +588,9 @@ const ManageHotelProfile = () => {
               <div key={hotel._id || hotel.id} className="col-12">
                  <div className={`card ${hotel.isSuspended ? 'border-danger' : ''}`}>
                     <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start">
+                    <div className="d-flex justify-content-between align-items-start hotel-card-top">
                        <div className="flex-grow-1">
-                          <div className="d-flex align-items-center gap-2 mb-2">
+                       <div className="d-flex align-items-center gap-2 mb-2 hotel-card-title-row">
                           <h5 className="mb-0">{hotel.name}</h5>
                            {hotel.isSuspended && (
                               <span className="badge bg-danger">Suspended</span>
@@ -548,17 +628,17 @@ const ManageHotelProfile = () => {
                            </div>
                           )}
                       </div>
-                       <div className="d-flex gap-2">
+                       <div className="d-flex gap-2 hotel-card-actions">
                           {!hotel.isSuspended && (
                           <button
-                             className="btn btn-primary"
+                            className="btn btn-primary hotel-card-action-btn"
                               onClick={() => handleEdit(hotel)}
                           >
                              Edit
                             </button>
                         )}
                          <button
-                            className="btn btn-danger"
+                           className="btn btn-danger hotel-card-action-btn"
                           onClick={() => handleDelete(hotel._id || hotel.id)}
                          >
                             Delete
@@ -577,35 +657,52 @@ const ManageHotelProfile = () => {
             <div className="card">
                <div className="card-body">
                   <h3>{editingHotel ? 'Edit Hotel' : 'Create New Hotel'}</h3>
-                <form onSubmit={handleHotelSubmit}>
+                        <form onSubmit={handleHotelSubmit} noValidate>
+                           {Object.keys(validationErrors).length > 0 && (
+                              <div className="alert alert-danger py-2" role="alert">
+                                 Please fix the highlighted required fields.
+                              </div>
+                           )}
                    <div className="mb-3">
                       <label className="form-label">Hotel Name</label>
                     <input
                        type="text"
-                        className="form-control"
+                                    className={`form-control ${validationErrors.name ? 'is-invalid' : ''}`}
                       value={formData.name}
-                       onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                  onChange={(e) => {
+                                    setFormData({...formData, name: e.target.value});
+                                    clearValidationError('name');
+                                  }}
                         required
                     />
+                              {validationErrors.name && <div className="invalid-feedback">{validationErrors.name}</div>}
                    </div>
                     <div className="mb-3">
                     <label className="form-label">Description</label>
                      <textarea
-                        className="form-control"
+                                    className={`form-control ${validationErrors.description ? 'is-invalid' : ''}`}
                       rows="3"
                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    onChange={(e) => {
+                                       setFormData({...formData, description: e.target.value});
+                                       clearValidationError('description');
+                                    }}
                       required
                      />
+                              {validationErrors.description && <div className="invalid-feedback">{validationErrors.description}</div>}
                     </div>
                   <div className="mb-3">
                      <label className="form-label">Country *</label>
                       <select
-                      className="form-select"
+                                 className={`form-select ${validationErrors.country ? 'is-invalid' : ''}`}
                        value={selectedCountry}
                         onChange={(e) => {
                         setSelectedCountry(e.target.value);
                          setFormData({...formData, country: e.target.value});
+                                    clearValidationError('country');
+                                    clearValidationError('province');
+                                    clearValidationError('city');
+                                    clearValidationError('streetAddress');
                         }}
                       required
                      >
@@ -616,6 +713,7 @@ const ManageHotelProfile = () => {
                         </option>
                        ))}
                       </select>
+                     {validationErrors.country && <div className="invalid-feedback">{validationErrors.country}</div>}
                   </div>
 
                     {selectedCountry === 'PK' && (
@@ -623,12 +721,15 @@ const ManageHotelProfile = () => {
                        <div className="mb-3">
                           <label className="form-label">Province *</label>
                         <select
-                           className="form-select"
+                                        className={`form-select ${validationErrors.province ? 'is-invalid' : ''}`}
                             value={selectedProvince}
                           onChange={(e) => {
                              setSelectedProvince(e.target.value);
                               const provinceName = pakistanData.provinces.find(p => p.code === e.target.value)?.name;
                             setFormData({...formData, province: provinceName || ''});
+                                          clearValidationError('province');
+                                          clearValidationError('city');
+                                          clearValidationError('streetAddress');
                            }}
                             required
                         >
@@ -639,17 +740,20 @@ const ManageHotelProfile = () => {
                               </option>
                           ))}
                          </select>
+                                    {validationErrors.province && <div className="invalid-feedback">{validationErrors.province}</div>}
                         </div>
 
                        {selectedProvince && (
                           <div className="mb-3">
                           <label className="form-label">City *</label>
                            <select
-                              className="form-select"
+                              className={`form-select ${validationErrors.city ? 'is-invalid' : ''}`}
                             value={selectedCity}
                              onChange={(e) => {
                                 setSelectedCity(e.target.value);
                               setFormData({...formData, city: e.target.value});
+                              clearValidationError('city');
+                              clearValidationError('streetAddress');
                              }}
                               required
                           >
@@ -660,6 +764,7 @@ const ManageHotelProfile = () => {
                                 </option>
                             ))}
                            </select>
+                                       {validationErrors.city && <div className="invalid-feedback">{validationErrors.city}</div>}
                           </div>
                       )}
 
@@ -689,23 +794,32 @@ const ManageHotelProfile = () => {
                          <label className="form-label">State/Province *</label>
                           <input
                           type="text"
-                           className="form-control"
+                                        className={`form-control ${validationErrors.province ? 'is-invalid' : ''}`}
                             value={formData.province}
-                          onChange={(e) => setFormData({...formData, province: e.target.value})}
+                                       onChange={(e) => {
+                                          setFormData({...formData, province: e.target.value});
+                                          clearValidationError('province');
+                                       }}
                            placeholder="Enter state or province"
                             required
                         />
+                                    {validationErrors.province && <div className="invalid-feedback">{validationErrors.province}</div>}
                        </div>
                         <div className="mb-3">
                         <label className="form-label">City *</label>
                          <input
                             type="text"
-                          className="form-control"
+                                       className={`form-control ${validationErrors.city ? 'is-invalid' : ''}`}
                            value={formData.city}
-                            onChange={(e) => setFormData({...formData, city: e.target.value})}
+                                          onChange={(e) => {
+                                             setFormData({...formData, city: e.target.value});
+                                             clearValidationError('city');
+                                             clearValidationError('streetAddress');
+                                          }}
                           placeholder="Enter city name"
                            required
                           />
+                                    {validationErrors.city && <div className="invalid-feedback">{validationErrors.city}</div>}
                       </div>
                      </>
                     )}
@@ -715,12 +829,16 @@ const ManageHotelProfile = () => {
                       <label className="form-label">Street Address *</label>
                        <input
                           type="text"
-                        className="form-control"
+                                    className={`form-control ${validationErrors.streetAddress ? 'is-invalid' : ''}`}
                          value={formData.streetAddress}
-                          onChange={(e) => setFormData({...formData, streetAddress: e.target.value})}
+                                       onChange={(e) => {
+                                          setFormData({...formData, streetAddress: e.target.value});
+                                          clearValidationError('streetAddress');
+                                       }}
                         placeholder="Enter street address, building number, etc."
                          required
                         />
+                                 {validationErrors.streetAddress && <div className="invalid-feedback">{validationErrors.streetAddress}</div>}
                     </div>
                    ) : null}
 
@@ -728,11 +846,15 @@ const ManageHotelProfile = () => {
                      <label className="form-label">Zip/Postal Code</label>
                       <input
                       type="text"
-                       className="form-control"
+                                  className={`form-control ${validationErrors.zipCode ? 'is-invalid' : ''}`}
                         value={formData.zipCode}
-                      onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
-                       placeholder="Optional"
+                                 onChange={(e) => {
+                                    setFormData({...formData, zipCode: e.target.value});
+                                    clearValidationError('zipCode');
+                                 }}
+                                  placeholder=""
                       />
+                              {validationErrors.zipCode && <div className="invalid-feedback">{validationErrors.zipCode}</div>}
                   </div>
                   
                     {/* Map Location Picker Section */}
@@ -749,15 +871,16 @@ const ManageHotelProfile = () => {
                            latitude: lat.toString(),
                             longitude: lng.toString()
                         });
+                     clearValidationError('location');
                        }}
                         initialLat={formData.latitude ? parseFloat(formData.latitude) : null}
                       initialLng={formData.longitude ? parseFloat(formData.longitude) : null}
                        height="400px"
                         addressToGeocode={addressString}
                     />
-                     {(!formData.latitude || !formData.longitude) && (
+                     {validationErrors.location && (
                         <div className="text-danger small mt-2">
-                        ⚠️ Please fill in the address fields above or click on the map to select a location
+                        {validationErrors.location}
                        </div>
                       )}
                   </div>
@@ -766,18 +889,22 @@ const ManageHotelProfile = () => {
                     <label className="form-label">Total Rooms *</label>
                      <input
                         type="number"
-                      className="form-control"
+                                 className={`form-control ${validationErrors.totalRooms ? 'is-invalid' : ''}`}
                        value={formData.totalRooms}
                         onChange={(e) =>
-                        setFormData({
-                           ...formData,
-                            totalRooms: e.target.value
-                        })
+                                    {
+                                       setFormData({
+                                          ...formData,
+                                          totalRooms: e.target.value
+                                       });
+                                       clearValidationError('totalRooms');
+                                    }
                        }
                         min="1"
                       required
                        placeholder="Number of rooms available in the hotel"
                       />
+                              {validationErrors.totalRooms && <div className="invalid-feedback">{validationErrors.totalRooms}</div>}
                     <small className="text-muted">This determines how many bookings can be made for the same dates</small>
                    </div>
 
@@ -785,18 +912,22 @@ const ManageHotelProfile = () => {
                      <label className="form-label">Maximum Guests *</label>
                       <input
                       type="number"
-                       className="form-control"
+                                  className={`form-control ${validationErrors.capacityGuests ? 'is-invalid' : ''}`}
                         value={formData.capacityGuests}
                       onChange={(e) =>
-                         setFormData({
-                            ...formData,
-                          capacityGuests: e.target.value
-                         })
+                                     {
+                                        setFormData({
+                                           ...formData,
+                                           capacityGuests: e.target.value
+                                        });
+                                        clearValidationError('capacityGuests');
+                                     }
                         }
                       min="1"
                        required
                         placeholder="Maximum number of guests per room"
                     />
+                              {validationErrors.capacityGuests && <div className="invalid-feedback">{validationErrors.capacityGuests}</div>}
                      <small className="text-muted">Maximum number of guests that can stay in this hotel</small>
                     </div>
 
@@ -804,70 +935,82 @@ const ManageHotelProfile = () => {
                       <label className="form-label">Bedrooms *</label>
                     <input
                        type="number"
-                        className="form-control"
+                        className={`form-control ${validationErrors.capacityBedrooms ? 'is-invalid' : ''}`}
                       value={formData.capacityBedrooms}
                        onChange={(e) =>
-                          setFormData({
-                          ...formData,
-                           capacityBedrooms: e.target.value
-                          })
+                                       {
+                                          setFormData({
+                                             ...formData,
+                                             capacityBedrooms: e.target.value
+                                          });
+                                          clearValidationError('capacityBedrooms');
+                                       }
                       }
                        min="1"
                         required
                       placeholder="Number of bedrooms"
                      />
+                       {validationErrors.capacityBedrooms && <div className="invalid-feedback">{validationErrors.capacityBedrooms}</div>}
                     </div>
 
                    <div className="mb-3">
                       <label className="form-label">Bathrooms *</label>
                     <input
                        type="number"
-                        className="form-control"
+                        className={`form-control ${validationErrors.capacityBathrooms ? 'is-invalid' : ''}`}
                       value={formData.capacityBathrooms}
                        onChange={(e) =>
-                          setFormData({
-                          ...formData,
-                           capacityBathrooms: e.target.value
-                          })
+                                       {
+                                          setFormData({
+                                             ...formData,
+                                             capacityBathrooms: e.target.value
+                                          });
+                                          clearValidationError('capacityBathrooms');
+                                       }
                       }
                        min="1"
                         required
                       placeholder="Number of bathrooms"
                      />
+                       {validationErrors.capacityBathrooms && <div className="invalid-feedback">{validationErrors.capacityBathrooms}</div>}
                     </div>
 
                    <div className="mb-3">
                       <label className="form-label">Price Per Night (PKR) *</label>
                     <input
                        type="number"
-                        className="form-control"
+                        className={`form-control ${validationErrors.basePrice ? 'is-invalid' : ''}`}
                       value={formData.basePrice}
                        onChange={(e) =>
-                          setFormData({
-                          ...formData,
-                           basePrice: e.target.value
-                          })
+                                       {
+                                          setFormData({
+                                             ...formData,
+                                             basePrice: e.target.value
+                                          });
+                                          clearValidationError('basePrice');
+                                       }
                       }
                        min="0"
                         step="0.01"
                       required
                        placeholder="Enter price per night in PKR"
                       />
+                              {validationErrors.basePrice && <div className="invalid-feedback">{validationErrors.basePrice}</div>}
                     <small className="text-muted">The base price per night for this hotel</small>
                    </div>
 
-                  <div className="mb-3">
-                     <label className="form-label">Amenities</label>
-                      <div className="d-flex gap-2 mb-2">
+                           <div className="mb-3">
+                               <label className="form-label">Amenities</label>
+                                 <div className="d-flex gap-2 mb-2 amenity-input-row">
                       <input
                          type="text"
-                          className="form-control"
+                                       className="form-control amenity-input-field"
                         value={amenityInput}
                          onChange={(e) => setAmenityInput(e.target.value)}
                           placeholder="Add amenity (e.g., WiFi, Pool, Parking)"
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAmenity())}
                        />
-                        <button type="button" className="btn btn-outline-primary" onClick={addAmenity}>
+                                    <button type="button" className="btn btn-outline-primary amenity-add-btn" onClick={addAmenity}>
                         Add
                        </button>
                       </div>
@@ -894,13 +1037,14 @@ const ManageHotelProfile = () => {
                       <div className="mb-3">
                       <input
                          type="file"
-                          className="form-control"
+                                       className={`form-control ${validationErrors.images ? 'is-invalid' : ''}`}
                         accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                          multiple
                           onChange={handleImageUpload}
                         disabled={uploading}
                          id="hotel-image-upload"
                         />
+                                 {validationErrors.images && <div className="invalid-feedback">{validationErrors.images}</div>}
                       {uploading && (
                          <div className="mt-2">
                             <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
@@ -911,7 +1055,7 @@ const ManageHotelProfile = () => {
                        )}
                       </div>
                     {formData.images.length === 0 && (
-                       <div className="alert alert-warning">
+                       <div className={`alert ${validationErrors.images ? 'alert-danger' : 'alert-warning'}`}>
                           <strong>⚠️ Required:</strong> Please upload at least one image of your hotel.
                       </div>
                      )}
@@ -960,13 +1104,13 @@ const ManageHotelProfile = () => {
                         </div>
                     )}
                    </div>
-                    <div className="d-flex gap-2">
-                    <button type="submit" className="btn btn-primary">
+                    <div className="d-flex gap-2 hotel-form-actions">
+                    <button type="submit" className="btn btn-primary hotel-form-action-btn">
                        {editingHotel ? 'Update Hotel' : 'Create Hotel'}
                       </button>
                     <button
                        type="button"
-                        className="btn btn-secondary"
+                        className="btn btn-secondary hotel-form-action-btn"
                       onClick={() => {
                          setEditingHotel(null);
                           setShowCreateForm(false);
@@ -979,18 +1123,6 @@ const ManageHotelProfile = () => {
               </div>
              </div>
 
-            {editingHotel && (
-               <div className="mt-4">
-                  <button
-                  className="btn btn-secondary"
-                   onClick={() => {
-                      setEditingHotel(null);
-                  }}
-                 >
-                    Cancel Edit
-                </button>
-               </div>
-              )}
           </div>
          )}
         </div>

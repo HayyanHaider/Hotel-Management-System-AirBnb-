@@ -31,7 +31,7 @@ const ReplyToReviews = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
 
-      const hotelsResponse = await axios.get('http://localhost:5000/api/hotels/owner/my-hotels', {
+      const hotelsResponse = await axios.get('/api/hotels/owner/my-hotels', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -57,7 +57,7 @@ const ReplyToReviews = () => {
     try {
       setReviewsLoading(true);
       const token = sessionStorage.getItem('token');
-      const reviewsResponse = await axios.get(`http://localhost:5000/api/reviews/hotel/${hotelId}`, {
+      const reviewsResponse = await axios.get(`/api/reviews/hotel/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (reviewsResponse.data.success) {
@@ -80,7 +80,7 @@ const ReplyToReviews = () => {
     try {
       const token = sessionStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/reviews/${reviewId}/reply`,
+        `/api/reviews/${reviewId}/reply`,
         { text: replyText },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -181,15 +181,15 @@ const ReplyToReviews = () => {
                               onChange={(e) => setReplyText(e.target.value)}
                               placeholder="Write your reply..."
                             />
-                            <div className="d-flex gap-2">
+                            <div className="d-flex gap-2 reply-form-actions">
                               <button
-                                className="btn btn-primary btn-sm"
+                                className="btn btn-primary btn-sm reply-form-action-btn"
                                 onClick={() => handleReply(review._id || review.id)}
                               >
                                 Submit Reply
                               </button>
                               <button
-                                className="btn btn-secondary btn-sm"
+                                className="btn btn-secondary btn-sm reply-form-action-btn"
                                 onClick={() => {
                                   setReplyingTo(null);
                                   setReplyText('');

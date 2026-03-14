@@ -31,7 +31,7 @@ const EditProfile = () => {
      return;
     }
 
-     const response = await axios.get('http://localhost:5000/api/auth/profile', {
+     const response = await axios.get('/api/auth/profile', {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -107,7 +107,7 @@ const EditProfile = () => {
     try {
      const token = sessionStorage.getItem('token');
       const response = await axios.put(
-       'http://localhost:5000/api/auth/profile',
+       '/api/auth/profile',
       {
         name: formData.name.trim(),
          phone: formData.phone.trim()

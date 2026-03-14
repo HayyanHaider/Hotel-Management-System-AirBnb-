@@ -19,7 +19,7 @@ const OwnerBookingManagement = () => {
      setLoading(true);
     const token = sessionStorage.getItem('token');
     
-    const response = await axios.get('http://localhost:5000/api/owner/bookings', {
+    const response = await axios.get('/api/owner/bookings', {
      headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -37,7 +37,7 @@ const OwnerBookingManagement = () => {
    try {
      const token = sessionStorage.getItem('token');
       await axios.put(
-      `http://localhost:5000/api/owner/bookings/${bookingId}/confirm`,
+      `/api/owner/bookings/${bookingId}/confirm`,
        {},
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -59,7 +59,7 @@ const OwnerBookingManagement = () => {
     try {
      const token = sessionStorage.getItem('token');
       await axios.put(
-      `http://localhost:5000/api/owner/bookings/${bookingId}/reject`,
+      `/api/owner/bookings/${bookingId}/reject`,
        {},
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -77,7 +77,7 @@ const OwnerBookingManagement = () => {
    try {
      const token = sessionStorage.getItem('token');
       await axios.put(
-      `http://localhost:5000/api/owner/bookings/${bookingId}/check-in`,
+      `/api/owner/bookings/${bookingId}/check-in`,
        {},
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -95,7 +95,7 @@ const OwnerBookingManagement = () => {
    try {
      const token = sessionStorage.getItem('token');
       await axios.put(
-      `http://localhost:5000/api/owner/bookings/${bookingId}/check-out`,
+      `/api/owner/bookings/${bookingId}/check-out`,
        {},
      {
        headers: { Authorization: `Bearer ${token}` }
@@ -163,9 +163,9 @@ const OwnerBookingManagement = () => {
        <div key={booking._id || booking.id} className="col-12">
         <div className="card">
          <div className="card-body">
-          <div className="d-flex justify-content-between align-items-start">
-           <div>
-            <h5>Booking #{booking._id || booking.id}</h5>
+          <div className="d-flex justify-content-between align-items-start owner-booking-row">
+           <div className="owner-booking-details">
+            <h5 className="owner-booking-title">Booking #{booking._id || booking.id}</h5>
              <p><strong>Hotel:</strong> {booking.hotelId?.name || booking.hotel?.name || 'N/A'}</p>
             <p><strong>Check-in:</strong> {new Date(booking.checkIn).toLocaleDateString()}</p>
              <p><strong>Check-out:</strong> {new Date(booking.checkOut).toLocaleDateString()}</p>
@@ -182,7 +182,7 @@ const OwnerBookingManagement = () => {
              </p>
             )}
            </div>
-           <div className="d-flex flex-column gap-2">
+           <div className="d-flex flex-column gap-2 owner-booking-actions">
             {booking.status === 'pending' && (
              <>
               <button

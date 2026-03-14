@@ -10,6 +10,9 @@
 nav.navbar {
   position: sticky !important;
   top: 0;
+  margin-bottom: 12px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   z-index: 1030; /* Higher z-index to ensure it stays on top */
   background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 40%, #d4d4d4 100%) !important;
   background-attachment: fixed !important;
@@ -34,6 +37,7 @@ nav.navbar {
 
 @media (max-width: 480px) {
   .navbar {
+    margin-bottom: 8px !important;
     z-index: 1050 !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
@@ -43,13 +47,26 @@ nav.navbar {
 .navbar .container,
 .navbar .container-fluid {
   display: flex;
+  flex-wrap: nowrap !important;
   align-items: center;
   justify-content: space-between;
+  padding-top: 0;
+  padding-bottom: 0;
   background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 40%, #d4d4d4 100%) !important;
 }
 
 .navbar-brand {
   flex-shrink: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0 !important;
+  line-height: 1;
+}
+
+.navbar-brand .brand-logo {
+  width: 58px;
+  height: 58px;
+  display: block;
 }
 
 .navbar-nav {
@@ -62,6 +79,16 @@ nav.navbar {
 .dropdown-menu.dropdown-menu-end {
   right: 0;
   left: auto;
+}
+
+.account-dropdown-menu {
+  transform: translateX(18px);
+}
+
+@media (max-width: 768px) {
+  .account-dropdown-menu {
+    transform: translateX(10px);
+  }
 }
 
 /* Dropdown menu item hover effects */
@@ -365,6 +392,10 @@ ul.dropdown-menu {
   display: none;
 }
 
+.mobile-host-dropdown-item {
+  display: none;
+}
+
 /* Tablet Styles */
 @media (max-width: 768px) {
   .navbar-container {
@@ -406,12 +437,23 @@ ul.dropdown-menu {
 
   /* Navbar brand responsive */
   .navbar-brand span {
-    font-size: 22px !important;
+    font-size: 15px !important;
+    margin-left: 4px !important;
+  }
+
+  .navbar-brand .brand-logo {
+    width: 36px;
+    height: 36px;
   }
 }
 
 /* Mobile Styles */
 @media (max-width: 576px) {
+  .navbar .container-fluid {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
   .navbar-container {
     padding: 0 12px;
     height: 56px;
@@ -421,14 +463,29 @@ ul.dropdown-menu {
     font-size: 1.2rem;
   }
 
-  .navbar-brand svg {
-    width: 28px;
-    height: 28px;
+  .navbar-brand .brand-logo {
+    width: 32px;
+    height: 32px;
   }
 
   .navbar-brand span {
-    font-size: 20px !important;
-    margin-left: 6px !important;
+    font-size: 13px !important;
+    margin-left: 3px !important;
+  }
+
+  .mobile-auth-actions {
+    gap: 6px !important;
+    flex-shrink: 0;
+  }
+
+  .mobile-host-cta {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .mobile-auth-actions .dropdown .btn {
+    padding: 4px !important;
   }
 
   .navbar-button {
@@ -457,5 +514,15 @@ ul.dropdown-menu {
   .navbar-button {
     padding: 4px 10px;
     font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 450px) {
+  .mobile-host-cta {
+    display: none !important;
+  }
+
+  .mobile-host-dropdown-item {
+    display: block;
   }
 }

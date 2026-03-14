@@ -23,7 +23,7 @@ const Favorites = () => {
       return;
      }
 
-     const response = await axios.get('http://localhost:5000/api/users/favorites', {
+     const response = await axios.get('/api/users/favorites', {
       headers: { Authorization: `Bearer ${token}` }
      });
 
@@ -43,7 +43,7 @@ const Favorites = () => {
   const removeFavorite = async (hotelId) => {
    try {
      const token = sessionStorage.getItem('token');
-      const response = await axios.delete(`http://localhost:5000/api/users/favorites/${hotelId}`, {
+      const response = await axios.delete(`/api/users/favorites/${hotelId}`, {
        headers: { Authorization: `Bearer ${token}` }
      });
      

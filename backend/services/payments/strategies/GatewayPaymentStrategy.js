@@ -27,6 +27,14 @@ class GatewayPaymentStrategy extends BasePaymentStrategy {
     async execute(payment, context) {
     payment.calculateProcessingFee();
 
+      if (this.method === 'cash_on_arrival') {
+        return {
+          success: true,
+          transactionId: null,
+          message: 'Cash on arrival selected'
+        };
+      }
+
       const result = await PaymentGatewayService.processTransaction(payment, {
       gatewayMetadata: {
          last4: context.cardDetails?.cardNumber?.slice(-4),

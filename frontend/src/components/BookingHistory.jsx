@@ -23,7 +23,7 @@ const BookingHistory = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/bookings/my-bookings', {
+      const response = await axios.get('/api/bookings/my-bookings', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -51,7 +51,7 @@ const BookingHistory = () => {
       }
 
       const response = await axios.put(
-        `http://localhost:5000/api/bookings/${bookingId}/cancel`,
+        `/api/bookings/${bookingId}/cancel`,
         { reason: 'Customer cancellation' },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -85,7 +85,7 @@ const BookingHistory = () => {
     try {
       const token = sessionStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/payments/invoice/${bookingId}`,
+        `/api/payments/invoice/${bookingId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: 'blob'
@@ -200,20 +200,20 @@ const BookingHistory = () => {
           <div className="row g-4">
             {bookings.map((booking) => (
               <div key={booking._id || booking.id} className="col-12">
-                <div className="card shadow-sm" style={{ border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden' }}>
-                  <div className="card-body p-4">
+                <div className="card shadow-sm booking-history-card" style={{ border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div className="card-body p-4 booking-card-body">
                     <div className="row">
                       <div className="col-md-8">
-                        <div className="d-flex align-items-start mb-3">
+                        <div className="d-flex align-items-start mb-3 booking-title-row">
                           <div className="flex-grow-1">
-                            <h5 className="mb-2" style={{ fontSize: '20px', fontWeight: '600', color: '#222' }}>
+                            <h5 className="mb-2 booking-hotel-name" style={{ fontSize: '20px', fontWeight: '600', color: '#222' }}>
                               {booking.hotelId?.name || booking.hotel?.name || 'Hotel'}
                             </h5>
-                            <p className="text-muted mb-3" style={{ fontSize: '14px' }}>
+                            <p className="text-muted mb-3 booking-hotel-address" style={{ fontSize: '14px' }}>
                               {booking.hotelId?.location?.address || booking.hotel?.address || 'Address not available'}
                             </p>
                           </div>
-                          <span className={`badge bg-${getStatusColor(booking.status)}`} style={{ 
+                          <span className={`badge bg-${getStatusColor(booking.status)} booking-status-badge`} style={{ 
                             fontSize: '12px', 
                             padding: '6px 12px',
                             textTransform: 'uppercase',
@@ -223,8 +223,8 @@ const BookingHistory = () => {
                           </span>
                         </div>
 
-                        <div className="row g-3 mb-3">
-                          <div className="col-sm-6 col-md-4">
+                        <div className="booking-meta-grid mb-3">
+                          <div className="booking-meta-item">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Check-in</div>
                             <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
                               {new Date(booking.checkIn).toLocaleDateString('en-US', { 
@@ -234,7 +234,7 @@ const BookingHistory = () => {
                               })}
                             </div>
                           </div>
-                          <div className="col-sm-6 col-md-4">
+                          <div className="booking-meta-item">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Check-out</div>
                             <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
                               {new Date(booking.checkOut).toLocaleDateString('en-US', { 
@@ -244,19 +244,19 @@ const BookingHistory = () => {
                               })}
                             </div>
                           </div>
-                          <div className="col-sm-6 col-md-4">
+                          <div className="booking-meta-item">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Nights</div>
                             <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
                               {booking.nights} {booking.nights === 1 ? 'night' : 'nights'}
                             </div>
                           </div>
-                          <div className="col-sm-6 col-md-4">
+                          <div className="booking-meta-item">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Guests</div>
                             <div style={{ fontSize: '15px', fontWeight: '500', color: '#222' }}>
                               {booking.guests || 1} {booking.guests === 1 ? 'guest' : 'guests'}
                             </div>
                           </div>
-                          <div className="col-sm-6 col-md-4">
+                          <div className="booking-meta-item">
                             <div style={{ fontSize: '13px', color: '#717171', marginBottom: '4px' }}>Total Price</div>
                             <div style={{ fontSize: '16px', fontWeight: '600', color: '#222' }}>
                               PKR {booking.priceSnapshot?.totalPrice || booking.totalPrice || 0}

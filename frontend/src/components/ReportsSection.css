@@ -14,6 +14,7 @@
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  width: 100%;
   align-items: flex-end;
 }
 
@@ -132,7 +133,7 @@
 
 .charts-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 30px;
   margin-bottom: 40px;
 }

@@ -249,7 +249,7 @@ class OwnerBookingService extends BaseService {
                 
                 <p>We look forward to hosting you!</p>
                 
-                  <p>Best regards,<br>The Airbnb Team</p>
+                  <p>Best regards,<br>The BookSmart Team</p>
               </div>
                <div class="footer">
                   <p>This is an automated email. Please do not reply.</p>
@@ -278,7 +278,7 @@ Hotel Address: ${hotel.location?.address || ''}, ${hotel.location?.city || ''}, 
 We look forward to hosting you!
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
         };
 
        await sendEmail(

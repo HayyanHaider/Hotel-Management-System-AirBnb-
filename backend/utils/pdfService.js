@@ -24,7 +24,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       doc.fontSize(28)
          .font('Helvetica-Bold')
          .fillColor('#FF385C')
-         .text('airbnb', 50, 50);
+         .text('BookSmart', 50, 50);
       
       doc.fontSize(20)
          .font('Helvetica-Bold')
@@ -281,7 +281,7 @@ const generateInvoicePDF = (invoiceData, outputPath) => {
       doc.fontSize(9)
          .font('Helvetica')
          .fillColor('#717171')
-         .text('Thank you for choosing Airbnb!', 50, doc.y, { align: 'center' });
+         .text('Thank you for choosing BookSmart!', 50, doc.y, { align: 'center' });
       
       doc.fontSize(7)
          .font('Helvetica')

@@ -1,20 +1,20 @@
-/* Airbnb Color Scheme */
+/* BookSmart Color Scheme */
 :root {
-  --airbnb-red: #FF385C;
-  --airbnb-dark-red: #E31C5F;
-  --airbnb-black: #222222;
-  --airbnb-gray: #717171;
-  --airbnb-light-gray: #DDDDDD;
-  --airbnb-bg-gray: #F7F7F7;
-  --airbnb-white: #FFFFFF;
-  --airbnb-green: #00A699;
-  --airbnb-blue: #0088CC;
+  --BookSmart-red: #FF385C;
+  --BookSmart-dark-red: #E31C5F;
+  --BookSmart-black: #222222;
+  --BookSmart-gray: #717171;
+  --BookSmart-light-gray: #DDDDDD;
+  --BookSmart-bg-gray: #F7F7F7;
+  --BookSmart-white: #FFFFFF;
+  --BookSmart-green: #00A699;
+  --BookSmart-blue: #0088CC;
 }
 
 /* Global Styles */
 body {
   font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: var(--airbnb-black);
+  color: var(--BookSmart-black);
   /* Light background that contrasts with navbar lavender gradient */
   background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 50%, #e8e8e8 100%);
   background-attachment: fixed;
@@ -26,10 +26,22 @@ body {
   overflow-x: hidden;
 }
 
+#root {
+  width: 100%;
+  max-width: 100%;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 /* Custom Button Styles */
-.btn-airbnb {
-  background-color: var(--airbnb-red);
-  border-color: var(--airbnb-red);
+.btn-BookSmart {
+  background-color: var(--BookSmart-red);
+  border-color: var(--BookSmart-red);
   color: white;
   font-weight: 600;
   border-radius: 8px;
@@ -37,27 +49,27 @@ body {
   transition: all 0.2s ease;
 }
 
-.btn-airbnb:hover {
-  background-color: var(--airbnb-dark-red);
-  border-color: var(--airbnb-dark-red);
+.btn-BookSmart:hover {
+  background-color: var(--BookSmart-dark-red);
+  border-color: var(--BookSmart-dark-red);
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 56, 92, 0.3);
 }
 
-.btn-airbnb-outline {
+.btn-BookSmart-outline {
   background-color: transparent;
-  border: 1px solid var(--airbnb-black);
-  color: var(--airbnb-black);
+  border: 1px solid var(--BookSmart-black);
+  color: var(--BookSmart-black);
   font-weight: 600;
   border-radius: 8px;
   padding: 12px 24px;
   transition: all 0.2s ease;
 }
 
-.btn-airbnb-outline:hover {
-  background-color: var(--airbnb-black);
-  border-color: var(--airbnb-black);
+.btn-BookSmart-outline:hover {
+  background-color: var(--BookSmart-black);
+  border-color: var(--BookSmart-black);
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(34, 34, 34, 0.3);
@@ -99,34 +111,34 @@ body {
 }
 
 /* Card Styles */
-.card-airbnb {
+.card-BookSmart {
   border: none;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
-.card-airbnb:hover {
+.card-BookSmart:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
 /* Text Colors */
-.text-airbnb-red {
-  color: var(--airbnb-red) !important;
+.text-BookSmart-red {
+  color: var(--BookSmart-red) !important;
 }
 
-.text-airbnb-gray {
-  color: var(--airbnb-gray) !important;
+.text-BookSmart-gray {
+  color: var(--BookSmart-gray) !important;
 }
 
-.text-airbnb-black {
-  color: var(--airbnb-black) !important;
+.text-BookSmart-black {
+  color: var(--BookSmart-black) !important;
 }
 
 /* Background Colors */
-.bg-airbnb-light {
-  background-color: var(--airbnb-bg-gray) !important;
+.bg-BookSmart-light {
+  background-color: var(--BookSmart-bg-gray) !important;
 }
 
 /* Custom Spacing */
@@ -218,7 +230,7 @@ body {
 .search-bar .form-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--airbnb-black);
+  color: var(--BookSmart-black);
   margin-bottom: 4px;
 }
 
@@ -318,7 +330,7 @@ ul.dropdown-menu,
   width: 20px;
   height: 20px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid var(--airbnb-red);
+  border-top: 2px solid var(--BookSmart-red);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -329,19 +341,19 @@ ul.dropdown-menu,
 }
 
 /* Utility Classes */
-.shadow-airbnb {
+.shadow-BookSmart {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-.shadow-airbnb-lg {
+.shadow-BookSmart-lg {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
 }
 
-.border-radius-airbnb {
+.border-radius-BookSmart {
   border-radius: 12px !important;
 }
 
-.border-radius-airbnb-lg {
+.border-radius-BookSmart-lg {
   border-radius: 16px !important;
 }
 
@@ -362,23 +374,23 @@ ul.dropdown-menu,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--airbnb-gray);
+  background: var(--BookSmart-gray);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--airbnb-black);
+  background: var(--BookSmart-black);
 }
 
 /* Link Styles */
 a {
-  color: var(--airbnb-red);
+  color: var(--BookSmart-red);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--airbnb-dark-red);
+  color: var(--BookSmart-dark-red);
 }
 
 /* Button Reset */
@@ -395,6 +407,6 @@ button {
 
 button:focus,
 button:focus-visible {
-  outline: 2px solid var(--airbnb-red);
+  outline: 2px solid var(--BookSmart-red);
   outline-offset: 2px;
 }

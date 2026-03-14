@@ -102,7 +102,7 @@ const autoConfirmBookings = async () => {
                       
                       <p>We look forward to hosting you!</p>
                       
-                        <p>Best regards,<br>The Airbnb Team</p>
+                        <p>Best regards,<br>The BookSmart Team</p>
                     </div>
                      <div class="footer">
                         <p>This is an automated email. Please do not reply.</p>
@@ -131,7 +131,7 @@ Hotel Address: ${updatedBooking.hotelId?.location?.address || ''}, ${updatedBook
 We look forward to hosting you!
 
 Best regards,
-The Airbnb Team`
+The BookSmart Team`
               };
 
              await sendEmail(
